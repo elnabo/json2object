@@ -7,6 +7,7 @@
 	"version": "1.0.0",
 	"releasenote": "Initial release.",
 	"contributors": ["elnabo", "_ibilon"],
+	"classPath": "src",
 	"dependencies": {
 		"hxjsonast": ""
 	}
