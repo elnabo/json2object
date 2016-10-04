@@ -1,0 +1,13 @@
+{
+	"name": "json2object",
+	"url" : "https://github.com/elnabo/json2object/",
+	"license": "MIT",
+	"tags": ["json", "cross", "macro"],
+	"description": "Initialize object directly from json with macro",
+	"version": "1.0.0",
+	"releasenote": "Initial release.",
+	"contributors": ["elnabo", "_ibilon"],
+	"dependencies": {
+		"hxjsonast": ""
+	}
+}
