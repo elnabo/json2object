@@ -4,6 +4,8 @@ This library uses macro and a typed position aware JSON parsing (hxjsonast : <ht
 
 Incorrect json files or mismatched between the object and the json will yield warnings or exceptions, with information on the position of the problematic parts.
 
+Errors yielded during the initialization are stored in an array `warnings:Array<Error>` for that reason no `warnings` variable can be defined in a object tagged with the `@:build` meta.
+
 ## Installation
 
 ```
@@ -27,6 +29,15 @@ class Main {
 
 		for (g in data.g) {
 			trace(data.g.length);
+		}
+		
+		for (w in data.warnings) {
+			switch(w) {
+				case IncorrectType(variable, expected, pos):
+				case UninitializedVariable(variable, pos):
+				case UnknownVariable(variable, pos):
+				default:
+			}
 		}
 	}
 }
