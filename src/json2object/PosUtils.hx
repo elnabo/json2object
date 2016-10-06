@@ -54,7 +54,9 @@ class PosUtils {
 					s = i;
 				default:
 					i++;
+					e++;
 			}
+			linesInfo.push({number: lineCount, start: s, end: e });
 		}
 	}
 
