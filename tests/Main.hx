@@ -26,6 +26,6 @@ class Main {
 	public static function main() {
 		var r = new haxe.unit.TestRunner();
 		r.add(new TestCase());
-		r.run();
+		Sys.exit(r.run() ? 0 : 1); 
 	}
 }

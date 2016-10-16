@@ -1,6 +1,3 @@
-sudo: required
-dist: trusty
-
 language: haxe
 
 os:
@@ -12,8 +9,7 @@ haxe:
   - development
 
 install:
-  - haxelib install 
   - haxelib install hxjsonast
 
 script:
-  - haxe tests.hxml | grep "OK"
+  - haxe tests.hxml
