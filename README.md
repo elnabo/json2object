@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/elnabo/json2object.svg?branch=master)](https://travis-ci.org/elnabo/json2object)
+
 # json2object - intialized object directly from json
 
 This library uses macro and a typed position aware JSON parsing (hxjsonast : <https://github.com/nadako/hxjsonast/>) to create a initializer from json to every annoted object.
@@ -68,6 +70,6 @@ class SubData {
 
 Only `Int`, `Float`, `Bool`, `String`, `Array` and object prefixed by the `@:build` meta can be parsed into, `Array` is the only generic type supported.
 
-Typedef are supported as long as they refer to a supported type.
+Typedef are supported as long as they refer to a supported type. Abstract are only supported if they refer to a supported type and use the `from` implicit cast.
 
 Anonymous object are not supported.
