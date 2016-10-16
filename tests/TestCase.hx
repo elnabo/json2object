@@ -130,12 +130,14 @@ class TestCase extends haxe.unit.TestCase {
 
 @:build(json2object.DataBuild.loadJson())
 class Data {
-	public var version:String;
-	public var items:Array<Item>;
+	//~ public var version:String;
+	public var version:AbsString;
+	public var items:Inventory;
 	public var items2:Array<TDArray0<TDString>>;
 	public var test:Array<String>;
 	public var item:TDItem;
-	public var u:Int;
+	public var u:AbsInt;
+	//~ public var u:Int;
 	public var v:Float;
 	public var oolean:Bool;
 	public var missing:Bool;
@@ -145,7 +147,7 @@ class Data {
 }
 
 typedef TDItem = Item;
-typedef TDString = String;
+typedef TDString = AbsString;
 typedef TDArray0<T> = Array<T>;
 typedef TDArray1 = Array<String>;
 typedef TDArray2 = Array<TDArray1>;
@@ -157,4 +159,22 @@ class Item {
 
 	public function new() {
 	}
+}
+
+@:forward
+abstract Inventory(Array<Item>) from Array<Item> {
+
+	@:arrayAccess function get(i:Int):Item {
+		return this[i];
+	}
+	@:arrayAccess function arrayWrite(i:Int, item:Item):Item {
+		this[i] = item;
+		return item;
+	}
+}
+
+abstract AbsString(String) from String{
+}
+
+abstract AbsInt(Int) from Int{
 }

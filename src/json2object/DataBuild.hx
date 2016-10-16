@@ -44,6 +44,8 @@ class DataBuild {
 					switch(param) {
 						case TType(t1, p1):
 							params.push(cleanType(t1.get().type));
+						case TAbstract(t1, p1):
+							params.push(cleanType(t1.get().type));
 						case TMono(_):
 						default:
 							params.push(param);
@@ -59,6 +61,13 @@ class DataBuild {
 						return TInst(t1, [for (n in [for (param in params) cleanType(param)]) if (n != null) n]);
 					default: // Never reached
 						return null;
+				}
+			case TAbstract(t, p):
+				switch (t.get().name) {
+					case "Bool","Float","Int":
+						return type;
+					default:
+						return cleanType(t.get().type);
 				}
 			case TAnonymous(_):
 				Context.warning("Anonymous structure are not supported", Context.currentPos());
@@ -150,8 +159,8 @@ class DataBuild {
 					case "Float":
 						{ jtype: "JNumber", name: "Float", params: [] };
 					default:
-						Context.warning(t.get().name + " lack the @:build(json2object.DataBuild.loadJson) meta", Context.currentPos());
-						null;
+						var abstractType = parseType(t.get().type);
+						return abstractType;
 				}
 			default:
 				Context.warning("Only Int/Bool/Float/String/Array and object with the @:build(json2object.DataBuild.loadJson) meta are supported", Context.currentPos());
@@ -243,7 +252,7 @@ class DataBuild {
 								case "JString","JBool":
 									macro ${f_a} = s0;
 								case "JNumber":
-									macro ${f_a} = ${switch(p.name) {
+									macro ${f_a} = ${switch(parsedType.name) {
 										case "Int":
 											macro Std.parseInt(s0);
 										case "Float":
