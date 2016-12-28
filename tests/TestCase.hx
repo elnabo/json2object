@@ -130,14 +130,14 @@ class TestCase extends haxe.unit.TestCase {
 
 @:build(json2object.DataBuild.loadJson())
 class Data {
-	//~ public var version:String;
+	@:jignore
+	public var toBeIgnored:Ignored;
 	public var version:AbsString;
 	public var items:Inventory;
 	public var items2:Array<TDArray0<TDString>>;
 	public var test:Array<String>;
 	public var item:TDItem;
 	public var u:AbsInt;
-	//~ public var u:Int;
 	public var v:Float;
 	public var oolean:Bool;
 	public var missing:Bool;
@@ -145,6 +145,8 @@ class Data {
 	public function new() {
 	}
 }
+
+class Ignored {}
 
 typedef TDItem = Item;
 typedef TDString = AbsString;

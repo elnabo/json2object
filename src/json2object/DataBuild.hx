@@ -228,12 +228,26 @@ class DataBuild {
 		}
 
 		for (field in fields) {
-			switch (field.kind)	{
+			switch (field.kind) {
 				// Only variable are assigned
 				case FVar(a, _):
 					if (field.name == "warnings") {
 						Context.fatalError('Field "warnings" is reserved', Context.currentPos());
 					}
+
+					// Ignore flagged variable
+					var flag = false;
+					for (meta in field.meta) {
+						if (meta.name == ":jignore") {
+							flag = true;
+							cases.push({ expr: null, guard: null, values: [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}] });
+							break;
+						}
+					}
+					if(flag) {
+						continue;
+					}
+
 					switch (a) {
 						case TPath(p):
 							var parsedType = parseType(typePathToType(p));
