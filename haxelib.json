@@ -4,7 +4,7 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Initialize object directly from json with macro",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"releasenote": "Increased abstract support",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
