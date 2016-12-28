@@ -8,6 +8,8 @@ Incorrect json files or mismatched between the object and the json will yield wa
 
 Errors yielded during the initialization are stored in an array `warnings:Array<Error>` for that reason no `warnings` variable can be defined in a object tagged with the `@:build` meta.
 
+Some variables can be ignored by using the `@:jignore` metadata.
+
 ## Installation
 
 ```
@@ -32,7 +34,7 @@ class Main {
 		for (g in data.g) {
 			trace(data.g.length);
 		}
-		
+
 		for (w in data.warnings) {
 			switch(w) {
 				case IncorrectType(variable, expected, pos):
@@ -52,6 +54,8 @@ class Data {
 	public var e:Array<SubData>;
 	public var f:Array<Float>;
 	public var g:Array<Bool>;
+	@:jignored
+	public var h:Math;
 
 	public function new() {
 	}
