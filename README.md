@@ -72,7 +72,7 @@ class SubData {
 
 ## Notes
 
-Only `Int`, `Float`, `Bool`, `String`, `Array` and object prefixed by the `@:build` meta can be parsed into, `Array` is the only generic type supported.
+Only `Int`, `Float`, `Bool`, `String`, `Array`, `Map<String, ?>` and object prefixed by the `@:build` meta can be parsed into, `Array` is the only generic type supported.
 
 Typedef are supported as long as they refer to a supported type. Abstract are only supported if they refer to a supported type and use the `from` implicit cast.
 

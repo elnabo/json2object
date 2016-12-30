@@ -20,12 +20,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-package tests;
+package json2object;
 
-class Main {
-	public static function main() {
-		var r = new haxe.unit.TestRunner();
-		r.add(new TestCase());
-		Sys.exit(r.run() ? 0 : 1);
+class MapFiller<K,V> {
+	public function new() {}
+	public function fromArray(map:Map<K,V>, array:Array<Pair<K,V>>) {
+		for (pair in array) {
+			if (pair.k != null) {
+				map.set(pair.k, pair.v);
+			}
+		}
+		return map;
 	}
 }

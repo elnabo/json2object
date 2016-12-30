@@ -24,9 +24,26 @@ package tests;
 
 import json2object.Error;
 
+typedef Oracle = {
+	map:Map<String, Map<String, Array<Bool>>>,
+	mapSimple:Map<String, Bool>,
+	version:AbsString,
+	items:Array<Dynamic>,
+	items2:Array<TDArray0<TDString>>,
+	test:Array<String>,
+	item:Dynamic,
+	u:AbsInt,
+	v:Float,
+	oolean:Bool,
+	missing:Bool,
+	warnings:Array<Any>
+}
+
 class TestCase extends haxe.unit.TestCase {
 	public function testParsing1() {
 		var json = '{ "version": "0.0.1",
+		"map":{"0":{"k":[true], "0":[false]},"ho":{}},
+		"mapSimple":{"0":true,"ho":false},
 		"test":["U","b"],
 		"item":{"name":"item1", "type":1},
 		"items":[
@@ -41,7 +58,9 @@ class TestCase extends haxe.unit.TestCase {
 
 		var data = Data.fromJson(json, "data.json");
 
-		var oracle = {
+		var oracle:Oracle = {
+			map:["0"=>["k"=>[true], "0"=>[false]],"ho"=>new Map<String,Array<Bool>>()],
+			mapSimple:["0"=>true,"ho"=>false],
 			version:"0.0.1",
 			test:["U","b"],
 			item:{name:"item1",type:null, warnings:[IncorrectType("type","String",null)]},
@@ -61,6 +80,8 @@ class TestCase extends haxe.unit.TestCase {
 
 	public function testParsing2() {
 		var json = '{ "version": "0.0.1",
+		"map":{"0":{"k":[true], "0":[false]},"ho":{}},
+		"mapSimple":{"0":true,"ho":false},
 		"test":["U","b"],
 		"item":{"name":"item1", "type":"1"},
 		"items":[
@@ -75,7 +96,9 @@ class TestCase extends haxe.unit.TestCase {
 
 		var data = Data.fromJson(json, "data.json");
 
-		var oracle = {
+		var oracle:Oracle = {
+			map:["0"=>["k"=>[true], "0"=>[false]],"ho"=>new Map<String,Array<Bool>>()],
+			mapSimple:["0"=>true,"ho"=>false],
 			version:"0.0.1",
 			test:["U","b"],
 			item:{name:"item1",type:"1",warnings:[]},
@@ -93,8 +116,19 @@ class TestCase extends haxe.unit.TestCase {
 		checkOracle(data,oracle);
 	}
 
-	private function checkOracle(data:Data, oracle:Dynamic) {
+	private function checkOracle(data:Data, oracle:Oracle) {
 		assertEquals(data.version, oracle.version);
+		assertEquals(Lambda.count(data.map), Lambda.count(oracle.map));
+		assertEquals(Lambda.count(data.mapSimple), Lambda.count(oracle.mapSimple));
+		var d = data.map.keys();
+		var o = oracle.mapSimple.keys();
+
+		for (i in 0...Lambda.count(oracle.mapSimple)) {
+			var dk = d.next();
+			var ok = o.next();
+			assertEquals(dk, ok);
+			assertEquals(data.mapSimple.get(dk), oracle.mapSimple.get(ok));
+		}
 		assertEquals(data.test.length, oracle.test.length);
 		for (i in 0...data.test.length) {
 			assertEquals(data.test[i],oracle.test[i]);
@@ -130,8 +164,10 @@ class TestCase extends haxe.unit.TestCase {
 
 @:build(json2object.DataBuild.loadJson())
 class Data {
+	public var map:Map<String, Map<String, Array<Bool>>>;
+	public var mapSimple:Map<String, Bool>;
 	@:jignore
-	public var toBeIgnored:Ignored;
+	public var toBeIgnored:Class<Ignored>;
 	public var version:AbsString;
 	public var items:Inventory;
 	public var items2:Array<TDArray0<TDString>>;

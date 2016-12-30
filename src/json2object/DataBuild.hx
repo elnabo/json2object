@@ -25,12 +25,14 @@ package json2object;
 import haxe.macro.Context;
 import haxe.macro.Expr;
 import haxe.macro.Type;
+import haxe.macro.TypeTools;
 using haxe.macro.ExprTools;
 
 /**
  * Contains all required functions to add the loadJson and fromJson function to a class.
  */
 class DataBuild {
+
 	/**
 	 * Verify if the Type (typedef, abstract, class) is supported and replace typdefs by their value.
 	 *
@@ -64,7 +66,7 @@ class DataBuild {
 				}
 			case TAbstract(t, p):
 				switch (t.get().name) {
-					case "Bool","Float","Int":
+					case "Bool","Float","Int","Map":
 						return type;
 					default:
 						return cleanType(t.get().type);
@@ -110,6 +112,11 @@ class DataBuild {
 					params.push(param);
 				}
 				return TInst(t, params);
+			case TAbstract(t, p):
+				if (t.get().name == "Map") {
+					return TAbstract(t, params);
+				}
+				return clean;
 			default:
 				return clean;
 		}
@@ -130,6 +137,8 @@ class DataBuild {
 						{ jtype: "JString", name: "String", params: [] };
 					case "Array":
 						{ jtype: "JArray", name: "Array", params: p };
+					case "IMap", "Map":
+						{ jtype: "JObject", name: "Map", params: p };
 					default:
 						if (p.length > 0) {
 							Context.warning("Variable with a genereic type are not supported", Context.currentPos());
@@ -158,14 +167,84 @@ class DataBuild {
 						{ jtype: "JNumber", name: "Int", params: [] };
 					case "Float":
 						{ jtype: "JNumber", name: "Float", params: [] };
+					case "Map":
+						{ jtype: "JObject", name: "Map", params: p };
 					default:
 						var abstractType = parseType(t.get().type);
 						return abstractType;
 				}
 			default:
-				Context.warning("Only Int/Bool/Float/String/Array and object with the @:build(json2object.DataBuild.loadJson) meta are supported", Context.currentPos());
+				Context.warning("Only Int/Bool/Float/String/Array/Map<String,?> and object with the @:build(json2object.DataBuild.loadJson) meta are supported", Context.currentPos());
 				null;
 		};
+	}
+
+	/**
+	 * Recursively build the assignation of a JSON String Map of a given value type.
+	 *
+	 * Return a recursive macro for string map assignation.
+	 */
+	static function mapParser(keyType:Type, valueType:Type, level=1) {
+		var key = parseType(keyType);
+		var value = parseType(valueType);
+
+		var keyClass = key.name;
+		var valueClass = value.name;
+
+		var forVar = "s" + (level-1);
+		var caseVar = "s" + level;
+
+		var fieldVar = "field" + level;
+		var keyVar = "key" + level;
+		var valueVar = "value" + level;
+
+		var keyExpr = switch (key.jtype) {
+			case "JString": macro $i{fieldVar}.name;
+			default:
+				Context.warning("Map keys must be String", Context.currentPos());
+				null;
+		}
+
+		var valueSubExpr = switch (value.jtype) {
+			case "JNumber":
+				switch(valueClass) {
+					case "Int":
+						macro Std.parseInt($i{caseVar});
+					case "Float":
+						macro Std.parseFloat($i{caseVar});
+					case _:
+						null;
+				};
+			case "JArray":
+				arrayParser(value.params[0], level+1);
+			case "JObject":
+				if (value.name == "Map" || value.name == "IMap") {
+					mapParser(value.params[0], value.params[1], level+1);
+				}
+				else {
+					macro $i{value.name}.loadJson($i{caseVar}, posUtils.convertPosition(field.value.pos), posUtils, obj.warnings);
+				}
+			default:
+				macro $i{caseVar};
+		};
+
+		var valueExpr = macro {
+			switch($i{fieldVar}.value.value) {
+				case $i{value.jtype}($i{caseVar}):
+					$valueSubExpr;
+				default:
+					obj.warnings.push(IncorrectType(field.name, $v{value.name}, posUtils.convertPosition(field.value.pos)));
+					null;
+			};
+		};
+
+		var packs = ["json2object"];
+		var params = [TPType(TypeTools.toComplexType(keyType)), TPType(TypeTools.toComplexType(valueType))];
+		var pair = { name:"Pair", pack:packs, params:params };
+		var map = { name:"Map", pack:[], params:params};
+		var filler = { name:"MapFiller", pack:packs, params:params};
+
+		return macro new $filler().fromArray(new $map(), [ for ($i{fieldVar} in $i{forVar}) new $pair(${keyExpr}, ${valueExpr})]);
 	}
 
 	/**
@@ -182,6 +261,8 @@ class DataBuild {
 
 		var forVar = "s" + (level-1);
 		var caseVar = "s" + level;
+		var content = "content"+level;
+		var n = "n"+level;
 
 		var e:Expr = switch (jtype) {
 			case "JObject":
@@ -200,14 +281,14 @@ class DataBuild {
 			default:
 				macro $i{caseVar};
 		};
-		return macro [ for (n in [ for (content in $i{forVar}) { switch (content.value) {
+		return macro [ for ($i{n} in [ for ($i{content} in $i{forVar}) { switch ($i{content}.value) {
 					case $i{jtype}($i{caseVar}):
 						$e;
 					default:
 						obj.warnings.push(IncorrectType(field.name, $v{name}, posUtils.convertPosition(field.value.pos)));
 						null;
 					}}
-			]) if (n != null) n];
+			]) if ($i{n} != null) $i{n}];
 	}
 
 	/**
@@ -278,7 +359,13 @@ class DataBuild {
 								case "JArray":
 									macro ${f_a} = ${arrayParser(params[0])};
 								default: // JObject
-									macro ${f_a} = $i{objectName}.loadJson(s0, posUtils.convertPosition(field.value.pos), posUtils, obj.warnings);
+									if (objectName == "Map" || objectName == "IMap") {
+										//~ trace(new haxe.macro.Printer().printExpr());
+										macro ${f_a} = ${mapParser(params[0], params[1])};
+									}
+									else {
+										macro ${f_a} = $i{objectName}.loadJson(s0, posUtils.convertPosition(field.value.pos), posUtils, obj.warnings);
+									}
 							}
 
 							// Assign only if the types match.
@@ -365,6 +452,7 @@ class DataBuild {
 			/** Store warnings raised during the assignation of the JSON to this object. */
 			public var warnings = new Array<json2object.Error>();
 		};
+
 
 		switch (loadJsonFunction) {
 			case TAnonymous(f):
