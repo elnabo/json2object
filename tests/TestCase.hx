@@ -36,7 +36,7 @@ typedef Oracle = {
 	v:Float,
 	oolean:Bool,
 	missing:Bool,
-	warnings:Array<Any>
+	warnings:Array<Dynamic>
 }
 
 class TestCase extends haxe.unit.TestCase {
