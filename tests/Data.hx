@@ -19,8 +19,24 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-package json2object;
 
-@:genericBuild(json2object.DataBuilder.build())
-class JsonParser<T> { 
+package tests;
+
+class Data {
+	public var map:Map<String, Map<String, Array<Bool>>>;
+	public var mapSimple:Map<String, Bool>;
+	//~ @:jignore
+	//~ public var toBeIgnored:Class<Ignored>;
+	public var version:AbsString;
+	public var items:Inventory;
+	public var items2:Array<TDArray0<TDString>>;
+	public var test:Array<String>;
+	public var item:TDItem;
+	public var u:AbsInt;
+	public var v:Float;
+	public var oolean:Bool;
+	public var missing:Bool;
+
+	public function new() {
+	}
 }

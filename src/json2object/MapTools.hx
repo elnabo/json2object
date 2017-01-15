@@ -20,6 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+package json2object;
+
 class MapTools<K,V> {
 	public function new() {}
 	public function fromArray(map:Map<K,V>, array:Array<Pair<K,V>>) {

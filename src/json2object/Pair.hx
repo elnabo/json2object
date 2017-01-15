@@ -20,6 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+package json2object;
+
 class Pair<K,V> {
 	public var k:K;
 	public var v:V;
