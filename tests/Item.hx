@@ -23,7 +23,10 @@ SOFTWARE.
 package tests;
 
 class Item {
-	public var name:String;
+	public var name(get,set):String;
+	var _name:String;
+	function get_name() { return _name;}
+	function set_name(s:String) { _name=s; return _name;}
 	public var type:String;
 
 	public function new() {

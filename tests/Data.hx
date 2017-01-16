@@ -27,12 +27,12 @@ class Data {
 	public var mapSimple:Map<String, Bool>;
 	//~ @:jignore
 	//~ public var toBeIgnored:Class<Ignored>;
-	public var version:AbsString;
+	public var version:String;
 	public var items:Inventory;
 	public var items2:Array<TDArray0<TDString>>;
 	public var test:Array<String>;
-	public var item:TDItem;
-	public var u:AbsInt;
+	public var item:Item;
+	public var u:Int;
 	public var v:Float;
 	public var oolean:Bool;
 	public var missing:Bool;

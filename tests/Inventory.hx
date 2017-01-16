@@ -22,14 +22,4 @@ SOFTWARE.
 
 package tests;
 
-@:forward
-abstract Inventory(Array<Item>) from Array<Item> {
-
-	@:arrayAccess function get(i:Int):Item {
-		return this[i];
-	}
-	@:arrayAccess function arrayWrite(i:Int, item:Item):Item {
-		this[i] = item;
-		return item;
-	}
-}
+typedef Inventory = Array<Item>

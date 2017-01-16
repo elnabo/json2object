@@ -2,10 +2,9 @@ language: haxe
 
 os:
   - linux
-  # - osx
 
 haxe:
-  - 3.2.1
+  - 3.4.0
   - development
 
 install:

@@ -55,7 +55,7 @@ class DataBuilder {
 						{ jtype: "JNumber", name: "Float", params: [] };
 					case "Map", "IMap":
 						{ jtype: "JObject", name: "Map", params: p };
-					default: typeToHxjsonAst(type.followWithAbstracts());
+					default: throw "Only Bool/Int/Float/Map abstracts are supported";//typeToHxjsonAst(type.followWithAbstracts());
 				}
 			case TType(t,_):
 				typeToHxjsonAst(type.follow());
@@ -135,7 +135,8 @@ class DataBuilder {
 		};
 
 		var packs = ["json2object"];
-		var params = [TPType(TypeTools.toComplexType(key)), TPType(TypeTools.toComplexType(value))];
+		var params = [TPType(key.toComplexType()), TPType(value.toComplexType())];
+		trace(params);
 		var pair = { name:"Pair", pack:packs, params:params };
 		var map = { name:"Map", pack:[], params:params};
 		var filler = { name:"MapTools", pack:packs, params:params};
@@ -176,6 +177,7 @@ class DataBuilder {
 
 				classParams = [for (p in params) TPType(p.toComplexType())];
 				for (field in t.get().fields.get()) {
+					if (!field.isPublic) { continue; }
 					switch(field.kind) {
 						case FVar(_,_):
 							var f_a = { expr: EField(macro obj, field.name), pos: Context.currentPos() };
@@ -241,6 +243,7 @@ class DataBuilder {
 			}
 		};
 
+		//~ if (parsedName == "Data")
 		//~ for(f in loadJsonClass.fields) { trace(new haxe.macro.Printer().printField(f));}
 		haxe.macro.Context.defineType(loadJsonClass);
 		return haxe.macro.Context.getType(parserName);
