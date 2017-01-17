@@ -26,6 +26,7 @@ import haxe.macro.Expr;
 import haxe.macro.Context;
 import haxe.macro.Type;
 
+using StringTools;
 using haxe.macro.ComplexTypeTools;
 using haxe.macro.ExprTools;
 using haxe.macro.TypeTools;
@@ -35,18 +36,18 @@ typedef ParserInfo = {packs:Array<String>, clsName:String}
 
 class DataBuilder {
 
-	private static function getParserName(parsed:Type) {
+	private static function getParserName(parsed:Type, ?level=1) {
 		var res = "";
 		switch (parsed) {
 			case TInst(t, params):
-				res += "__"+t.get().name;
+				res += "_".lpad("_", level) + t.get().name;
 				for (p in params) {
-					res += getParserName(p.follow());
+					res += getParserName(p.follow(), level+1);
 				}
 			case TAbstract(t, params):
-				res += "__"+t.get().name;
+				res += "_".lpad("_", level) + t.get().name;
 				for (p in params) {
-					res += getParserName(p.follow());
+					res += getParserName(p.follow(), level+1);
 				}
 			default: return res;
 		}
