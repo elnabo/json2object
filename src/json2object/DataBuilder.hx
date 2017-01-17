@@ -35,7 +35,51 @@ typedef ParserInfo = {packs:Array<String>, clsName:String}
 
 class DataBuilder {
 
-	public static function typeToHxjsonAst(type:Type) {
+	private static function getParserName(parsed:Type) {
+		var res = "";
+		switch (parsed) {
+			case TInst(t, params):
+				res += "__"+t.get().name;
+				for (p in params) {
+					res += getParserName(p.follow());
+				}
+			case TAbstract(t, params):
+				res += "__"+t.get().name;
+				for (p in params) {
+					res += getParserName(p.follow());
+				}
+			default: return res;
+		}
+		return res;
+	}
+
+	private static function useParams(type:Type, paramsDef:Array<TypeParameter>, paramsValue:Array<Type>) {
+		for (i in 0...paramsDef.length) {
+			if (type.unify(paramsDef[i].t)) {
+				return paramsValue[i];
+			}
+		}
+		return type;
+	}
+
+	private static function applyParams(type:Type, paramsDef:Array<TypeParameter>, paramsValue:Array<Type>) {
+		var appliedType = useParams(type, paramsDef, paramsValue);
+		var paramsType = switch (type) {
+			case TInst(_, p), TAbstract(_,p), TEnum(_,p), TType(_,p):
+				p.map(function(p:Type) { return useParams(p, paramsDef, paramsValue);});
+			default:
+				return type;
+		}
+		return switch(appliedType) {
+			case TInst(t,_): return TInst(t, paramsType);
+			case TAbstract(t,_): return TAbstract(t, paramsType);
+			case TEnum(t,_): return TEnum(t, paramsType);
+			case TType(t,_): return TType(t, paramsType);
+			default: return type;
+		}
+	}
+
+	private static function typeToHxjsonAst(type:Type) {
 		return switch (type) {
 			case TInst(t, p):
 				switch (t.get().name) {
@@ -63,10 +107,9 @@ class DataBuilder {
 		}
 	}
 
-	public static function parseType(type:Type, info:JsonType, level=0, parser:ParserInfo): Expr {
+	private static function parseType(type:Type, info:JsonType, level=0, parser:ParserInfo): Expr {
 		var caseVar = "s" + level;
 		var cls = { name:parser.clsName, pack:parser.packs, params:[TPType(type.toComplexType())]};
-
 		return switch (info.jtype) {
 			case "JString", "JBool": macro $i{caseVar};
 			case "JNumber": switch (info.name) {
@@ -85,14 +128,14 @@ class DataBuilder {
 					);
 				}
 				else {
-					macro new $cls().loadJson($i{caseVar});
+					macro new $cls(putils).loadJson($i{caseVar});
 				}
 			default: Context.fatalError("Unsupported element: " + info.name, Context.currentPos());
 
 		}
 	}
 
-	public static function handleArray(type:Type, level=1, parser:ParserInfo) : Expr {
+	private static function handleArray(type:Type, level=1, parser:ParserInfo) : Expr {
 		var forVar = "s" + (level-1);
 		var caseVar = "s" + level;
 		var content = "content"+level;
@@ -101,17 +144,18 @@ class DataBuilder {
 		var info = typeToHxjsonAst(type);
 
 		var e = parseType(type, info, level, parser);
-		var errorMsg = "Expected " + info.name +" got: ";
-
-		return macro [for ($i{content} in $i{forVar})  {
+		return macro [ for ($i{n} in [for ($i{content} in $i{forVar})  {
 				switch ($i{content}.value) {
-					case $i{info.jtype}($i{caseVar}): $e;
-					default: throw $v{errorMsg} + $i{content}.value;
+					case $i{info.jtype}($i{caseVar}):
+						${parseType(type, info, level, parser)};
+					default:
+						warnings.push(IncorrectType(field.name, $v{info.name}, putils.convertPosition($i{content}.pos)));
+						null;
 				}
-			}];
+			}]) if ($i{n} != null) $i{n}];
 	}
 
-	public static function handleMap(key:Type, value:Type, level=1, parser:ParserInfo) : Expr {
+	private static function handleMap(key:Type, value:Type, level=1, parser:ParserInfo) : Expr {
 		var forVar = "s" + (level-1);
 		var caseVar = "s" + level;
 		var content = "content"+level;
@@ -122,7 +166,6 @@ class DataBuilder {
 		var valueVar = "value" + level;
 
 		var info = typeToHxjsonAst(value);
-		var errorMsg = "Expected " + info.name +" got: ";
 
 		var keyExpr = macro $i{fieldVar}.name;
 		var valueExpr = macro {
@@ -130,13 +173,13 @@ class DataBuilder {
 				case $i{info.jtype}($i{caseVar}):
 					${parseType(value, info, level, parser)};
 				default:
-					throw $v{errorMsg} + $i{fieldVar}.value.value;
+					warnings.push(IncorrectType(field.name, $v{info.name}, putils.convertPosition($i{fieldVar}.value.pos)));
+					null;
 			}
 		};
 
 		var packs = ["json2object"];
 		var params = [TPType(key.toComplexType()), TPType(value.toComplexType())];
-		trace(params);
 		var pair = { name:"Pair", pack:packs, params:params };
 		var map = { name:"Map", pack:[], params:params};
 		var filler = { name:"MapTools", pack:packs, params:params};
@@ -144,7 +187,7 @@ class DataBuilder {
 
 	}
 
-	public static function handleVariable(type:Type, variable:Expr, parser:ParserInfo) {
+	private static function handleVariable(type:Type, variable:Expr, parser:ParserInfo) {
 		var info = typeToHxjsonAst(type);
 		var cls = { name:parser.clsName, pack:parser.packs, params:[TPType(type.toComplexType())]};
 
@@ -155,22 +198,23 @@ class DataBuilder {
 				case $i{info.jtype}(s0):
 					${variable} = ${expr};
 				default:
-					trace("Expected " +$v{clsname} + " got: " +field.value.value);
+					warnings.push(IncorrectType(field.name, $v{clsname}, putils.convertPosition(field.value.pos)));
 			}
 		};
 	}
 
-	public static function makeParser(c:ClassType, parsedType:Type) {
+	private static function makeParser(c:ClassType, parsedType:Type) {
 		var parsedName:String = null;
 		var classParams:Array<TypeParam>;
 		var cases = new Array<Case>();
-		var parserName = c.name + "__";
+		var parserName = c.name + getParserName(parsedType);
 		var packs:Array<String> = [];
 
 		switch (parsedType) {
 			case TInst(t, params):
 				parsedName = t.get().name;
-				parserName += parsedName;
+				//~ parserName += parsedName;
+
 				packs = t.get().pack;
 
 				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
@@ -180,30 +224,57 @@ class DataBuilder {
 					if (!field.isPublic) { continue; }
 					switch(field.kind) {
 						case FVar(_,_):
+							//~ var fieldType = field.type;
+							var fieldType = applyParams(field.type, t.get().params, params);
+
 							var f_a = { expr: EField(macro obj, field.name), pos: Context.currentPos() };
-							var lil_switch = handleVariable(field.type, f_a, {clsName:c.name, packs:c.pack});
+							var lil_switch = handleVariable(fieldType, f_a, {clsName:c.name, packs:c.pack});
 							cases.push({ expr: lil_switch, guard: null, values: [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}] });
-						default:  // Ignore
+						default: // Ignore
 					}
 				}
 			case TType(t, params):
-				return makeParser(c, parsedType.followWithAbstracts());
+				return makeParser(c, parsedType.follow());
 			case TAbstract(t, params):
-				return makeParser(c, parsedType.followWithAbstracts());
+				//~ if (t.get().name == "Map" || t.get().name == "IMap") {
+					//~ parsedName = t.get().name;
+					//~ parserName += parsedName;
+					//~ packs = t.get().pack;
+
+					//~ try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
+
+				//~ }
+				//~ else {
+					Context.fatalError("Abstract type are not supported", Context.currentPos());
+				//~ }
 			default: trace("Not instance");
 		}
 
-
-		var default_e = macro trace("Error", field.name);
-		var switch_e = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
+		var default_e = macro warnings.push(UnknownVariable(field.name, putils.convertPosition(field.value.pos)));
+		var switch_e:Expr;
+		//~ if (parsedName == "Map" || parsedName == "IMap") {
+			//~ switch_e = macro obj.set(field.name,
+		//~ }
+		//~ else {
+			switch_e = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
+		//~ }
 
 		var cls = { name:parsedName, pack:packs, params:classParams};
 		var new_e = macro var obj = new $cls();
 
+		var t:Type = Context.getType("json2object.ParsingOutput");
+		switch (t) {
+			case TType(a,_): t = TType(a, [parsedType]);
+			default:
+		}
+		var results = {expr:EVars([{name:"results", expr:null, type:t.toComplexType()}]), pos:Context.currentPos()};
 
 		var loadJsonClass = macro class $parserName {
 
-			public function new() {}
+			public var putils:json2object.PosUtils;
+			public function new(?putils:json2object.PosUtils=null) {
+				this.putils = putils;
+			}
 
 			/**
 			 * Create an instance initialized from a hxjsonast.
@@ -214,11 +285,14 @@ class DataBuilder {
 			 * @param parentWarnings List of warnings for the parent class.
 			 */
 			public function loadJson(fields:Array<hxjsonast.Json.JObjectField>) {
+				var warnings:Array<json2object.Error> = [];
+				${results};
 				${new_e};
 				// Assign every JSON fields.
 				for (field in fields) {
 					${switch_e}
 				}
+				results = {object:obj, warnings:warnings};
 				return obj;
 			}
 
@@ -227,7 +301,7 @@ class DataBuilder {
 			 * Return `null` if the JSON is invalid.
 			 */
 			public function fromJson(jsonString:String, filename:String) {
-				//~ var putils = new json2object.PosUtils(jsonString);
+				putils = new json2object.PosUtils(jsonString);
 				try {
 					var json = hxjsonast.Parser.parse(jsonString, filename);
 					switch (json.value) {
@@ -238,7 +312,7 @@ class DataBuilder {
 					}
 				}
 				catch (e:hxjsonast.Error) {
-					throw e;
+					throw json2object.Error.ParserError(e.message, putils.convertPosition(e.pos));
 				}
 			}
 		};
@@ -250,17 +324,17 @@ class DataBuilder {
 	}
 
 	public static function build() {
-		var classType:Type;
-		var className:String = null;
-		var classParams:Array<TypeParam>;
-		var cases = new Array<Case>();
+		//~ var classType:Type;
+		//~ var className:String = null;
+		//~ var classParams:Array<TypeParam>;
+		//~ var cases = new Array<Case>();
 
-		var clsName:String;
+		//~ var clsName:String;
 		switch (Context.getLocalType()) {
 			case TInst(c, [type]):
 				return makeParser(c.get(), type);
 			case t:
-				Context.error("Class expected", Context.currentPos());
+				Context.error("Parsing tools must be a class expected", Context.currentPos());
 				return null;
 		}
 	}

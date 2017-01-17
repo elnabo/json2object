@@ -22,4 +22,4 @@ SOFTWARE.
 
 package tests;
 
-typedef Inventory = Array<Item>
+typedef Inventory<T> = Array<T>

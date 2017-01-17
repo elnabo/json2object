@@ -37,6 +37,8 @@ typedef Oracle = {
 	v:Float,
 	oolean:Bool,
 	missing:Bool,
+	c1:Cl<String>,
+	c2:Cl<Bool>
 	//~ warnings:Array<Dynamic>
 }
 
@@ -94,9 +96,16 @@ class TestCase extends haxe.unit.TestCase {
 		"v":5.5,
 		"items2":[["1","b"],["1","3"]],
 		"oolean":true,
-		"missing":false}';
+		"missing":false,
+		"c1":{"c":"a"},
+		"c2":{"c":false}}';
 
-		var data = new JsonParser<Data>().fromJson(json, "data.json");
+		var data = new JsonParser<Data<String, Bool>>().fromJson(json, "data.json");
+
+		var c1 = new Cl<String>();
+		c1.c = "a";
+		var c2 = new Cl<Bool>();
+		c2.c = false;
 
 		var oracle:Oracle = {
 			map:["0"=>["k"=>[true], "0"=>[false]],"ho"=>new Map<String,Array<Bool>>()],
@@ -113,12 +122,14 @@ class TestCase extends haxe.unit.TestCase {
 			items2:[["1",'b'],["1","3"]],
 			oolean:true,
 			missing:false,
+			c1:c1,
+			c2:c2,
 		};
 			//~ warnings:[]
 		checkOracle(data,oracle);
 	}
 
-	private function checkOracle(data:Data, oracle:Oracle) {
+	private function checkOracle(data:Data<String, Bool>, oracle:Oracle) {
 		assertEquals(data.version, oracle.version);
 		assertEquals(Lambda.count(data.map), Lambda.count(oracle.map));
 		assertEquals(Lambda.count(data.mapSimple), Lambda.count(oracle.mapSimple));
@@ -158,6 +169,8 @@ class TestCase extends haxe.unit.TestCase {
 		}
 		assertEquals(data.oolean, oracle.oolean);
 		assertEquals(data.missing, oracle.missing);
+		assertEquals(data.c1.c, oracle.c1.c);
+		assertEquals(data.c2.c, oracle.c2.c);
 
 		//~ assertEquals(data.warnings.length, oracle.warnings.length);
 	}

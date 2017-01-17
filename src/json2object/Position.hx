@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2017 Guillaume Desquesnes, Valentin Lemière
+Copyright (c) 2016 Guillaume Desquesnes, Valentin Lemière
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,14 +22,12 @@ SOFTWARE.
 
 package json2object;
 
-class MapTools<K,V> {
-	public function new() {}
-	public function fromArray(map:Map<K,V>, array:Array<Pair<K,V>>) {
-		for (pair in array) {
-			if (pair.k != null && pair.v != null) {
-				map.set(pair.k, pair.v);
-			}
-		}
-		return map;
-	}
+/**
+ * A position inside a JSON file.
+ */
+typedef Position = {
+	file:String,
+	line:Line,
+	min:Int,
+	max:Int
 }

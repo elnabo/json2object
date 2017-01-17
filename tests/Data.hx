@@ -22,20 +22,23 @@ SOFTWARE.
 
 package tests;
 
-class Data {
+class Data<T:String, K> {
 	public var map:Map<String, Map<String, Array<Bool>>>;
-	public var mapSimple:Map<String, Bool>;
+	public var mapSimple:Map<String, K>;
 	//~ @:jignore
 	//~ public var toBeIgnored:Class<Ignored>;
-	public var version:String;
-	public var items:Inventory;
+	public var version:T;
+	public var items:Inventory<Item>;
 	public var items2:Array<TDArray0<TDString>>;
-	public var test:Array<String>;
+	//~ public var test:Array<String>;
+	public var test:Inventory<String>;
 	public var item:Item;
 	public var u:Int;
 	public var v:Float;
 	public var oolean:Bool;
 	public var missing:Bool;
+	public var c1:Cl<T>;
+	public var c2:Cl<K>;
 
 	public function new() {
 	}

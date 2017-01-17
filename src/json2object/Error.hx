@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2017 Guillaume Desquesnes, Valentin Lemière
+Copyright (c) 2016 Guillaume Desquesnes, Valentin Lemière
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,14 +22,40 @@ SOFTWARE.
 
 package json2object;
 
-class MapTools<K,V> {
-	public function new() {}
-	public function fromArray(map:Map<K,V>, array:Array<Pair<K,V>>) {
-		for (pair in array) {
-			if (pair.k != null && pair.v != null) {
-				map.set(pair.k, pair.v);
-			}
-		}
-		return map;
-	}
+/**
+ * Error raised during an initialization by JSON.
+ */
+enum Error {
+	/**
+	 * Mismatch between instance type and json type.
+	 *
+	 * @param variable Variable affected.
+	 * @param expected Expected type.
+	 * @param pos Position in the JSON file.
+	 */
+	IncorrectType(variable:String, expected:String, pos:Position);
+
+	/**
+	 * Variable has not been initialized.
+	 *
+	 * @param variable Variable affected.
+	 * @param pos Position in the JSON file.
+	 */
+	UninitializedVariable(variable:String, pos:Position);
+
+	/**
+	 * No instance variable corresponding to this JSON variable.
+	 *
+	 * @param variable Variable affected.
+	 * @param pos Position in the JSON file.
+	 */
+	UnknownVariable(variable:String, pos:Position);
+
+	/**
+	 * Incorrect JSON file formating.
+	 *
+	 * @param message Message raised.
+	 * @param pos Position in the JSON file.
+	 */
+	ParserError(message:String, pos:Position);
 }

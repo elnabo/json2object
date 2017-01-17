@@ -22,14 +22,4 @@ SOFTWARE.
 
 package json2object;
 
-class MapTools<K,V> {
-	public function new() {}
-	public function fromArray(map:Map<K,V>, array:Array<Pair<K,V>>) {
-		for (pair in array) {
-			if (pair.k != null && pair.v != null) {
-				map.set(pair.k, pair.v);
-			}
-		}
-		return map;
-	}
-}
+typedef ParsingOutput<T> = {object:T, warnings:Array<Error>};
