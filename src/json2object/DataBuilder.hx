@@ -144,7 +144,7 @@ class DataBuilder {
 
 		var info = typeToHxjsonAst(type);
 
-		var nullCase = (info.name == "Float" || info.name == "Int")
+		var nullCase = (info.name == "Float" || info.name == "Int" || info.name == "Bool")
 			? macro {
 				warnings.push(IncorrectType(field.name, $v{info.name}, putils.convertPosition($i{content}.pos)));
 				continue;
@@ -176,9 +176,9 @@ class DataBuilder {
 		var valueVar = "value" + level;
 
 		var info = typeToHxjsonAst(value);
-		var nullCase = (info.name == "Float" || info.name == "Int")
+		var nullCase = (info.name == "Float" || info.name == "Int" || info.name == "Bool")
 			? macro {
-				warnings.push(IncorrectType(field.name, $v{info.name}, putils.convertPosition($i{content}.pos)));
+				warnings.push(IncorrectType(field.name, $v{info.name}, putils.convertPosition($i{fieldVar}.value.pos)));
 				continue;
 			}
 			: macro null;
@@ -222,7 +222,7 @@ class DataBuilder {
 		var cls = { name:parser.clsName, pack:parser.packs, params:[TPType(type.toComplexType())]};
 		var clsname = info.name;
 
-		var nullCase = (info.name == "Float" || info.name == "Int")
+		var nullCase = (info.name == "Float" || info.name == "Int" || info.name == "Bool")
 			? macro {
 				warnings.push(IncorrectType(field.name, $v{clsname}, putils.convertPosition(field.value.pos)));
 			}
@@ -304,7 +304,7 @@ class DataBuilder {
 
 				var value = params[1];
 				var info = typeToHxjsonAst(value);
-				var nullCase = (info.name == "Float" || info.name == "Int")
+				var nullCase = (info.name == "Float" || info.name == "Int" || info.name == "Bool")
 					? macro {
 						warnings.push(IncorrectType(field.name, $v{info.name}, putils.convertPosition(field.value.pos)));
 						continue;
@@ -391,7 +391,7 @@ class DataBuilder {
 			}
 		};
 
-		//~ if (parsedName == "Map")
+		//~ if (parsedName == "Data")
 		//~ for(f in loadJsonClass.fields) { trace(new haxe.macro.Printer().printField(f));}
 		haxe.macro.Context.defineType(loadJsonClass);
 		return haxe.macro.Context.getType(parserName);
