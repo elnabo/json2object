@@ -38,7 +38,8 @@ typedef Oracle = {
 	oolean:Bool,
 	missing:Bool,
 	c1:Cl<String>,
-	c2:Cl<Bool>
+	c2:Cl<Bool>,
+	m:Map<Int, String>
 	//~ warnings:Array<Dynamic>
 }
 
@@ -98,9 +99,14 @@ class TestCase extends haxe.unit.TestCase {
 		"oolean":true,
 		"missing":false,
 		"c1":{"c":"a"},
-		"c2":{"c":false}}';
+		"c2":{"c":false},
+		"m":{"0":"0", "a":"tutu"},
+		"a":[1,2,3,"t", null]
+		};';
 
-		var data = new JsonParser<Data<String, Bool>>().fromJson(json, "data.json");
+		var res = new JsonParser<Data<String, Bool>>().fromJson(json, "data.json");
+		var data = res.object;
+		new JsonParser<Map<Int, Bool>>().fromJson('{"0.5":false, "55":true}', "temp.json");
 
 		var c1 = new Cl<String>();
 		c1.c = "a";
@@ -123,6 +129,7 @@ class TestCase extends haxe.unit.TestCase {
 			oolean:true,
 			missing:false,
 			c1:c1,
+			m:[0=>"test", 5=>"tutu"],
 			c2:c2,
 		};
 			//~ warnings:[]

@@ -100,7 +100,7 @@ class DataBuilder {
 						{ jtype: "JNumber", name: "Float", params: [] };
 					case "Map", "IMap":
 						{ jtype: "JObject", name: "Map", params: p };
-					default: throw "Only Bool/Int/Float/Map abstracts are supported";//typeToHxjsonAst(type.followWithAbstracts());
+					default: throw "json2object: Bool/Int/Float/Map are the only abstracts supported, got "+t.get().name;//typeToHxjsonAst(type.followWithAbstracts());
 				}
 			case TType(t,_):
 				typeToHxjsonAst(type.follow());
@@ -116,7 +116,7 @@ class DataBuilder {
 			case "JNumber": switch (info.name) {
 				case "Int": macro Std.parseInt($i{caseVar});
 				case "Float": macro Std.parseFloat($i{caseVar});
-				default : Context.fatalError("Unsupported number format: " + info.name, Context.currentPos());
+				default : Context.fatalError("json2object: Unsupported number format: " + info.name, Context.currentPos());
 			}
 			case "JArray": handleArray(info.params[0].followWithAbstracts(), level+1, parser);
 			case "JObject":
@@ -129,9 +129,10 @@ class DataBuilder {
 					);
 				}
 				else {
-					macro new $cls(putils).loadJson($i{caseVar});
+					//~ macro storeWarnings(new $cls(putils).loadJson($i{caseVar}));
+					macro storeWarnings(new $cls(putils).loadJson($i{caseVar}));
 				}
-			default: Context.fatalError("Unsupported element: " + info.name, Context.currentPos());
+			default: Context.fatalError("json2object: Unsupported element: " + info.name, Context.currentPos());
 
 		}
 	}
@@ -140,20 +141,28 @@ class DataBuilder {
 		var forVar = "s" + (level-1);
 		var caseVar = "s" + level;
 		var content = "content"+level;
-		var n = "n"+level;
 
 		var info = typeToHxjsonAst(type);
 
+		var nullCase = (info.name == "Float" || info.name == "Int")
+			? macro {
+				warnings.push(IncorrectType(field.name, $v{info.name}, putils.convertPosition($i{content}.pos)));
+				continue;
+			}
+			: macro null;
+
 		var e = parseType(type, info, level, parser);
-		return macro [ for ($i{n} in [for ($i{content} in $i{forVar})  {
+		return macro [for ($i{content} in $i{forVar})  {
 				switch ($i{content}.value) {
 					case $i{info.jtype}($i{caseVar}):
 						${parseType(type, info, level, parser)};
+					case JNull:
+						${nullCase};
 					default:
 						warnings.push(IncorrectType(field.name, $v{info.name}, putils.convertPosition($i{content}.pos)));
-						null;
+						continue;
 				}
-			}]) if ($i{n} != null) $i{n}];
+			}];
 	}
 
 	private static function handleMap(key:Type, value:Type, level=1, parser:ParserInfo) : Expr {
@@ -167,15 +176,35 @@ class DataBuilder {
 		var valueVar = "value" + level;
 
 		var info = typeToHxjsonAst(value);
+		var nullCase = (info.name == "Float" || info.name == "Int")
+			? macro {
+				warnings.push(IncorrectType(field.name, $v{info.name}, putils.convertPosition($i{content}.pos)));
+				continue;
+			}
+			: macro null;
 
-		var keyExpr = macro $i{fieldVar}.name;
+		var keyExpr = switch (typeToHxjsonAst(key.follow()).name) {
+			case "String": macro $i{fieldVar}.name;
+			case "Int": macro {
+				if (Std.parseInt($i{fieldVar}.name) != null)
+					Std.parseInt($i{fieldVar}.name);
+				else {
+					warnings.push(IncorrectType(field.name, "Int", putils.convertPosition($i{fieldVar}.namePos)));
+					continue;
+				}
+			};
+			default: Context.fatalError("json2object: Map key can only be String or Int", Context.currentPos());
+		}
+
 		var valueExpr = macro {
 			switch($i{fieldVar}.value.value){
 				case $i{info.jtype}($i{caseVar}):
 					${parseType(value, info, level, parser)};
+				case JNull:
+					${nullCase};
 				default:
 					warnings.push(IncorrectType(field.name, $v{info.name}, putils.convertPosition($i{fieldVar}.value.pos)));
-					null;
+					continue;
 			}
 		};
 
@@ -191,13 +220,21 @@ class DataBuilder {
 	private static function handleVariable(type:Type, variable:Expr, parser:ParserInfo) {
 		var info = typeToHxjsonAst(type);
 		var cls = { name:parser.clsName, pack:parser.packs, params:[TPType(type.toComplexType())]};
-
 		var clsname = info.name;
+
+		var nullCase = (info.name == "Float" || info.name == "Int")
+			? macro {
+				warnings.push(IncorrectType(field.name, $v{clsname}, putils.convertPosition(field.value.pos)));
+			}
+			: macro ${variable} = null;
+
 		var expr = parseType(type, info, parser);
 		return macro {
 			switch(field.value.value){
 				case $i{info.jtype}(s0):
 					${variable} = ${expr};
+				case JNull:
+					${nullCase};
 				default:
 					warnings.push(IncorrectType(field.name, $v{clsname}, putils.convertPosition(field.value.pos)));
 			}
@@ -210,55 +247,85 @@ class DataBuilder {
 		var cases = new Array<Case>();
 		var parserName = c.name + getParserName(parsedType);
 		var packs:Array<String> = [];
+		var parserInfo:ParserInfo = {clsName:c.name, packs:c.pack};
+
+		var loop:Expr;
 
 		switch (parsedType) {
 			case TInst(t, params):
 				parsedName = t.get().name;
-				//~ parserName += parsedName;
-
 				packs = t.get().pack;
 
 				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
 
 				classParams = [for (p in params) TPType(p.toComplexType())];
 				for (field in t.get().fields.get()) {
-					if (!field.isPublic) { continue; }
+					if (!field.isPublic || field.meta.has(":optional")) { continue; }
+					if (field.meta.has(":jignore")) {
+						Context.warning("json2object: @:jignore has been deprecated, please use @:optional instead", Context.currentPos());
+						continue;
+					}
 					switch(field.kind) {
 						case FVar(_,_):
-							//~ var fieldType = field.type;
 							var fieldType = applyParams(field.type, t.get().params, params);
 
 							var f_a = { expr: EField(macro obj, field.name), pos: Context.currentPos() };
-							var lil_switch = handleVariable(fieldType, f_a, {clsName:c.name, packs:c.pack});
+							var lil_switch = handleVariable(fieldType, f_a, parserInfo);
 							cases.push({ expr: lil_switch, guard: null, values: [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}] });
 						default: // Ignore
 					}
 				}
+
+				var default_e = macro warnings.push(UnknownVariable(field.name, putils.convertPosition(field.value.pos)));
+				loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
+
 			case TType(t, params):
 				return makeParser(c, parsedType.follow());
 			case TAbstract(t, params):
-				//~ if (t.get().name == "Map" || t.get().name == "IMap") {
-					//~ parsedName = t.get().name;
-					//~ parserName += parsedName;
-					//~ packs = t.get().pack;
+				if (t.get().name != "Map" && t.get().name != "IMap") {
+					Context.fatalError("json2object: Maps are the only direct abstract type supported got "+t.get().name, Context.currentPos());
+				}
+				parsedName = "Map";
+				classParams = params.map(function(ty:Type) {return TPType(ty.toComplexType());});
+				packs = t.get().pack;
 
-					//~ try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
+				var keyExpr = switch (typeToHxjsonAst(params[0].follow()).name) {
+					case "String": macro field.name;
+					case "Int": macro {
+						if (Std.parseInt(field.name) != null)
+							Std.parseInt(field.name);
+						else {
+							warnings.push(IncorrectType(field.name, "Int", putils.convertPosition(field.namePos)));
+							continue;
+						}
+					};
+					default: Context.fatalError("json2object: Map key can only be String or Int", Context.currentPos());
+				}
 
-				//~ }
-				//~ else {
-					Context.fatalError("Abstract type are not supported", Context.currentPos());
-				//~ }
-			default: trace("Not instance");
+				var value = params[1];
+				var info = typeToHxjsonAst(value);
+				var nullCase = (info.name == "Float" || info.name == "Int")
+					? macro {
+						warnings.push(IncorrectType(field.name, $v{info.name}, putils.convertPosition(field.value.pos)));
+						continue;
+					}
+					: macro null;
+
+				var valueExpr = macro {
+					switch(field.value.value){
+						case $i{info.jtype}(s0):
+							${parseType(value, info, parserInfo)};
+						case JNull:
+							${nullCase};
+						default:
+							warnings.push(IncorrectType(field.name, $v{info.name}, putils.convertPosition(field.value.pos)));
+							continue;
+					}
+				};
+				loop = macro obj.set($keyExpr, $valueExpr);
+			default: Context.fatalError("json2object: "+parsedType.toString()+ " can't be parsed", Context.currentPos());
 		}
 
-		var default_e = macro warnings.push(UnknownVariable(field.name, putils.convertPosition(field.value.pos)));
-		var switch_e:Expr;
-		//~ if (parsedName == "Map" || parsedName == "IMap") {
-			//~ switch_e = macro obj.set(field.name,
-		//~ }
-		//~ else {
-			switch_e = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
-		//~ }
 
 		var cls = { name:parsedName, pack:packs, params:classParams};
 		var new_e = macro var obj = new $cls();
@@ -272,9 +339,16 @@ class DataBuilder {
 
 		var loadJsonClass = macro class $parserName {
 
-			public var putils:json2object.PosUtils;
+
+			private var warnings:Array<json2object.Error> = [];
+			private var putils:json2object.PosUtils;
 			public function new(?putils:json2object.PosUtils=null) {
 				this.putils = putils;
+			}
+
+			private function storeWarnings(output:{object:Dynamic, warnings:Array<json2object.Error>}):Dynamic {
+				warnings = warnings.concat(output.warnings);
+				return output.object;
 			}
 
 			/**
@@ -286,15 +360,14 @@ class DataBuilder {
 			 * @param parentWarnings List of warnings for the parent class.
 			 */
 			public function loadJson(fields:Array<hxjsonast.Json.JObjectField>) {
-				var warnings:Array<json2object.Error> = [];
 				${results};
 				${new_e};
 				// Assign every JSON fields.
 				for (field in fields) {
-					${switch_e}
+					${loop}
 				}
 				results = {object:obj, warnings:warnings};
-				return obj;
+				return results;
 			}
 
 			/** Create an instance initialized from a JSON.
@@ -318,24 +391,18 @@ class DataBuilder {
 			}
 		};
 
-		//~ if (parsedName == "Data")
+		//~ if (parsedName == "Map")
 		//~ for(f in loadJsonClass.fields) { trace(new haxe.macro.Printer().printField(f));}
 		haxe.macro.Context.defineType(loadJsonClass);
 		return haxe.macro.Context.getType(parserName);
 	}
 
 	public static function build() {
-		//~ var classType:Type;
-		//~ var className:String = null;
-		//~ var classParams:Array<TypeParam>;
-		//~ var cases = new Array<Case>();
-
-		//~ var clsName:String;
 		switch (Context.getLocalType()) {
 			case TInst(c, [type]):
 				return makeParser(c.get(), type);
 			case t:
-				Context.error("Parsing tools must be a class expected", Context.currentPos());
+				Context.fatalError("Parsing tools must be a class expected", Context.currentPos());
 				return null;
 		}
 	}

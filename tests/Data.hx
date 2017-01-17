@@ -25,8 +25,8 @@ package tests;
 class Data<T:String, K> {
 	public var map:Map<String, Map<String, Array<Bool>>>;
 	public var mapSimple:Map<String, K>;
-	//~ @:jignore
-	//~ public var toBeIgnored:Class<Ignored>;
+	@:jignore
+	public var toBeIgnored:Class<Ignored>;
 	public var version:T;
 	public var items:Inventory<Item>;
 	public var items2:Array<TDArray0<TDString>>;
@@ -39,6 +39,8 @@ class Data<T:String, K> {
 	public var missing:Bool;
 	public var c1:Cl<T>;
 	public var c2:Cl<K>;
+	public var m:Map<Int, String>;
+	public var a:Array<Int>;
 
 	public function new() {
 	}
