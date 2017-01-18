@@ -129,7 +129,6 @@ class DataBuilder {
 					);
 				}
 				else {
-					//~ macro storeWarnings(new $cls(putils).loadJson($i{caseVar}));
 					macro new $cls(warnings, putils).loadJson($i{caseVar});
 				}
 			default: Context.fatalError("json2object: Unsupported element: " + info.name, Context.currentPos());
@@ -226,13 +225,14 @@ class DataBuilder {
 			? macro {
 				warnings.push(IncorrectType(field.name, $v{clsname}, putils.convertPosition(field.value.pos)));
 			}
-			: macro ${variable} = null;
+			: macro { ${variable} = null; assigned.set(field.name, true); };
 
 		var expr = parseType(type, info, parser);
 		return macro {
 			switch(field.value.value){
 				case $i{info.jtype}(s0):
 					${variable} = ${expr};
+					assigned.set(field.name, true);
 				case JNull:
 					${nullCase};
 				default:
@@ -249,6 +249,7 @@ class DataBuilder {
 		var packs:Array<String> = [];
 		var parserInfo:ParserInfo = {clsName:c.name, packs:c.pack};
 
+		var names:Array<Expr> = [];
 		var loop:Expr;
 
 		switch (parsedType) {
@@ -267,6 +268,7 @@ class DataBuilder {
 					}
 					switch(field.kind) {
 						case FVar(_,_):
+							names.push(macro { assigned.set($v{field.name}, false);});
 							var fieldType = applyParams(field.type, t.get().params, params);
 
 							var f_a = { expr: EField(macro object, field.name), pos: Context.currentPos() };
@@ -357,11 +359,21 @@ class DataBuilder {
 			 * @param parentWarnings List of warnings for the parent class.
 			 */
 			public function loadJson(fields:Array<hxjsonast.Json.JObjectField>) {
+				var assigned = new Map<String,Bool>();
+				$b{names}
 				${new_e};
 				// Assign every JSON fields.
 				for (field in fields) {
 					${loop}
 				}
+
+				// Verify that all variables are assigned.
+				for (s in assigned.keys()) {
+					if (!assigned[s]) {
+						warnings.push(UninitializedVariable(s, null));
+					}
+				}
+
 				return object;
 			}
 

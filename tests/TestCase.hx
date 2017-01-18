@@ -100,14 +100,12 @@ class TestCase extends haxe.unit.TestCase {
 		"missing":false,
 		"c1":{"c":"a"},
 		"c2":{"c":false},
-		"m":{"0":"0", "a":"tutu"},
-		"a":[1,2,3,"t", null]
+		"m":{"0":"0", "a":"tutu"}
 		};';
+		//~ "a":[1,2,3,"t", null]
 
 		var warnings = [];
 		var data = new JsonParser<Data<String, Bool>>(warnings).fromJson(json, "data.json");
-		trace(data);
-		trace(warnings);
 		new JsonParser<Map<Int, Bool>>().fromJson('{"0.5":false, "55":true}', "temp.json");
 
 		var c1 = new Cl<String>();
