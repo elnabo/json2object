@@ -104,8 +104,10 @@ class TestCase extends haxe.unit.TestCase {
 		"a":[1,2,3,"t", null]
 		};';
 
-		var res = new JsonParser<Data<String, Bool>>().fromJson(json, "data.json");
-		var data = res.object;
+		var warnings = [];
+		var data = new JsonParser<Data<String, Bool>>(warnings).fromJson(json, "data.json");
+		trace(data);
+		trace(warnings);
 		new JsonParser<Map<Int, Bool>>().fromJson('{"0.5":false, "55":true}', "temp.json");
 
 		var c1 = new Cl<String>();

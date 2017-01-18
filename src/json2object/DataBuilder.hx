@@ -130,7 +130,7 @@ class DataBuilder {
 				}
 				else {
 					//~ macro storeWarnings(new $cls(putils).loadJson($i{caseVar}));
-					macro storeWarnings(new $cls(putils).loadJson($i{caseVar}));
+					macro new $cls(warnings, putils).loadJson($i{caseVar});
 				}
 			default: Context.fatalError("json2object: Unsupported element: " + info.name, Context.currentPos());
 
@@ -269,7 +269,7 @@ class DataBuilder {
 						case FVar(_,_):
 							var fieldType = applyParams(field.type, t.get().params, params);
 
-							var f_a = { expr: EField(macro obj, field.name), pos: Context.currentPos() };
+							var f_a = { expr: EField(macro object, field.name), pos: Context.currentPos() };
 							var lil_switch = handleVariable(fieldType, f_a, parserInfo);
 							cases.push({ expr: lil_switch, guard: null, values: [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}] });
 						default: // Ignore
@@ -322,33 +322,30 @@ class DataBuilder {
 							continue;
 					}
 				};
-				loop = macro obj.set($keyExpr, $valueExpr);
+				loop = macro object.set($keyExpr, $valueExpr);
 			default: Context.fatalError("json2object: "+parsedType.toString()+ " can't be parsed", Context.currentPos());
 		}
 
 
 		var cls = { name:parsedName, pack:packs, params:classParams};
-		var new_e = macro var obj = new $cls();
+		var new_e = macro object = new $cls();
 
-		var t:Type = Context.getType("json2object.ParsingOutput");
-		switch (t) {
-			case TType(a,_): t = TType(a, [parsedType]);
-			default:
-		}
-		var results = {expr:EVars([{name:"results", expr:null, type:t.toComplexType()}]), pos:Context.currentPos()};
+		var obj:Field = {doc:null,
+				access:[APublic],
+				kind:FVar(parsedType.toComplexType(), null),
+				name:"object",
+				pos:Context.currentPos(),
+				meta:null,
+				};
 
 		var loadJsonClass = macro class $parserName {
 
-
-			private var warnings:Array<json2object.Error> = [];
+			public var warnings:Array<json2object.Error>;
 			private var putils:json2object.PosUtils;
-			public function new(?putils:json2object.PosUtils=null) {
-				this.putils = putils;
-			}
 
-			private function storeWarnings(output:{object:Dynamic, warnings:Array<json2object.Error>}):Dynamic {
-				warnings = warnings.concat(output.warnings);
-				return output.object;
+			public function new(?warnings:Array<json2object.Error>=null,?putils:json2object.PosUtils=null) {
+				this.warnings = (warnings == null) ? [] : warnings;
+				this.putils = putils;
 			}
 
 			/**
@@ -360,14 +357,12 @@ class DataBuilder {
 			 * @param parentWarnings List of warnings for the parent class.
 			 */
 			public function loadJson(fields:Array<hxjsonast.Json.JObjectField>) {
-				${results};
 				${new_e};
 				// Assign every JSON fields.
 				for (field in fields) {
 					${loop}
 				}
-				results = {object:obj, warnings:warnings};
-				return results;
+				return object;
 			}
 
 			/** Create an instance initialized from a JSON.
@@ -391,6 +386,7 @@ class DataBuilder {
 			}
 		};
 
+		loadJsonClass.fields.push(obj);
 		//~ if (parsedName == "Data")
 		//~ for(f in loadJsonClass.fields) { trace(new haxe.macro.Printer().printField(f));}
 		haxe.macro.Context.defineType(loadJsonClass);
