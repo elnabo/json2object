@@ -20,13 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-package json2object;
+package tests;
 
-class Pair<K,V> {
-	public var k:K;
-	public var v:V;
-	public function new (k:K, v:V) {
-		this.k = k;
-		this.v = v;
-	}
+abstract AbsInt(Int) from Int{
 }

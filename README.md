@@ -2,13 +2,9 @@
 
 # json2object - intialized object directly from json
 
-This library uses macro and a typed position aware JSON parsing (hxjsonast : <https://github.com/nadako/hxjsonast/>) to create a initializer from json to every annoted object.
+This library uses macro and a typed position aware JSON parsing (hxjsonast : <https://github.com/nadako/hxjsonast/>) to create a parser from json to every supportable object.
 
 Incorrect json files or mismatched between the object and the json will yield warnings or exceptions, with information on the position of the problematic parts.
-
-Errors yielded during the initialization are stored in an array `warnings:Array<Error>` for that reason no `warnings` variable can be defined in a object tagged with the `@:build` meta.
-
-Some variables can be ignored by using the `@:jignore` metadata.
 
 ## Installation
 
@@ -17,10 +13,47 @@ haxelib install json2object
 ```
 
 ## Usage
+
+### Using the parser
 ```haxe
+var parser = new json2object.JsonParser<Cls>(); // Creating a parser for Cls class
+parser.fromJson(jsonString, filename); // Parsing a string. A filename is specified for errors management
+var data:Cls = parser.data; // Access the parsed class
+var warnings:Array<json2object.Error> = parser.warnings; // Access the potential warnings
+```
+
+It is also possible to populate an existing Array with the warnings
+```haxe
+var warnings = new Array<json2object.Error>();
+var data:Cls = new json2object.JsonParser<Cls>(warnings).fromJson(jsonString, filename);
+```
+
+### Constraints in the parsing
+
+- Variables defined with the `@:jignored` metada will be ignored by the parser.
+- Variables defined with the `@:optional` metada wont trigger warnings if missing.
+- Private variables are ignored.
+
+### Supported types
+
+- Basic types (`Int`, `Float`, `Bool`, `String`)
+- `Null` and `Array`
+- `Map` with `Int` or `String` keys
+- class object (generic are supported)
+- typedef of a supported types
+
+Anonymous types and abstracts are not supported unless specificaly precised.
+
+## Example
+```haxe
+import json2object.JsonParser;
+
 class Main {
 	static function main() {
-		var data = Data.fromJson('{"a": "a", "b": {"c": "c"}, "e": [ { "c": "1" }, { "c": "2" } ], "f": [], "g": [ true ] }', "file.json");
+		var parser = new JsonParser<Data>();
+		var data = parser.fromJson('{"a": "a", "b": {"c": "c"}, "e": [ { "c": "1" }, { "c": "2" } ], "f": [], "g": [ true ] }', "file.json");
+		var warnings = parser.warnings;
+
 		trace(data.a);
 		trace(data.b.c);
 
@@ -35,7 +68,7 @@ class Main {
 			trace(data.g.length);
 		}
 
-		for (w in data.warnings) {
+		for (w in warnings) {
 			switch(w) {
 				case IncorrectType(variable, expected, pos):
 				case UninitializedVariable(variable, pos):
@@ -46,12 +79,11 @@ class Main {
 	}
 }
 
-@:build(json2object.DataBuild.loadJson())
 class Data {
 	public var a:String;
 	public var b:SubData;
 	public var d:Array<Int>;
-	public var e:Array<SubData>;
+	public var e:Array<Map<String, String>>;
 	public var f:Array<Float>;
 	public var g:Array<Bool>;
 	@:jignored
@@ -61,7 +93,6 @@ class Data {
 	}
 }
 
-@:build(json2object.DataBuild.loadJson())
 class SubData {
 	public var c:String;
 
@@ -69,11 +100,3 @@ class SubData {
 	}
 }
 ```
-
-## Notes
-
-Only `Int`, `Float`, `Bool`, `String`, `Array`, `Map<String, ?>` and object prefixed by the `@:build` meta can be parsed into, `Array` is the only generic type supported.
-
-Typedef are supported as long as they refer to a supported type. Abstract are only supported if they refer to a supported type and use the `from` implicit cast.
-
-Anonymous object are not supported.

@@ -22,11 +22,4 @@ SOFTWARE.
 
 package json2object;
 
-class Pair<K,V> {
-	public var k:K;
-	public var v:V;
-	public function new (k:K, v:V) {
-		this.k = k;
-		this.v = v;
-	}
-}
+typedef ParsingOutput<T> = {object:T, warnings:Array<Error>};

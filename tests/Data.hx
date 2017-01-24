@@ -20,13 +20,29 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-package json2object;
+package tests;
 
-class Pair<K,V> {
-	public var k:K;
-	public var v:V;
-	public function new (k:K, v:V) {
-		this.k = k;
-		this.v = v;
+class Data<T:String, K> {
+	public var map:Map<String, Map<String, Array<Bool>>>;
+	public var mapSimple:Map<String, K>;
+	@:jignored
+	public var toBeIgnored:Class<Ignored>;
+	public var version:T;
+	public var items:Inventory<Item>;
+	public var items2:Array<TDArray0<TDString>>;
+	public var test:Inventory<String>;
+	public var item:Item;
+	public var u:Int;
+	public var v:Float;
+	public var oolean:Bool;
+	public var missing:Bool;
+	public var c1:Cl<T>;
+	public var c2:Cl<K>;
+	public var m:Map<Int, String>;
+	public var a:Array<Int>;
+	@:optional
+	public var optional:Int;
+
+	public function new() {
 	}
 }

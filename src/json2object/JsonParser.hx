@@ -19,14 +19,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-
 package json2object;
 
-class Pair<K,V> {
-	public var k:K;
-	public var v:V;
-	public function new (k:K, v:V) {
-		this.k = k;
-		this.v = v;
-	}
+@:genericBuild(json2object.DataBuilder.build())
+class JsonParser<T> { 
 }

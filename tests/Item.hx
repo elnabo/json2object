@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2016 Guillaume Desquesnes, Valentin Lemière
+Copyright (c) 2017 Guillaume Desquesnes, Valentin Lemière
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -20,16 +20,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-package json2object;
+package tests;
 
-class MapFiller<K,V> {
-	public function new() {}
-	public function fromArray(map:Map<K,V>, array:Array<Pair<K,V>>) {
-		for (pair in array) {
-			if (pair.k != null) {
-				map.set(pair.k, pair.v);
-			}
-		}
-		return map;
+class Item {
+	public var name(get,set):String;
+	var _name:String;
+	function get_name() { return _name;}
+	function set_name(s:String) { _name=s; return _name;}
+	public var type:String;
+
+	public function new() {
 	}
 }

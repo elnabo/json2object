@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2016 Guillaume Desquesnes, Valentin Lemière
+Copyright (c) 2017 Guillaume Desquesnes, Valentin Lemière
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,21 +22,24 @@ SOFTWARE.
 
 package tests;
 
+import json2object.JsonParser;
 import json2object.Error;
 
 typedef Oracle = {
 	map:Map<String, Map<String, Array<Bool>>>,
 	mapSimple:Map<String, Bool>,
-	version:AbsString,
+	version:Null<String>,
 	items:Array<Dynamic>,
 	items2:Array<TDArray0<TDString>>,
 	test:Array<String>,
 	item:Dynamic,
-	u:AbsInt,
+	u:Int,
 	v:Float,
 	oolean:Bool,
 	missing:Bool,
-	warnings:Array<Dynamic>
+	c1:Cl<String>,
+	c2:Cl<Bool>,
+	m:Map<Int, String>
 }
 
 class TestCase extends haxe.unit.TestCase {
@@ -47,6 +50,7 @@ class TestCase extends haxe.unit.TestCase {
 		"test":["U","b"],
 		"item":{"name":"item1", "type":1},
 		"items":[
+
 			{"name":"item2", "type":2},
 			{"name":"b", "type":"y"}
 		],
@@ -54,27 +58,41 @@ class TestCase extends haxe.unit.TestCase {
 		"v":5.5,
 		"items2":[[1,"b"],["1","3"]],
 		"oolean":"true",
-		"hey":"hu?"}';
+		"hey":"hu?",
+		"c1":{"c":"a"},
+		"c2":{"c":false},
+		"m":{"0":"0", "a":"tutu"},
+		"a":[1,2,3,"t", null]}';
 
-		var data = Data.fromJson(json, "data.json");
+		var parser = new JsonParser<Data<String, Bool>>();
+		var data = parser.fromJson(json, "data.json");
+		var warnings = parser.warnings;
+
+		var c1 = new Cl<String>();
+		c1.c = "a";
+		var c2 = new Cl<Bool>();
+		c2.c = false;
 
 		var oracle:Oracle = {
 			map:["0"=>["k"=>[true], "0"=>[false]],"ho"=>new Map<String,Array<Bool>>()],
 			mapSimple:["0"=>true,"ho"=>false],
 			version:"0.0.1",
 			test:["U","b"],
-			item:{name:"item1",type:null, warnings:[IncorrectType("type","String",null)]},
+			item:{name:"item1",type:null},
 			items: [
-				{name:"item2",type:null,warnings:[IncorrectType("type","String",null)]},
-				{name:"b",type:"y",warnings:[]}
+				{name:"item2",type:null},
+				{name:"b",type:"y"}
 				],
 			u:5,
 			v:5.5,
 			items2: [['b'],["1","3"]],
 			oolean: null,
 			missing:null,
-			warnings:[IncorrectType("type","String",null), IncorrectType("type", "String", null), IncorrectType("items2", "String", null), IncorrectType("oolean", "Bool", null), UnknownVariable("hey", null),UninitializedVariable("missing", null)]
+			c1:c1,
+			m:[0=>"test", 5=>"tutu"],
+			c2:c2
 		}
+		assertEquals(warnings.length, 12);
 		checkOracle(data, oracle);
 	}
 
@@ -92,9 +110,22 @@ class TestCase extends haxe.unit.TestCase {
 		"v":5.5,
 		"items2":[["1","b"],["1","3"]],
 		"oolean":true,
-		"missing":false}';
+		"missing":false,
+		"c1":{"c":"a"},
+		"c2":{"c":false},
+		"m":{"0":"0", "5":"tutu"},
+		"a":[1,2,3]
+		};';
 
-		var data = Data.fromJson(json, "data.json");
+		var warnings = [];
+		var data = new JsonParser<Data<String, Bool>>(warnings).fromJson(json, "data.json");
+		new JsonParser<Map<Int, Bool>>().fromJson('{"0.5":false, "55":true}', "temp.json");
+
+		assertEquals(warnings.length, 0);
+		var c1 = new Cl<String>();
+		c1.c = "a";
+		var c2 = new Cl<Bool>();
+		c2.c = false;
 
 		var oracle:Oracle = {
 			map:["0"=>["k"=>[true], "0"=>[false]],"ho"=>new Map<String,Array<Bool>>()],
@@ -111,16 +142,18 @@ class TestCase extends haxe.unit.TestCase {
 			items2:[["1",'b'],["1","3"]],
 			oolean:true,
 			missing:false,
-			warnings:[]
+			c1:c1,
+			m:[0=>"test", 5=>"tutu"],
+			c2:c2,
 		};
 		checkOracle(data,oracle);
 	}
 
-	private function checkOracle(data:Data, oracle:Oracle) {
+	private function checkOracle(data:Data<String, Bool>, oracle:Oracle) {
 		assertEquals(data.version, oracle.version);
 		assertEquals(Lambda.count(data.map), Lambda.count(oracle.map));
 		assertEquals(Lambda.count(data.mapSimple), Lambda.count(oracle.mapSimple));
-		var d = data.map.keys();
+		var d = data.mapSimple.keys();
 		var o = oracle.mapSimple.keys();
 
 		for (i in 0...Lambda.count(oracle.mapSimple)) {
@@ -136,13 +169,11 @@ class TestCase extends haxe.unit.TestCase {
 
 		assertEquals(data.item.name, oracle.item.name);
 		assertEquals(data.item.type, oracle.item.type);
-		assertEquals(data.item.warnings.length, oracle.item.warnings.length);
 
 		assertEquals(data.items.length, oracle.items.length);
 		for (i in 0...data.items.length) {
 			assertEquals(data.items[i].name, oracle.items[i].name);
 			assertEquals(data.items[i].type, oracle.items[i].type);
-			assertEquals(data.items[i].warnings.length, oracle.items[i].warnings.length);
 		}
 		assertEquals(data.u, oracle.u);
 		assertEquals(data.v, oracle.v);
@@ -156,63 +187,7 @@ class TestCase extends haxe.unit.TestCase {
 		}
 		assertEquals(data.oolean, oracle.oolean);
 		assertEquals(data.missing, oracle.missing);
-
-		assertEquals(data.warnings.length, oracle.warnings.length);
+		assertEquals(data.c1.c, oracle.c1.c);
+		assertEquals(data.c2.c, oracle.c2.c);
 	}
-}
-
-
-@:build(json2object.DataBuild.loadJson())
-class Data {
-	public var map:Map<String, Map<String, Array<Bool>>>;
-	public var mapSimple:Map<String, Bool>;
-	@:jignore
-	public var toBeIgnored:Class<Ignored>;
-	public var version:AbsString;
-	public var items:Inventory;
-	public var items2:Array<TDArray0<TDString>>;
-	public var test:Array<String>;
-	public var item:TDItem;
-	public var u:AbsInt;
-	public var v:Float;
-	public var oolean:Bool;
-	public var missing:Bool;
-
-	public function new() {
-	}
-}
-
-class Ignored {}
-
-typedef TDItem = Item;
-typedef TDString = AbsString;
-typedef TDArray0<T> = Array<T>;
-typedef TDArray1 = Array<String>;
-typedef TDArray2 = Array<TDArray1>;
-
-@:build(json2object.DataBuild.loadJson())
-class Item {
-	public var name:String;
-	public var type:String;
-
-	public function new() {
-	}
-}
-
-@:forward
-abstract Inventory(Array<Item>) from Array<Item> {
-
-	@:arrayAccess function get(i:Int):Item {
-		return this[i];
-	}
-	@:arrayAccess function arrayWrite(i:Int, item:Item):Item {
-		this[i] = item;
-		return item;
-	}
-}
-
-abstract AbsString(String) from String{
-}
-
-abstract AbsInt(Int) from Int{
 }
