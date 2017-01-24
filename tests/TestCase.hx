@@ -28,7 +28,7 @@ import json2object.Error;
 typedef Oracle = {
 	map:Map<String, Map<String, Array<Bool>>>,
 	mapSimple:Map<String, Bool>,
-	version:String,
+	version:Null<String>,
 	items:Array<Dynamic>,
 	items2:Array<TDArray0<TDString>>,
 	test:Array<String>,

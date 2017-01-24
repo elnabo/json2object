@@ -100,6 +100,8 @@ class DataBuilder {
 						{ jtype: "JNumber", name: "Float", params: [] };
 					case "Map", "IMap":
 						{ jtype: "JObject", name: "Map", params: p };
+					case "Null":
+						typeToHxjsonAst(p[0].follow());
 					default: throw "json2object: Bool/Int/Float/Map are the only abstracts supported, got "+t.get().name;//typeToHxjsonAst(type.followWithAbstracts());
 				}
 			case TType(t,_):
@@ -261,14 +263,14 @@ class DataBuilder {
 
 				classParams = [for (p in params) TPType(p.toComplexType())];
 				for (field in t.get().fields.get()) {
-					if (!field.isPublic || field.meta.has(":optional")) { continue; }
-					if (field.meta.has(":jignore")) {
-						Context.warning("json2object: @:jignore has been deprecated, please use @:optional instead", Context.currentPos());
-						continue;
-					}
+					if (!field.isPublic || field.meta.has(":jignore")) { continue; }
+					//~ if (field.meta.has(":optional")) {
+						//~ Context.warning("json2object: @:jignore has been deprecated, please use @:optional instead", Context.currentPos());
+						//~ continue;
+					//~ }
 					switch(field.kind) {
 						case FVar(_,_):
-							names.push(macro { assigned.set($v{field.name}, false);});
+							names.push(macro { assigned.set($v{field.name}, $v{field.meta.has(":optional")});});
 							var fieldType = applyParams(field.type, t.get().params, params);
 
 							var f_a = { expr: EField(macro object, field.name), pos: Context.currentPos() };

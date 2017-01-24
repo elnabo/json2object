@@ -30,7 +30,6 @@ class Data<T:String, K> {
 	public var version:T;
 	public var items:Inventory<Item>;
 	public var items2:Array<TDArray0<TDString>>;
-	//~ public var test:Array<String>;
 	public var test:Inventory<String>;
 	public var item:Item;
 	public var u:Int;
@@ -41,6 +40,8 @@ class Data<T:String, K> {
 	public var c2:Cl<K>;
 	public var m:Map<Int, String>;
 	public var a:Array<Int>;
+	@:optional
+	public var optional:Int;
 
 	public function new() {
 	}
