@@ -120,7 +120,7 @@ class DataBuilder {
 				case "Float": macro Std.parseFloat($i{caseVar});
 				default : Context.fatalError("json2object: Unsupported number format: " + info.name, Context.currentPos());
 			}
-			case "JArray": handleArray(info.params[0].followWithAbstracts(), level+1, parser);
+			case "JArray": handleArray(info.params[0], level+1, parser);
 			case "JObject":
 				if (info.name == "IMap" || info.name == "Map") {
 					handleMap(
@@ -263,11 +263,8 @@ class DataBuilder {
 
 				classParams = [for (p in params) TPType(p.toComplexType())];
 				for (field in t.get().fields.get()) {
-					if (!field.isPublic || field.meta.has(":jignore")) { continue; }
-					//~ if (field.meta.has(":optional")) {
-						//~ Context.warning("json2object: @:jignore has been deprecated, please use @:optional instead", Context.currentPos());
-						//~ continue;
-					//~ }
+					if (!field.isPublic || field.meta.has(":jignored")) { continue; }
+
 					switch(field.kind) {
 						case FVar(_,_):
 							names.push(macro { assigned.set($v{field.name}, $v{field.meta.has(":optional")});});
@@ -401,8 +398,7 @@ class DataBuilder {
 		};
 
 		loadJsonClass.fields.push(obj);
-		//~ if (parsedName == "Data")
-		//~ for(f in loadJsonClass.fields) { trace(new haxe.macro.Printer().printField(f));}
+
 		haxe.macro.Context.defineType(loadJsonClass);
 		return haxe.macro.Context.getType(parserName);
 	}

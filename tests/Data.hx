@@ -25,7 +25,7 @@ package tests;
 class Data<T:String, K> {
 	public var map:Map<String, Map<String, Array<Bool>>>;
 	public var mapSimple:Map<String, K>;
-	@:jignore
+	@:jignored
 	public var toBeIgnored:Class<Ignored>;
 	public var version:T;
 	public var items:Inventory<Item>;

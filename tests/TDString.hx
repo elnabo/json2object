@@ -22,4 +22,4 @@ SOFTWARE.
 
 package tests;
 
-typedef TDString = AbsString;
+typedef TDString = String;
