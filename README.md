@@ -14,9 +14,9 @@ haxelib install json2object
 
 ## Usage
 
-### Using the existing parser
+### Using the parser
 ```haxe
-var parser = new json2object.JsonParser<Cls>(); // Creating a parser for Cls object
+var parser = new json2object.JsonParser<Cls>(); // Creating a parser for Cls class
 parser.fromJson(jsonString, filename); // Parsing a string. A filename is specified for errors management
 var data:Cls = parser.data; // Access the parsed class
 var warnings:Array<json2object.Error> = parser.warnings; // Access the potential warnings
@@ -26,13 +26,6 @@ It is also possible to populate an existing Array with the warnings
 ```haxe
 var warnings = new Array<json2object.Error>();
 var data:Cls = new json2object.JsonParser<Cls>(warnings).fromJson(jsonString, filename);
-```
-
-### Making a new parsing class
-```haxe
-@:genericBuild(json2object.DataBuilder.build())
-class Parser<T> {
-}
 ```
 
 ### Constraints in the parsing
