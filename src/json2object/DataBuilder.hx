@@ -266,7 +266,18 @@ class DataBuilder {
 					if (!field.isPublic || field.meta.has(":jignored")) { continue; }
 
 					switch(field.kind) {
-						case FVar(_,_):
+						case FVar(_,w):
+							switch (w) {
+								case AccNever, AccNo:
+									continue;
+								case AccRequire(r, msg):
+									trace(r, Context.definedValue(r));
+									if (Context.definedValue(r) == null){
+										Context.warning("json2object: variable"+field.name+" requires compilation flag "+r+": "+msg, Context.currentPos());
+										continue;
+									}
+								default:
+							}
 							names.push(macro { assigned.set($v{field.name}, $v{field.meta.has(":optional")});});
 							var fieldType = applyParams(field.type, t.get().params, params);
 

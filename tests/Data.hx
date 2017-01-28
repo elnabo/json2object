@@ -42,6 +42,10 @@ class Data<T:String, K> {
 	public var a:Array<Int>;
 	@:optional
 	public var optional:Int;
+	public var never(default, never):Int;
+	public var nullSet(default, null):Int;
+	@:require(flag, "'-D flag' is required for variable require")
+	public var require:Int;
 
 	public function new() {
 	}
