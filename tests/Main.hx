@@ -27,6 +27,9 @@ class Main {
 		var r = new haxe.unit.TestRunner();
 		r.add(new TestCase());
 		r.add(new StructureTest());
+
+		#if sys
 		Sys.exit(r.run() ? 0 : 1);
+		#end
 	}
 }

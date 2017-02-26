@@ -39,14 +39,49 @@ var data:Cls = new json2object.JsonParser<Cls>(warnings).fromJson(jsonString, fi
 - Basic types (`Int`, `Float`, `Bool`, `String`)
 - `Null` and `Array`
 - `Map` with `Int` or `String` keys
-- class object (generics are supported)
-- typedef of supported types (only type aliases, no structures)
-
-Anonymous types and abstracts are not supported unless explicitly specified.
+- Class (generics are supported)
+- Anonymous structure
+- Typedef alias of supported types
 
 ## Example
+
+With an anonymous structure:
 ```haxe
 import json2object.JsonParser;
+
+class Main {
+	static function main() {
+		var parser = new JsonParser<{ name : String, quantity : Int }>();
+		var data = parser.fromJson('{"name": "computer", "quantity": 2 }', "file.json");
+		trace(data.name, data.quantity);
+	}
+}
+```
+
+A more complex example with a class and subclass:
+```haxe
+import json2object.JsonParser;
+
+class Data {
+	public var a:String;
+	public var b:SubData;
+	public var d:Array<Int>;
+	public var e:Array<Map<String, String>>;
+	public var f:Array<Float>;
+	public var g:Array<Bool>;
+	@:jignored
+	public var h:Math;
+
+	public function new() {
+	}
+}
+
+class SubData {
+	public var c:String;
+
+	public function new() {
+	}
+}
 
 class Main {
 	static function main() {
@@ -76,27 +111,6 @@ class Main {
 				default:
 			}
 		}
-	}
-}
-
-class Data {
-	public var a:String;
-	public var b:SubData;
-	public var d:Array<Int>;
-	public var e:Array<Map<String, String>>;
-	public var f:Array<Float>;
-	public var g:Array<Bool>;
-	@:jignored
-	public var h:Math;
-
-	public function new() {
-	}
-}
-
-class SubData {
-	public var c:String;
-
-	public function new() {
 	}
 }
 ```

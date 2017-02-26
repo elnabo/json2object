@@ -86,8 +86,13 @@ class TestCase extends haxe.unit.TestCase {
 			u:5,
 			v:5.5,
 			items2: [['b'],["1","3"]],
+			#if (cpp || cppia || flash || cs || java || hl) // static platforms
+			oolean: false,
+			missing: false,
+			#else
 			oolean: null,
 			missing:null,
+			#end
 			c1:c1,
 			m:[0=>"test", 5=>"tutu"],
 			c2:c2

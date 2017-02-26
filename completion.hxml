@@ -1,0 +1,4 @@
+-cp src
+-main tests.Main
+-x tests
+-lib hxjsonast

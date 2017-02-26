@@ -285,7 +285,7 @@ class DataBuilder {
 									continue;
 								case AccRequire(r, msg):
 									if (Context.definedValue(r) == null){
-										Context.warning("json2object: variable"+field.name+" requires compilation flag "+r+": "+msg, Context.currentPos());
+										//Context.warning("json2object: variable"+field.name+" requires compilation flag "+r+": "+msg, Context.currentPos());
 										continue;
 									}
 								default:
@@ -375,7 +375,17 @@ class DataBuilder {
 							var lil_switch = handleVariable(field.type, f_a, parserInfo);
 							cases.push({ expr: lil_switch, guard: null, values: [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}] });
 
-							ano_constr_fields.push({ field: field.name, expr: macro null });
+							var ano_field_default = switch (field.type) {
+								case TAbstract(_.get() => t, p):
+									switch(t.name) {
+										case "Bool": macro false;
+										case "Int": macro 0;
+										case "Float": macro 0.0;
+										default: macro null;
+									}
+								default: macro null;
+							}
+							ano_constr_fields.push({ field: field.name, expr: ano_field_default });
 
 						default: // Ignore
 					}
