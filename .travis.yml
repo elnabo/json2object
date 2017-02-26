@@ -9,6 +9,8 @@ haxe:
   #- "3.4.0"
   - development
 
+sudo: false
+
 # thanks to Andy Li! https://github.com/andyli/HaxeCI
 addons:
   # This is the preferred way to install apt packages.
@@ -41,7 +43,7 @@ install:
       haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git;
       pushd $(haxelib path hxcpp | head -1);
         pushd tools/hxcpp; haxe compile.hxml; popd;
-        pushd project; neko build.n; popd;
+        pushd project; neko build.n; haxe compile-cppia.hxml popd;
       popd;
     else
       haxelib install hxcpp;
@@ -50,7 +52,6 @@ install:
   - haxelib install hxcs
   - haxelib install hxjsonast # dep for json2object
   - haxelib list
-  - alias lua=echo # horrible hack to prevent the script from crashing when trying to run lua
 
 script:
   - haxe tests.hxml
