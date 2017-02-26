@@ -43,7 +43,7 @@ install:
       haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git;
       pushd $(haxelib path hxcpp | head -1);
         pushd tools/hxcpp; haxe compile.hxml; popd;
-        pushd project; neko build.n; haxe compile-cppia.hxml popd;
+        pushd project; neko build.n; haxe compile-cppia.hxml; popd;
       popd;
     else
       haxelib install hxcpp;
