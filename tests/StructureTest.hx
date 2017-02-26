@@ -22,11 +22,24 @@ SOFTWARE.
 
 package tests;
 
-class Main {
-	public static function main() {
-		var r = new haxe.unit.TestRunner();
-		r.add(new TestCase());
-		r.add(new StructureTest());
-		Sys.exit(r.run() ? 0 : 1);
+import json2object.JsonParser;
+
+typedef Struct = {
+	var a : String;
+	var b : Int;
+}
+
+class StructureTest extends haxe.unit.TestCase {
+
+	public function test () {
+		var parser = new JsonParser<Struct>();
+		
+		var data = parser.fromJson('{ "a": "hello", "b": 12 }', "test");
+		assertEquals(data.a, "hello");
+		assertEquals(data.b, 12);
+
+		var data = parser.fromJson('{ "a": 12, "b": 12 }', "test");
+		assertEquals(parser.warnings.length, 2); // IncorrectType + UninitializedVariable
 	}
+
 }

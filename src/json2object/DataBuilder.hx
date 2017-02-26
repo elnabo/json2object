@@ -38,19 +38,29 @@ class DataBuilder {
 
 	private static function getParserName(parsed:Type, ?level=1) {
 		var res = "";
+
 		switch (parsed) {
 			case TInst(t, params):
 				res += "_".lpad("_", level) + t.get().name;
 				for (p in params) {
 					res += getParserName(p.follow(), level+1);
 				}
+
 			case TAbstract(t, params):
 				res += "_".lpad("_", level) + t.get().name;
 				for (p in params) {
 					res += getParserName(p.follow(), level+1);
 				}
-			default: return res;
+
+			case TAnonymous(_.get() => a):
+				res += "_".lpad("_", level) + "Ano";
+				for (f in a.fields) {
+					res += getParserName(f.type, level+1);
+				}
+
+			default:
 		}
+
 		return res;
 	}
 
@@ -243,7 +253,7 @@ class DataBuilder {
 		};
 	}
 
-	private static function makeParser(c:ClassType, parsedType:Type) {
+	private static function makeParser(c:BaseType, parsedType:Type) {
 		var parsedName:String = null;
 		var classParams:Array<TypeParam>;
 		var cases = new Array<Case>();
@@ -253,6 +263,9 @@ class DataBuilder {
 
 		var names:Array<Expr> = [];
 		var loop:Expr;
+
+		var named = true;
+		var ano_constr_fields = [];
 
 		switch (parsedType) {
 			case TInst(t, params):
@@ -271,7 +284,6 @@ class DataBuilder {
 								case AccNever, AccNo:
 									continue;
 								case AccRequire(r, msg):
-									trace(r, Context.definedValue(r));
 									if (Context.definedValue(r) == null){
 										Context.warning("json2object: variable"+field.name+" requires compilation flag "+r+": "+msg, Context.currentPos());
 										continue;
@@ -293,6 +305,7 @@ class DataBuilder {
 
 			case TType(t, params):
 				return makeParser(c, parsedType.follow());
+
 			case TAbstract(t, params):
 				if (t.get().name != "Map" && t.get().name != "IMap") {
 					Context.fatalError("json2object: Maps are the only direct abstract type supported got "+t.get().name, Context.currentPos());
@@ -335,12 +348,66 @@ class DataBuilder {
 					}
 				};
 				loop = macro object.set($keyExpr, $valueExpr);
-			default: Context.fatalError("json2object: "+parsedType.toString()+ " can't be parsed", Context.currentPos());
+
+			case TAnonymous(_.get() => a):
+				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
+
+				named = false;
+
+				for (field in a.fields) {
+					if (!field.isPublic || field.meta.has(":jignored")) { continue; }
+
+					switch(field.kind) {
+						case FVar(_,w):
+							switch (w) {
+								case AccNever, AccNo:
+									continue;
+								case AccRequire(r, msg):
+									if (Context.definedValue(r) == null){
+										Context.warning("json2object: variable"+field.name+" requires compilation flag "+r+": "+msg, Context.currentPos());
+										continue;
+									}
+								default:
+							}
+							names.push(macro { assigned.set($v{field.name}, $v{field.meta.has(":optional")});});
+
+							var f_a = { expr: EField(macro object, field.name), pos: Context.currentPos() };
+							var lil_switch = handleVariable(field.type, f_a, parserInfo);
+							cases.push({ expr: lil_switch, guard: null, values: [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}] });
+
+							ano_constr_fields.push({ field: field.name, expr: macro null });
+
+						default: // Ignore
+					}
+				}
+
+				var default_e = macro warnings.push(UnknownVariable(field.name, putils.convertPosition(field.value.pos)));
+				loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
+
+			default: Context.fatalError("json2object: " + parsedType.toString() + " can't be parsed", Context.currentPos());
 		}
 
+		var p = new haxe.macro.Printer();
 
 		var cls = { name:parsedName, pack:packs, params:classParams};
-		var new_e = macro object = new $cls();
+		var new_e;
+
+		if (named) {
+			new_e = macro object = new $cls();
+		} else {
+			new_e = {
+				expr: EBinop(OpAssign, {
+						expr: EConst(CIdent("object")),
+						pos: Context.currentPos()
+					},
+					{
+						expr: EObjectDecl(ano_constr_fields),
+						pos: Context.currentPos()
+					}
+				),
+				pos: Context.currentPos()
+			};
+		}
 
 		var obj:Field = {doc:null,
 				access:[APublic],
@@ -409,6 +476,8 @@ class DataBuilder {
 		};
 
 		loadJsonClass.fields.push(obj);
+
+		//trace(p.printTypeDefinition(loadJsonClass));
 
 		haxe.macro.Context.defineType(loadJsonClass);
 		return haxe.macro.Context.getType(parserName);
