@@ -40,7 +40,7 @@ var data:Cls = new json2object.JsonParser<Cls>(warnings).fromJson(jsonString, fi
 - `Null` and `Array`
 - `Map` with `Int` or `String` keys
 - class object (generics are supported)
-- typedef of supported types
+- typedef of supported types (only type aliases, no structures)
 
 Anonymous types and abstracts are not supported unless explicitly specified.
 
