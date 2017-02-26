@@ -2,12 +2,54 @@ language: haxe
 
 os:
   - linux
+  - osx
 
 haxe:
+  - "3.2.1"
+  - "3.4.0"
   - development
 
+# thanks to Andy Li! https://github.com/andyli/HaxeCI
+addons:
+  # This is the preferred way to install apt packages.
+  # However, it only allow some but not all packages.
+  # Alternatively, we can use `sudo apt-get install ...` in the `install:` section.
+  # http://docs.travis-ci.com/user/apt/#Adding-APT-Packages
+  apt:
+    packages:
+      # C++ (for rebuilding hxcpp)
+      - gcc-multilib
+      - g++-multilib
+      # Python
+      - python3
+      # PHP
+      - php5-cli
+      # C#
+      - mono-devel
+      - mono-mcs
+
 install:
-  - haxelib install hxjsonast
+  # os-specific config
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+      brew uninstall --force brew-cask;
+      brew update;
+      brew install mono;
+      brew install python3;
+    fi
+  # Install haxelibs
+  - if [ "${TRAVIS_HAXE_VERSION}" = "development" ]; then
+      haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git;
+      pushd $(haxelib path hxcpp | head -1);
+        pushd tools/hxcpp; haxe compile.hxml; popd;
+        pushd project; neko build.n; popd;
+      popd;
+    else
+      haxelib install hxcpp;
+    fi
+  - haxelib install hxjava
+  - haxelib install hxcs
+  - haxelib install hxjsonast # dep for json2object
+  - haxelib list
 
 script:
   - haxe tests.hxml
