@@ -30,8 +30,8 @@ var data:Cls = new json2object.JsonParser<Cls>(warnings).fromJson(jsonString, fi
 
 ### Constraints in the parsing
 
-- Variables defined with the `@:jignored` metada will be ignored by the parser.
-- Variables defined with the `@:optional` metada wont trigger warnings if missing.
+- Variables defined with the `@:jignored` metadata will be ignored by the parser.
+- Variables defined with the `@:optional` metadata wont trigger warnings if missing.
 - Private variables are ignored.
 
 ### Supported types
@@ -39,10 +39,10 @@ var data:Cls = new json2object.JsonParser<Cls>(warnings).fromJson(jsonString, fi
 - Basic types (`Int`, `Float`, `Bool`, `String`)
 - `Null` and `Array`
 - `Map` with `Int` or `String` keys
-- class object (generic are supported)
-- typedef of a supported types
+- class object (generics are supported)
+- typedef of supported types (only type aliases, no structures)
 
-Anonymous types and abstracts are not supported unless specificaly precised.
+Anonymous types and abstracts are not supported unless explicitly specified.
 
 ## Example
 ```haxe
