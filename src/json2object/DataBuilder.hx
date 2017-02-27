@@ -77,7 +77,7 @@ class DataBuilder {
 		var appliedType = useParams(type, paramsDef, paramsValue);
 		var paramsType = switch (type) {
 			case TInst(_, p), TAbstract(_,p), TEnum(_,p), TType(_,p):
-				p.map(function(p:Type) { return useParams(p, paramsDef, paramsValue);});
+				p.map(function(p:Type) { return useParams(applyParams(p, paramsDef, paramsValue), paramsDef, paramsValue);});
 			default:
 				return type;
 		}
@@ -116,7 +116,9 @@ class DataBuilder {
 				}
 			case TType(t,_):
 				typeToHxjsonAst(type.follow());
-			default: null;
+			case TAnonymous(t):
+				{jtype:"JObject", name:"Anonymous", params:[]};
+			default: Context.fatalError("json2object: Unsupported type : "+type.toString(), Context.currentPos()); null;
 		}
 	}
 
@@ -269,10 +271,9 @@ class DataBuilder {
 
 		switch (parsedType) {
 			case TInst(t, params):
+				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
 				parsedName = t.get().name;
 				packs = t.get().pack;
-
-				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
 
 				classParams = [for (p in params) TPType(p.toComplexType())];
 				for (field in t.get().fields.get()) {
@@ -310,6 +311,7 @@ class DataBuilder {
 				if (t.get().name != "Map" && t.get().name != "IMap") {
 					Context.fatalError("json2object: Maps are the only direct abstract type supported got "+t.get().name, Context.currentPos());
 				}
+				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
 				parsedName = "Map";
 				classParams = params.map(function(ty:Type) {return TPType(ty.toComplexType());});
 				packs = t.get().pack;

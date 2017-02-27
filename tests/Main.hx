@@ -25,8 +25,9 @@ package tests;
 class Main {
 	public static function main() {
 		var r = new haxe.unit.TestRunner();
-		r.add(new TestCase());
 		r.add(new StructureTest());
+		r.add(new MapTest());
+		r.add(new ObjectTest<String,String>());
 
 		#if sys
 		Sys.exit(r.run() ? 0 : 1);
