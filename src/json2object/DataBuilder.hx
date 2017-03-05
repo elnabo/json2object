@@ -111,7 +111,7 @@ class DataBuilder {
 					case "Null":
 						typeToHxjsonAst(p[0].follow());
 					default:
-						typeToHxjsonAst(t.type);
+						typeToHxjsonAst(applyParams(t.type, t.params, p));
 				}
 			case TType(t,_):
 				typeToHxjsonAst(type.follow());
@@ -150,7 +150,6 @@ class DataBuilder {
 	}
 
 	private static function handleArray(type:Type, level=1, parser:ParserInfo) : Expr {
-		trace(type);
 		var forVar = "s" + (level-1);
 		var caseVar = "s" + level;
 		var content = "content"+level;
@@ -311,8 +310,8 @@ class DataBuilder {
 				var default_e = macro warnings.push(UnknownVariable(field.name, putils.convertPosition(field.value.pos)));
 				loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
 
-			case TType(_, params):
-				return makeParser(c, parsedType.follow(), parsedType);
+			case TType(_.get() => t, params):
+				return makeParser(c, applyParams(parsedType.follow(), t.params, params), parsedType);
 
 			case TAbstract(_.get() => t, params):
 				if (t.name != "Map" && t.name != "IMap") {
@@ -362,7 +361,6 @@ class DataBuilder {
 
 			case TAnonymous(_.get() => a):
 				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
-
 				useNew = false;
 
 				for (field in a.fields) {
