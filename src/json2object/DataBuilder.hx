@@ -27,8 +27,6 @@ import haxe.macro.Context;
 import haxe.macro.Type;
 
 using StringTools;
-using haxe.macro.ComplexTypeTools;
-using haxe.macro.ExprTools;
 using haxe.macro.TypeTools;
 
 typedef JsonType = {jtype:String, name:String, params:Array<Type>}
@@ -55,7 +53,7 @@ class DataBuilder {
 			case TAnonymous(_.get() => a):
 				res += "_".lpad("_", level) + "Ano";
 				for (f in a.fields) {
-					res += getParserName(f.type, level+1);
+					res += f.name + "_" + getParserName(f.type, level+1);
 				}
 
 			default:
@@ -282,7 +280,7 @@ class DataBuilder {
 					switch(field.kind) {
 						case FVar(_,w):
 							switch (w) {
-								case AccNever, AccNo:
+								case AccNever:
 									continue;
 								case AccRequire(r, msg):
 									if (Context.definedValue(r) == null){
@@ -304,7 +302,7 @@ class DataBuilder {
 				var default_e = macro warnings.push(UnknownVariable(field.name, putils.convertPosition(field.value.pos)));
 				loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
 
-			case TType(t, params):
+			case TType(_, params):
 				return makeParser(c, parsedType.follow());
 
 			case TAbstract(t, params):
@@ -362,11 +360,11 @@ class DataBuilder {
 					switch(field.kind) {
 						case FVar(_,w):
 							switch (w) {
-								case AccNever, AccNo:
+								case AccNever:
 									continue;
 								case AccRequire(r, msg):
 									if (Context.definedValue(r) == null){
-										Context.warning("json2object: variable"+field.name+" requires compilation flag "+r+": "+msg, Context.currentPos());
+										//Context.warning("json2object: variable"+field.name+" requires compilation flag "+r+": "+msg, Context.currentPos());
 										continue;
 									}
 								default:
@@ -421,13 +419,14 @@ class DataBuilder {
 			};
 		}
 
-		var obj:Field = {doc:null,
-				access:[APublic],
-				kind:FVar(parsedType.toComplexType(), null),
-				name:"object",
-				pos:Context.currentPos(),
-				meta:null,
-				};
+		var obj:Field = {
+			doc: null,
+			access: [APublic],
+			kind: FVar(TypeUtils.toComplexType(parsedType), null),
+			name: "object",
+			pos: Context.currentPos(),
+			meta: null,
+		};
 
 		var loadJsonClass = macro class $parserName {
 
@@ -450,10 +449,14 @@ class DataBuilder {
 			public function loadJson(fields:Array<hxjsonast.Json.JObjectField>) {
 				var assigned = new Map<String,Bool>();
 				$b{names}
-				${new_e};
-				// Assign every JSON fields.
-				for (field in fields) {
-					${loop}
+
+				@:privateAccess {
+					${new_e};
+
+					// Assign every JSON fields.
+					for (field in fields) {
+						${loop}
+					}
 				}
 
 				// Verify that all variables are assigned.

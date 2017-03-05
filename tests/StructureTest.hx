@@ -32,14 +32,34 @@ typedef Struct = {
 class StructureTest extends haxe.unit.TestCase {
 
 	public function test () {
-		var parser = new JsonParser<Struct>();
-		
-		var data = parser.fromJson('{ "a": "hello", "b": 12 }', "test");
-		assertEquals(data.a, "hello");
-		assertEquals(data.b, 12);
+		{
+			var parser = new JsonParser<Struct>();
+			var data = parser.fromJson('{ "a": "hello", "b": 12 }', "test");
+			assertEquals(data.a, "hello");
+			assertEquals(data.b, 12);
+		}
 
-		var data = parser.fromJson('{ "a": 12, "b": 12 }', "test");
-		assertEquals(parser.warnings.length, 2); // IncorrectType + UninitializedVariable
+		{
+			var parser = new JsonParser<Struct>();
+			parser.fromJson('{ "a": 12, "b": 12 }', "test");
+			assertEquals(parser.warnings.length, 2); // IncorrectType + UninitializedVariable
+		}
+
+		{
+			var parser = new json2object.JsonParser<ReadonlyStruct>();
+			var data = parser.fromJson('{"foo":1}', "");
+			assertEquals(data.foo, 1);
+		}
+
+		{
+			var parser = new json2object.JsonParser<{ var foo(default,null):Int; }>();
+			var data = parser.fromJson('{"foo":12}', "");
+			assertEquals(data.foo, 12);
+		}
 	}
 
+}
+
+typedef ReadonlyStruct = {
+    var foo(default,null):Int;
 }
