@@ -31,7 +31,7 @@ class ErrorUtils {
             case IncorrectType(_, _, pos) | UninitializedVariable(_, pos) | UnknownVariable(_, pos) | ParserError(_, pos): pos;
         }
 
-        var res = pos != null ? '${pos.file}:${pos.line}: characters ${pos.min}-${pos.max} : ' : "";
+        var res = pos != null ? '${pos.file}: line ${pos.line.number} characters ${pos.line.start}-${pos.line.end} : ' : "";
 
         switch (e)
         {

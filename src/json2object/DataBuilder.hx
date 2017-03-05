@@ -121,7 +121,7 @@ class DataBuilder {
 		}
 	}
 
-	private static function parseType(type:Type, info:JsonType, level=0, parser:ParserInfo): Expr {
+	private static function parseType(type:Type, info:JsonType, level=0, parser:ParserInfo, json:Expr): Expr {
 		var caseVar = "s" + level;
 		var cls = { name:parser.clsName, pack:parser.packs, params:[TPType(type.toComplexType())]};
 		return switch (info.jtype) {
@@ -142,7 +142,7 @@ class DataBuilder {
 					);
 				}
 				else {
-					macro new $cls(warnings, putils).loadJson($i{caseVar});
+					macro new $cls(warnings, putils).loadJson($i{caseVar}, ${json}.pos);
 				}
 			default: Context.fatalError("json2object: Unsupported element: " + info.name, Context.currentPos());
 
@@ -163,11 +163,11 @@ class DataBuilder {
 			}
 			: macro null;
 
-		var e = parseType(type, info, level, parser);
+		var json = macro $i{content};
 		return macro [for ($i{content} in $i{forVar})  {
-				switch ($i{content}.value) {
+				switch (${json}.value) {
 					case $i{info.jtype}($i{caseVar}):
-						${parseType(type, info, level, parser)};
+						${parseType(type, info, level, parser, json)};
 					case JNull:
 						${nullCase};
 					default:
@@ -208,10 +208,11 @@ class DataBuilder {
 			default: Context.fatalError("json2object: Map key can only be String or Int", Context.currentPos());
 		}
 
+		var json = macro $i{fieldVar}.value;
 		var valueExpr = macro {
-			switch($i{fieldVar}.value.value){
+			switch(${json}.value){
 				case $i{info.jtype}($i{caseVar}):
-					${parseType(value, info, level, parser)};
+					${parseType(value, info, level, parser, json)};
 				case JNull:
 					${nullCase};
 				default:
@@ -240,9 +241,10 @@ class DataBuilder {
 			}
 			: macro { ${variable} = null; assigned.set(field.name, true); };
 
-		var expr = parseType(type, info, parser);
+		var json = macro field.value;
+		var expr = parseType(type, info, parser, json);
 		return macro {
-			switch(field.value.value){
+			switch(${json}.value){
 				case $i{info.jtype}(s0):
 					${variable} = cast ${expr};
 					assigned.set(field.name, true);
@@ -346,10 +348,11 @@ class DataBuilder {
 					}
 					: macro null;
 
+				var json = macro field.value;
 				var valueExpr = macro {
-					switch(field.value.value){
+					switch(${json}.value){
 						case $i{info.jtype}(s0):
-							${parseType(value, info, parserInfo)};
+							${parseType(value, info, parserInfo, json)};
 						case JNull:
 							${nullCase};
 						default:
@@ -360,7 +363,6 @@ class DataBuilder {
 				loop = macro object.set($keyExpr, $valueExpr);
 
 			case TAnonymous(_.get() => a):
-			//~ trace(a);
 				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
 				useNew = false;
 
@@ -458,7 +460,7 @@ class DataBuilder {
 			 * @param posUtils Tools for converting hxjsonast.Position into Position.
 			 * @param parentWarnings List of warnings for the parent class.
 			 */
-			public function loadJson(fields:Array<hxjsonast.Json.JObjectField>) {
+			public function loadJson(fields:Array<hxjsonast.Json.JObjectField>, objectPos:hxjsonast.Position) {
 				var assigned = new Map<String,Bool>();
 				$b{names}
 
@@ -472,9 +474,10 @@ class DataBuilder {
 				}
 
 				// Verify that all variables are assigned.
+				var lastPos = putils.convertPosition(objectPos);
 				for (s in assigned.keys()) {
 					if (!assigned[s]) {
-						warnings.push(UninitializedVariable(s, null));
+						warnings.push(UninitializedVariable(s, lastPos));
 					}
 				}
 
@@ -491,7 +494,7 @@ class DataBuilder {
 					var json = hxjsonast.Parser.parse(jsonString, filename);
 					switch (json.value) {
 						case hxjsonast.Json.JsonValue.JObject(fields):
-							return loadJson(fields);
+							return loadJson(fields, json.pos);
 						default:
 							return null;
 					}
