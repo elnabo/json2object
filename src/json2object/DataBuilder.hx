@@ -150,6 +150,7 @@ class DataBuilder {
 	}
 
 	private static function handleArray(type:Type, level=1, parser:ParserInfo) : Expr {
+		trace(type);
 		var forVar = "s" + (level-1);
 		var caseVar = "s" + level;
 		var content = "content"+level;
@@ -315,7 +316,8 @@ class DataBuilder {
 
 			case TAbstract(_.get() => t, params):
 				if (t.name != "Map" && t.name != "IMap") {
-					return makeParser(c, t.type, parsedType, true);
+					return makeParser(c, applyParams(t.type, t.params, params), parsedType, true);
+					//return makeParser(c, t.type, parsedType, true);
 				}
 
 				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}

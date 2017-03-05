@@ -34,6 +34,11 @@ abstract Rights (Array<String>) to Array<String>
 {
 }
 
+@:forward(length)
+abstract Templated<T> (Array<T>) to Array<T>
+{
+}
+
 class AbstractTest extends haxe.unit.TestCase {
 
 	public function test () {
@@ -49,6 +54,13 @@ class AbstractTest extends haxe.unit.TestCase {
 			var data = parser.fromJson('{ "rights": ["Full", "Write", "Read", "None"] }', "test");
 			assertEquals(data.rights.length, 4);
 			assertEquals(data.rights[1], "Write");
+		}
+
+		{
+			var parser = new JsonParser<{ t:Templated<Int> }>();
+			var data = parser.fromJson('{ "t": [2, 1, 0] }', "test");
+			assertEquals(data.t.length, 3);
+			assertEquals(data.t[2], 0);
 		}
 	}
 
