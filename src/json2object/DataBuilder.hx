@@ -163,7 +163,6 @@ class DataBuilder {
 			}
 			: macro null;
 
-		var e = parseType(type, info, level, parser);
 		return macro [for ($i{content} in $i{forVar})  {
 				switch ($i{content}.value) {
 					case $i{info.jtype}($i{caseVar}):
@@ -180,12 +179,7 @@ class DataBuilder {
 	private static function handleMap(key:Type, value:Type, level=1, parser:ParserInfo) : Expr {
 		var forVar = "s" + (level-1);
 		var caseVar = "s" + level;
-		var content = "content"+level;
-		var n = "n"+level;
-
 		var fieldVar = "field" + level;
-		var keyVar = "key" + level;
-		var valueVar = "value" + level;
 
 		var info = typeToHxjsonAst(value);
 		var nullCase = (info.name == "Float" || info.name == "Int" || info.name == "Bool")
@@ -231,7 +225,6 @@ class DataBuilder {
 
 	private static function handleVariable(type:Type, variable:Expr, parser:ParserInfo) {
 		var info = typeToHxjsonAst(type);
-		var cls = { name:parser.clsName, pack:parser.packs, params:[TPType(type.toComplexType())]};
 		var clsname = info.name;
 
 		var nullCase = (info.name == "Float" || info.name == "Int" || info.name == "Bool")
@@ -287,16 +280,11 @@ class DataBuilder {
 
 					switch(field.kind) {
 						case FVar(_,w):
-							switch (w) {
-								case AccNever:
-									continue;
-								case AccRequire(r, msg):
-									if (Context.definedValue(r) == null){
-										//Context.warning("json2object: variable"+field.name+" requires compilation flag "+r+": "+msg, Context.currentPos());
-										continue;
-									}
-								default:
+							if (w == AccNever)
+							{
+								continue;
 							}
+
 							names.push(macro { assigned.set($v{field.name}, $v{field.meta.has(":optional")});});
 							var fieldType = applyParams(field.type, t.get().params, params);
 
@@ -316,7 +304,6 @@ class DataBuilder {
 			case TAbstract(_.get() => t, params):
 				if (t.name != "Map" && t.name != "IMap") {
 					return makeParser(c, applyParams(t.type, t.params, params), parsedType, true);
-					//return makeParser(c, t.type, parsedType, true);
 				}
 
 				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
@@ -360,7 +347,6 @@ class DataBuilder {
 				loop = macro object.set($keyExpr, $valueExpr);
 
 			case TAnonymous(_.get() => a):
-			//~ trace(a);
 				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
 				useNew = false;
 
@@ -369,16 +355,11 @@ class DataBuilder {
 
 					switch(field.kind) {
 						case FVar(_,w):
-							switch (w) {
-								case AccNever:
-									continue;
-								case AccRequire(r, msg):
-									if (Context.definedValue(r) == null){
-										//Context.warning("json2object: variable"+field.name+" requires compilation flag "+r+": "+msg, Context.currentPos());
-										continue;
-									}
-								default:
+							if (w == AccNever)
+							{
+								continue;
 							}
+
 							names.push(macro { assigned.set($v{field.name}, $v{field.meta.has(":optional")});});
 
 							var f_a = { expr: EField(macro object, field.name), pos: Context.currentPos() };
@@ -406,8 +387,6 @@ class DataBuilder {
 
 			default: Context.fatalError("json2object: " + parsedType.toString() + " can't be parsed", Context.currentPos());
 		}
-
-		var p = new haxe.macro.Printer();
 
 		var cls = { name:parsedName, pack:packs, params:classParams};
 		var new_e;
@@ -504,6 +483,7 @@ class DataBuilder {
 
 		loadJsonClass.fields.push(obj);
 
+		//var p = new haxe.macro.Printer();
 		//trace(p.printTypeDefinition(loadJsonClass));
 
 		haxe.macro.Context.defineType(loadJsonClass);
