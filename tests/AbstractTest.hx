@@ -39,6 +39,10 @@ abstract Templated<T> (Array<T>) to Array<T>
 {
 }
 
+typedef B = {
+	t : Templated<Templated<Int>>
+}
+
 class AbstractTest extends haxe.unit.TestCase {
 
 	public function test () {
@@ -61,6 +65,14 @@ class AbstractTest extends haxe.unit.TestCase {
 			var data = parser.fromJson('{ "t": [2, 1, 0] }', "test");
 			assertEquals(data.t.length, 3);
 			assertEquals(data.t[2], 0);
+		}
+
+		{
+			var parser = new JsonParser<B>();
+			var data = parser.fromJson('{ "t": [[0,1], [1,0]] }', "test");
+			assertEquals(data.t.length, 2);
+			assertEquals(data.t[1].length, 2);
+			assertEquals(data.t[0][1], 1);
 		}
 	}
 
