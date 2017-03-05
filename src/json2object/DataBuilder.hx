@@ -75,7 +75,7 @@ class DataBuilder {
 		var appliedType = useParams(type, paramsDef, paramsValue);
 		var paramsType = switch (type) {
 			case TInst(_, p), TAbstract(_,p), TEnum(_,p), TType(_,p):
-				p.map(function(p:Type) { return useParams(applyParams(p, paramsDef, paramsValue), paramsDef, paramsValue);});
+				p.map(function(p:Type) { return applyParams(useParams(p, paramsDef, paramsValue), paramsDef, paramsValue);});
 			default:
 				return type;
 		}
@@ -360,6 +360,7 @@ class DataBuilder {
 				loop = macro object.set($keyExpr, $valueExpr);
 
 			case TAnonymous(_.get() => a):
+			//~ trace(a);
 				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
 				useNew = false;
 
