@@ -273,6 +273,12 @@ class DataBuilder {
 				parsedName = t.get().name;
 				packs = t.get().pack;
 
+				switch (t.get().kind) {
+					case KTypeParameter(arrayType):
+						Context.fatalError("json2object: Type parameters are not parsable: "+t.get().name, Context.currentPos());
+					default:
+				}
+
 				classParams = [for (p in params) TPType(p.toComplexType())];
 				for (field in t.get().fields.get()) {
 					if (!field.isPublic || field.meta.has(":jignored")) { continue; }
