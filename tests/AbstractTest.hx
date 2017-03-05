@@ -22,16 +22,34 @@ SOFTWARE.
 
 package tests;
 
-class Main {
-	public static function main() {
-		var r = new haxe.unit.TestRunner();
-		r.add(new StructureTest());
-		r.add(new MapTest());
-		r.add(new ObjectTest<String,String>());
-		r.add(new AbstractTest());
+import json2object.JsonParser;
 
-		#if sys
-		Sys.exit(r.run() ? 0 : 1);
-		#end
+abstract Username (String) from String to String
+{
+    public function get_id () return this.toLowerCase();
+}
+
+@:forward(length)
+abstract Rights (Array<String>) from Array<String> to Array<String>
+{
+}
+
+class AbstractTest extends haxe.unit.TestCase {
+
+	public function test () {
+		{
+			var parser = new JsonParser<{ username:Username }>();
+			var data = parser.fromJson('{ "username": "Administrator" }', "test");
+			assertEquals(data.username, "Administrator");
+			assertEquals(data.username.get_id(), "administrator");
+		}
+
+        {
+			var parser = new JsonParser<{ rights:Rights }>();
+			var data = parser.fromJson('{ "rights": ["Full", "Write", "Read", "None"] }', "test");
+			assertEquals(data.rights.length, 4);
+			assertEquals(data.rights[1], "Write");
+		}
 	}
+
 }

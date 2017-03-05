@@ -39,19 +39,19 @@ class DataBuilder {
 
 		switch (parsed) {
 			case TInst(t, params):
-				res += "_".lpad("_", level) + t.get().name;
+				res += "_".lpad("_", level) + "Inst_" + t.get().name;
 				for (p in params) {
 					res += getParserName(p.follow(), level+1);
 				}
 
 			case TAbstract(t, params):
-				res += "_".lpad("_", level) + t.get().name;
+				res += "_".lpad("_", level) + "Abstract_" + t.get().name;
 				for (p in params) {
 					res += getParserName(p.follow(), level+1);
 				}
 
 			case TAnonymous(_.get() => a):
-				res += "_".lpad("_", level) + "Ano";
+				res += "_".lpad("_", level) + "Ano_";
 				for (f in a.fields) {
 					res += f.name + "_" + getParserName(f.type, level+1);
 				}
@@ -98,8 +98,8 @@ class DataBuilder {
 						{ jtype: "JArray", name: "Array", params: p };
 					default:  { jtype: "JObject", name: t.get().name, params: p };
 				}
-			case TAbstract(t,p):
-				switch(t.get().name) {
+			case TAbstract(_.get() => t, p):
+				switch(t.name) {
 					case "Bool":
 						{ jtype: "JBool", name: "Bool", params: [] };
 					case "Int":
@@ -110,7 +110,8 @@ class DataBuilder {
 						{ jtype: "JObject", name: "Map", params: p };
 					case "Null":
 						typeToHxjsonAst(p[0].follow());
-					default: throw "json2object: Bool/Int/Float/Map are the only abstracts supported, got "+t.get().name;//typeToHxjsonAst(type.followWithAbstracts());
+					default:
+						typeToHxjsonAst(t.type);
 				}
 			case TType(t,_):
 				typeToHxjsonAst(type.follow());
@@ -253,7 +254,7 @@ class DataBuilder {
 		};
 	}
 
-	private static function makeParser(c:BaseType, parsedType:Type) {
+	private static function makeParser(c:BaseType, parsedType:Type, ?base:Type, ?noConstruct:Bool) {
 		var parsedName:String = null;
 		var classParams:Array<TypeParam>;
 		var cases = new Array<Case>();
@@ -264,7 +265,8 @@ class DataBuilder {
 		var names:Array<Expr> = [];
 		var loop:Expr;
 
-		var named = true;
+		var useNew = true;
+
 		var ano_constr_fields = [];
 
 		switch (parsedType) {
@@ -309,16 +311,17 @@ class DataBuilder {
 				loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
 
 			case TType(_, params):
-				return makeParser(c, parsedType.follow());
+				return makeParser(c, parsedType.follow(), parsedType);
 
-			case TAbstract(t, params):
-				if (t.get().name != "Map" && t.get().name != "IMap") {
-					Context.fatalError("json2object: Maps are the only direct abstract type supported got "+t.get().name, Context.currentPos());
+			case TAbstract(_.get() => t, params):
+				if (t.name != "Map" && t.name != "IMap") {
+					return makeParser(c, t.type, parsedType, true);
 				}
+
 				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
 				parsedName = "Map";
 				classParams = params.map(function(ty:Type) {return TPType(ty.toComplexType());});
-				packs = t.get().pack;
+				packs = t.pack;
 
 				var keyExpr = switch (typeToHxjsonAst(params[0].follow()).name) {
 					case "String": macro field.name;
@@ -358,7 +361,7 @@ class DataBuilder {
 			case TAnonymous(_.get() => a):
 				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
 
-				named = false;
+				useNew = false;
 
 				for (field in a.fields) {
 					if (!field.isPublic || field.meta.has(":jignored")) { continue; }
@@ -408,7 +411,9 @@ class DataBuilder {
 		var cls = { name:parsedName, pack:packs, params:classParams};
 		var new_e;
 
-		if (named) {
+		if (noConstruct) {
+			new_e = macro {};
+		} else if (useNew) {
 			new_e = macro object = new $cls();
 		} else {
 			new_e = {
@@ -428,7 +433,7 @@ class DataBuilder {
 		var obj:Field = {
 			doc: null,
 			access: [APublic],
-			kind: FVar(TypeUtils.toComplexType(parsedType), null),
+			kind: FVar(TypeUtils.toComplexType(base != null ? base : parsedType), null),
 			name: "object",
 			pos: Context.currentPos(),
 			meta: null,

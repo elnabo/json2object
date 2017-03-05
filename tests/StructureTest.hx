@@ -29,6 +29,10 @@ typedef Struct = {
 	var b : Int;
 }
 
+typedef ReadonlyStruct = {
+    var foo(default,null):Int;
+}
+
 class StructureTest extends haxe.unit.TestCase {
 
 	public function test () {
@@ -58,8 +62,4 @@ class StructureTest extends haxe.unit.TestCase {
 		}
 	}
 
-}
-
-typedef ReadonlyStruct = {
-    var foo(default,null):Int;
 }
