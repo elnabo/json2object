@@ -63,15 +63,14 @@ class ObjectTest<K,V> extends haxe.unit.TestCase {
 			assertEquals(data.map.get("key").array.toString(), "[1]");
 			assertEquals(data.map.get("key").map.get("t"), null);
 			assertEquals(data.struct.i, 1);
-			trace(parser.warnings);
-			//assertEquals(parser.warnings.length, 2*3);
+			assertEquals(parser.warnings.length, 7);
 			assertEquals(data.foo, 25);
 		}
 
 		// Optional
 		{
 			var parser = new JsonParser<ObjectTest<String, Float>>();
-			var data = parser.fromJson('{ "base": true, "objTest":{"base":true, "array":[], "map":{}, "struct":{"i":10}, "array_array":null, "array_map":null, "array_obj":null}, "array": null, "map":{"key":null}, "struct":{"i":2}, "array_array":[[0,1], [4, -1]], "array_map":[{"a":1}, null], "array_obj":[{"base":true, "array":[], "map":{}, "struct":{"i":10}, "array_array":null, "array_map":null, "array_obj":null}], "foo": 63 }', "test");
+			var data = parser.fromJson('{ "base": true, "objTest":{"base":true, "array":[], "map":{}, "struct":{"i":10}, "array_array":null, "array_map":null, "array_obj":null, "foo":45}, "array": null, "map":{"key":null}, "struct":{"i":2}, "array_array":[[0,1], [4, -1]], "array_map":[{"a":1}, null], "array_obj":[{"base":true, "array":[], "map":{}, "struct":{"i":10}, "array_array":null, "array_map":null, "array_obj":null, "foo":46}], "foo": 63 }', "test");
 			assertEquals(data.base, true);
 			assertEquals(data.array, null);
 			assertEquals(data.map.get("key"), null);
@@ -79,10 +78,7 @@ class ObjectTest<K,V> extends haxe.unit.TestCase {
 			assertEquals(data.objTest.base,true);
 			assertEquals(data.objTest.array.toString(),"[]");
 			assertEquals(data.objTest.map.toString(),"{}");
-			trace(parser.warnings);
-			//assertEquals(parser.warnings.length, 0);
-			assertEquals(data.foo, 63);
-			data.foo = 1;
+			assertEquals(parser.warnings.length, 0);
 			assertEquals(data.foo, 63);
 		}
 	}
