@@ -28,6 +28,11 @@ var warnings = new Array<json2object.Error>();
 var data:Cls = new json2object.JsonParser<Cls>(warnings).fromJson(jsonString, filename);
 ```
 
+To print the warnings you can do
+```haxe
+trace(json2object.ErrorUtils.convertErrorArray(parser.warnings));
+```
+
 ### Constraints in the parsing
 
 - Variables defined with the `@:jignored` metadata will be ignored by the parser.

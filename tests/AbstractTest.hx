@@ -26,7 +26,7 @@ import json2object.JsonParser;
 
 abstract Username (String) from String to String
 {
-    public function get_id () return this.toLowerCase();
+	public function get_id () return this.toLowerCase();
 }
 
 @:forward(length)
@@ -44,7 +44,7 @@ class AbstractTest extends haxe.unit.TestCase {
 			assertEquals(data.username.get_id(), "administrator");
 		}
 
-        {
+		{
 			var parser = new JsonParser<{ rights:Rights }>();
 			var data = parser.fromJson('{ "rights": ["Full", "Write", "Read", "None"] }', "test");
 			assertEquals(data.rights.length, 4);

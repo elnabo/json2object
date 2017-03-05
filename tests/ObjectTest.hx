@@ -64,6 +64,7 @@ class ObjectTest<K,V> extends haxe.unit.TestCase {
 			assertEquals(data.map.get("key").map.get("t"), null);
 			assertEquals(data.struct.i, 1);
 			assertEquals(parser.warnings.length, 7);
+			trace(json2object.ErrorUtils.convertErrorArray(parser.warnings));
 			assertEquals(data.foo, 25);
 		}
 
