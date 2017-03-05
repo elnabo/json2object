@@ -42,6 +42,7 @@ var data:Cls = new json2object.JsonParser<Cls>(warnings).fromJson(jsonString, fi
 - Class (generics are supported)
 - Anonymous structure
 - Typedef alias of supported types
+- Asbtract over a supported type with a compatible from
 
 ## Example
 
