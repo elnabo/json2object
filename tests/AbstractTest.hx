@@ -30,7 +30,7 @@ abstract Username (String) from String to String
 }
 
 @:forward(length)
-abstract Rights (Array<String>) from Array<String> to Array<String>
+abstract Rights (Array<String>) to Array<String>
 {
 }
 

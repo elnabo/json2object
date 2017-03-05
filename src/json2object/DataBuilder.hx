@@ -244,7 +244,7 @@ class DataBuilder {
 		return macro {
 			switch(field.value.value){
 				case $i{info.jtype}(s0):
-					${variable} = ${expr};
+					${variable} = cast ${expr};
 					assigned.set(field.name, true);
 				case JNull:
 					${nullCase};
