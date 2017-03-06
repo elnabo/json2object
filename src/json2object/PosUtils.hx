@@ -34,7 +34,7 @@ class PosUtils {
 		var e = 0; // Line end char
 
 		var i = 0;
-		var lineCount = 1; // Line numbering usually start at 1
+		var lineCount = 0;
 		while (i < content.length) {
 			switch (content.charAt(i)) {
 				case "\r":
@@ -67,9 +67,10 @@ class PosUtils {
 		var min = position.min;
 		var max = position.max;
 
+		// Usually first line/char are refered as 1 instead of 0
 		for (line in linesInfo) {
 			if (line.start <= min && line.end >= max) {
-				return { file: file, line: { number: line.number, start: min-line.start, end: max-line.start }, min: min, max: max };
+				return { file: file, line: { number: line.number +1, start: min-line.start +1, end: max-line.start +1 }, min: min+1, max: max+1 };
 			}
 		}
 		return null;

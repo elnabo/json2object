@@ -453,7 +453,7 @@ class DataBuilder {
 				}
 
 				// Verify that all variables are assigned.
-				var lastPos = putils.convertPosition(new hxjsonast.Position(objectPos.file, objectPos.max, objectPos.max));
+				var lastPos = putils.convertPosition(new hxjsonast.Position(objectPos.file, objectPos.max-1, objectPos.max-1));
 				for (s in assigned.keys()) {
 					if (!assigned[s]) {
 						warnings.push(UninitializedVariable(s, lastPos));
