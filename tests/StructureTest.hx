@@ -25,8 +25,20 @@ package tests;
 import json2object.JsonParser;
 
 typedef Struct = {
-	var a : String;
+	@:default(true)
+	var a : Bool;
 	var b : Int;
+}
+
+typedef DefaultStruct = {
+	@:optional
+	@:default({a:true, b:0})
+	var d : Struct;
+	@:optional
+	@:default(new Map<String,Int>())
+	var map:Map<String,Int>;
+	@:optional
+	var s:String;
 }
 
 typedef ReadonlyStruct = {
@@ -35,17 +47,39 @@ typedef ReadonlyStruct = {
 
 class StructureTest extends haxe.unit.TestCase {
 
+	public  function makeMap(?i:Int=0):Map<Int,String> {
+		return new Map<Int,String>();
+	}
+
 	public function test () {
 		{
+			var parser = new JsonParser<DefaultStruct>();
+			var data = parser.fromJson('{}', "test");
+			assertEquals(parser.warnings.length, 0);
+			assertEquals(data.d.a, true);
+			assertEquals(data.d.b, 0);
+			assertEquals(data.map.toString(), "{}");
+			assertEquals(data.s, null);
+
+			data = parser.fromJson('{"d":{"a":false, "b":1}, "map":{"key1":55, "key2": 46, "key3":43}, "s":"sup"}', "test");
+			assertEquals(parser.warnings.length, 0);
+			assertEquals(data.d.a, false);
+			assertEquals(data.d.b, 1);
+			assertEquals(data.map["key2"], 46);
+			assertEquals(data.s, "sup");
+		}
+
+		{
 			var parser = new JsonParser<Struct>();
-			var data = parser.fromJson('{ "a": "hello", "b": 12 }', "test");
-			assertEquals(data.a, "hello");
+			var data = parser.fromJson('{ "a": true, "b": 12 }', "test");
+			assertEquals(data.a, true);
 			assertEquals(data.b, 12);
 		}
 
 		{
 			var parser = new JsonParser<Struct>();
-			parser.fromJson('{ "a": 12, "b": 12 }', "test");
+			var data = parser.fromJson('{ "a": 12, "b": 12 }', "test");
+			assertEquals(data.a,true);
 			assertEquals(parser.warnings.length, 2); // IncorrectType + UninitializedVariable
 		}
 

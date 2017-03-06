@@ -370,7 +370,23 @@ class DataBuilder {
 							var lil_switch = handleVariable(field.type, f_a, parserInfo);
 							cases.push({ expr: lil_switch, guard: null, values: [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}] });
 
-							var ano_field_default = switch (field.type) {
+							var defaultValue:Expr = null;
+							if (field.meta.has(":default")) {
+								var metas = field.meta.extract(":default");
+								if (metas.length > 0) {
+									var meta = metas[0];
+									if (meta.params != null && meta.params.length == 1) {
+										if (field.type.unify(Context.typeof(meta.params[0]))) {
+											defaultValue = meta.params[0];
+										}
+										else {
+											Context.fatalError("json2object: default value for "+field.name+" is of incorrect type", Context.currentPos());
+										}
+									}
+								}
+							}
+
+							var ano_field_default = (defaultValue != null) ? defaultValue : switch (field.type) {
 								case TAbstract(_.get() => t, p):
 									switch(t.name) {
 										case "Bool": macro false;
