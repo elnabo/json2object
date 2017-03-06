@@ -298,7 +298,7 @@ class DataBuilder {
 					}
 				}
 
-				var default_e = macro warnings.push(UnknownVariable(field.name, putils.convertPosition(field.value.pos)));
+				var default_e = macro warnings.push(UnknownVariable(field.name, putils.convertPosition(field.namePos)));
 				loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
 
 			case TType(_.get() => t, params):
@@ -386,7 +386,7 @@ class DataBuilder {
 					}
 				}
 
-				var default_e = macro warnings.push(UnknownVariable(field.name, putils.convertPosition(field.value.pos)));
+				var default_e = macro warnings.push(UnknownVariable(field.name, putils.convertPosition(field.namePos)));
 				loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
 
 			default: Context.fatalError("json2object: " + parsedType.toString() + " can't be parsed", Context.currentPos());
