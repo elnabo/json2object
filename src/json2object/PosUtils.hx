@@ -30,11 +30,11 @@ class PosUtils {
 	var linesInfo = new Array<Line>();
 
 	public function new(content:String) {
-		var s = 0;
-		var e = 0;
+		var s = 0; // Line start char
+		var e = 0; // Line end char
 
 		var i = 0;
-		var lineCount = 0;
+		var lineCount = 1; // Line numbering usually start at 1
 		while (i < content.length) {
 			switch (content.charAt(i)) {
 				case "\r":
@@ -55,8 +55,8 @@ class PosUtils {
 				default:
 					i++;
 			}
-			linesInfo.push({number: lineCount, start: s, end: i });
 		}
+		linesInfo.push({number: lineCount, start: s, end: i });
 	}
 
 	/**
