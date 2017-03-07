@@ -130,10 +130,10 @@ class DataBuilder {
 		}
 	}
 
-	private static function parseType(type:Type, info:JsonType, level=0, parser:ParserInfo, json:Expr): Expr {
+	private static function parseType(type:Type, info:JsonType, level=0, parser:ParserInfo, json:Expr, ?variable:Expr=null): Expr {
 		var caseVar = "s" + level;
 		var cls = { name:parser.clsName, pack:parser.packs, params:[TPType(type.toComplexType())]};
-		return switch (info.jtype) {
+		var expr = switch (info.jtype) {
 			case "JString", "JBool": macro $i{caseVar};
 			case "JNumber": switch (info.name) {
 				case "Int": macro Std.parseInt($i{caseVar});
@@ -156,6 +156,24 @@ class DataBuilder {
 			default: Context.fatalError("json2object: Unsupported element: " + info.name, Context.currentPos());
 
 		}
+
+		if (variable != null) expr = macro {
+			${variable} = cast ${expr};
+			assigned.set(field.name, true);
+		};
+
+		var onError = (variable == null) ? macro continue : macro {};
+		if (info.jtype == "JNumber" && info.name == "Int") {
+			return macro if (Std.parseInt($i{caseVar}) != null && Std.parseInt($i{caseVar}) == Std.parseFloat($i{caseVar})) {
+					${expr};
+				}
+				else {
+					warnings.push(IncorrectType(field.name, "Int", putils.convertPosition(${json}.pos)));
+					${onError};
+				}
+		}
+		return expr;
+
 	}
 
 	private static function handleArray(type:Type, level=1, parser:ParserInfo) : Expr {
@@ -202,7 +220,7 @@ class DataBuilder {
 		var keyExpr = switch (typeToHxjsonAst(key.follow()).name) {
 			case "String": macro $i{fieldVar}.name;
 			case "Int": macro {
-				if (Std.parseInt($i{fieldVar}.name) != null)
+				if (Std.parseInt($i{fieldVar}.name) != null && Std.parseInt($i{fieldVar}.name) == Std.parseFloat($i{fieldVar}.name))
 					Std.parseInt($i{fieldVar}.name);
 				else {
 					warnings.push(IncorrectType(field.name, "Int", putils.convertPosition($i{fieldVar}.namePos)));
@@ -245,12 +263,11 @@ class DataBuilder {
 			: macro { ${variable} = null; assigned.set(field.name, true); };
 
 		var json = macro field.value;
-		var expr = parseType(type, info, parser, json);
+		var expr = parseType(type, info, parser, json, variable);
 		return macro {
 			switch(${json}.value){
 				case $i{info.jtype}(s0):
-					${variable} = cast ${expr};
-					assigned.set(field.name, true);
+					${expr};
 				case JNull:
 					${nullCase};
 				default:

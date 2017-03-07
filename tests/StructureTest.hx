@@ -53,6 +53,14 @@ typedef InnerStruct = {
     @:optional var inner:Int;
 }
 
+typedef ArrayStruct = {
+	var array:Array<Int>;
+}
+
+typedef MapIIStruct = {
+	var map:Map<Int, Int>;
+}
+
 class StructureTest extends haxe.unit.TestCase {
 
 	public  function makeMap(?i:Int=0):Map<Int,String> {
@@ -98,6 +106,13 @@ class StructureTest extends haxe.unit.TestCase {
 		}
 
 		{
+			var parser = new json2object.JsonParser<ReadonlyStruct>();
+			var data = parser.fromJson('{"foo":1.2}', "");
+			assertEquals(parser.warnings.length, 2);
+			assertEquals(data.foo, 0);
+		}
+
+		{
 			var parser = new json2object.JsonParser<{ var foo(default,null):Int; }>();
 			var data = parser.fromJson('{"foo":12}', "");
 			assertEquals(data.foo, 12);
@@ -106,6 +121,21 @@ class StructureTest extends haxe.unit.TestCase {
 		{
 			var parser = new json2object.JsonParser<OuterStruct>();
 			assertEquals(parser.fromJson('{"outer": {}}', "").outer.inner, 0);
+		}
+
+		{
+			var parser = new json2object.JsonParser<ArrayStruct>();
+			var data = parser.fromJson('{"array": [1,2,3.2]}', "");
+			assertEquals(parser.warnings.length, 1);
+			assertEquals(data.array.toString(), "[1,2]");
+		}
+		{
+			var parser = new json2object.JsonParser<MapIIStruct>();
+			var data = parser.fromJson('{"map": {"1":2, "3.1": 4, "5":6, "7":8.2}}', "");
+			assertEquals(parser.warnings.length, 2);
+			assertEquals(data.map.get(1),2);
+			assertEquals(data.map.get(5),6);
+			assertEquals(data.map.exists(7),false);
 		}
 	}
 
