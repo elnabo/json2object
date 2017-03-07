@@ -43,6 +43,16 @@ typedef B = {
 	t : Templated<Templated<Int>>
 }
 
+
+typedef AbstractStruct = {
+	@:optional @:default([])
+	var a:ReadonlyArray<Int>;
+}
+
+@:forward(length, toString)
+abstract ReadonlyArray<T>(Array<T>) from Array<T> {}
+
+
 class AbstractTest extends haxe.unit.TestCase {
 
 	public function test () {
@@ -73,6 +83,17 @@ class AbstractTest extends haxe.unit.TestCase {
 			assertEquals(data.t.length, 2);
 			assertEquals(data.t[1].length, 2);
 			assertEquals(data.t[0][1], 1);
+		}
+
+		{
+			var parser = new json2object.JsonParser<AbstractStruct>();
+			var data = parser.fromJson('{}', 'test');
+			assertEquals(data.a.length, 0);
+			assertEquals(parser.warnings.length, 0);
+
+			data = parser.fromJson('{"a":[1,1,2,3]}', 'test');
+			assertEquals(data.a.toString(), "[1,1,2,3]");
+			assertEquals(parser.warnings.length, 0);
 		}
 	}
 

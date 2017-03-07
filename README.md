@@ -49,6 +49,21 @@ trace(json2object.ErrorUtils.convertErrorArray(parser.warnings));
 - Typedef alias of supported types
 - Asbtract over a supported type
 
+### Other
+
+Anonymous structure variables can be defined to be loaded with a default value if none is specified in the json using the `@:default` metadata
+```haxe
+typedef Struct = {
+	var normal:String;
+
+	@:default(new Map<Int, String>())
+	var map:Map<Int,String>;
+
+	@:default(-1) @:optional
+	var id:Int;
+}
+```
+
 ## Example
 
 With an anonymous structure:
@@ -99,10 +114,10 @@ class Main {
 		trace(data.b.c);
 
 		for (e in data.e) {
-			trace(e.c);
+			trace(e.get("c"));
 		}
 
-		trace(data.e[0].c);
+		trace(data.e[0].get("c");
 		trace(data.f.length);
 
 		for (g in data.g) {

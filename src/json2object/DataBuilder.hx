@@ -376,7 +376,7 @@ class DataBuilder {
 								if (metas.length > 0) {
 									var meta = metas[0];
 									if (meta.params != null && meta.params.length == 1) {
-										if (field.type.unify(Context.typeof(meta.params[0]))) {
+										if (field.type.followWithAbstracts().unify(Context.typeof(meta.params[0]).followWithAbstracts())) {
 											defaultValue = meta.params[0];
 										}
 										else {
