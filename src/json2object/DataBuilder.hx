@@ -34,6 +34,15 @@ typedef ParserInfo = {packs:Array<String>, clsName:String}
 
 class DataBuilder {
 
+	private static function notNull(type:Type):Type {
+		return switch (type) {
+			case TType(_.get()=>t, p):
+				(t.name == "Null") ? notNull(type.follow()) : type;
+			default:
+				type;
+		}
+	}
+
 	private static function getParserName(parsed:Type, ?level=1) {
 		var res = "";
 
@@ -386,7 +395,7 @@ class DataBuilder {
 								}
 							}
 
-							var ano_field_default = (defaultValue != null) ? defaultValue : switch (field.type) {
+							var ano_field_default = (defaultValue != null) ? defaultValue : switch (notNull(field.type)) {
 								case TAbstract(_.get() => t, p):
 									switch(t.name) {
 										case "Bool": macro false;

@@ -45,6 +45,14 @@ typedef ReadonlyStruct = {
     var foo(default,null):Int;
 }
 
+typedef OuterStruct = {
+    @:optional var outer:InnerStruct;
+}
+
+typedef InnerStruct = {
+    @:optional var inner:Int;
+}
+
 class StructureTest extends haxe.unit.TestCase {
 
 	public  function makeMap(?i:Int=0):Map<Int,String> {
@@ -93,6 +101,11 @@ class StructureTest extends haxe.unit.TestCase {
 			var parser = new json2object.JsonParser<{ var foo(default,null):Int; }>();
 			var data = parser.fromJson('{"foo":12}', "");
 			assertEquals(data.foo, 12);
+		}
+
+		{
+			var parser = new json2object.JsonParser<OuterStruct>();
+			assertEquals(parser.fromJson('{"outer": {}}', "").outer.inner, 0);
 		}
 	}
 
