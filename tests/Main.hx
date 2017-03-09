@@ -29,6 +29,7 @@ class Main {
 		r.add(new MapTest());
 		r.add(new ObjectTest<String,String>());
 		r.add(new AbstractTest());
+		r.add(new EnumTest());
 
 		#if sys
 		Sys.exit(r.run() ? 0 : 1);
