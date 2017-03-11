@@ -27,31 +27,31 @@ package json2object;
  */
 class ErrorUtils {
 	public static function convertError (e:Error) : String {
-        var pos = switch (e) {
-            case IncorrectType(_, _, pos) | UninitializedVariable(_, pos) | UnknownVariable(_, pos) | ParserError(_, pos): pos;
-        }
+		var pos = switch (e) {
+			case IncorrectType(_, _, pos) | UninitializedVariable(_, pos) | UnknownVariable(_, pos) | ParserError(_, pos): pos;
+		}
 
-        var res = pos != null ? '${pos.file}:${pos.line.number}: characters ${pos.line.start}-${pos.line.end} : ' : "";
+		var res = pos != null ? '${pos.file}:${pos.line.number}: characters ${pos.line.start}-${pos.line.end} : ' : "";
 
-        switch (e)
-        {
-            case IncorrectType(variable, expected, _):
-                res += 'variable ${variable} should have been of type ${expected}';
+		switch (e)
+		{
+			case IncorrectType(variable, expected, _):
+				res += 'variable ${variable} should have been of type ${expected}';
 
-            case UnknownVariable(variable, _):
-                res += 'variable ${variable} isn\'t in the schema';
+			case UnknownVariable(variable, _):
+				res += 'variable ${variable} isn\'t in the schema';
 
-            case UninitializedVariable(variable, _):
-                res += 'variable ${variable} isn\'t in the json';
+			case UninitializedVariable(variable, _):
+				res += 'variable ${variable} isn\'t in the json';
 
-            case ParserError(message, _):
-                res += 'parser eror: ${message}';
-        }
+			case ParserError(message, _):
+				res += 'parser eror: ${message}';
+		}
 
-        return res;
-    }
+		return res;
+	}
 
-    public static function convertErrorArray (e:Array<Error>) : String {
-        return e.map(convertError).join("\n");
-    }
+	public static function convertErrorArray (e:Array<Error>) : String {
+		return e.map(convertError).join("\n");
+	}
 }
