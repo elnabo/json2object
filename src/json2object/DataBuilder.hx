@@ -187,7 +187,7 @@ class DataBuilder {
 			case CONTINUE: macro continue;
 			case THROW: macro throw "json2object: Invalid type";
 			default: macro {};
-		};//(variable == null) ? macro continue : macro {};
+		};
 
 		if (info.jtype == "JNumber"  && info.name == "Int") {
 			expr = macro if (Std.parseInt($i{caseVar}) != null && Std.parseInt($i{caseVar}) == Std.parseFloat($i{caseVar})) {
@@ -202,23 +202,50 @@ class DataBuilder {
 
 		else if (info.name == "enum") {
 			var objExpr = macro new $cls(warnings, putils).loadJson($i{caseVar}, ${json}.pos);
-			var strExpr = macro Type.createEnum(Type.resolveEnum($v{type.toString()}), $i{caseVar});
+			var strExpr:Expr = null;
+
+			switch (type) {
+				case TEnum(_.get()=>t, p):
+
+					var cases = new Array<Case>();
+					for (n in t.names) {
+						switch (t.constructs.get(n).type) {
+							case TEnum(_,_):
+
+								var l = t.module.split(".");
+								l.push(t.name);
+								l.push(n);
+								var subExpr = {expr:EConst(CIdent(l.shift())), pos:Context.currentPos()};
+								while (l.length > 0) {
+									subExpr = {expr:EField(subExpr, l.shift()), pos:Context.currentPos()};
+								}
+
+								if (variable != null) {
+									subExpr = macro {
+										${variable} = ${subExpr};
+										assigned.set(field.name, true);
+									};
+								}
+								cases.push({expr: subExpr, guard: null, values: [macro $v{n}]});
+							default:
+						}
+					};
+
+					var default_e =macro {
+						warnings.push(IncorrectType(field.name, $v{type.toString()}, putils.convertPosition(${json}.pos)));
+						${onWarnings}
+					};
+					strExpr = {expr: ESwitch(macro $i{caseVar}, cases, default_e), pos: Context.currentPos() };
+				default:
+			}
+
+
 			if (variable != null) {
-				strExpr = macro {
-					${variable} = cast ${strExpr};
-					assigned.set(field.name, true);
-				};
 				objExpr = macro {
 					${variable} = cast ${objExpr};
 					assigned.set(field.name, true);
 				};
 			}
-			strExpr = macro try {
-					${strExpr}
-				} catch (_:Dynamic) {
-					warnings.push(IncorrectType(field.name, $v{type.toString()}, putils.convertPosition(${json}.pos)));
-					${onWarnings}
-			};
 
 			objExpr = macro try { ${objExpr} } catch (_:String) {${onWarnings}};
 
@@ -442,31 +469,31 @@ class DataBuilder {
 				var default_e = macro warnings.push(UnknownVariable(field.name, putils.convertPosition(field.namePos)));
 				loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
 
-			case TEnum(t, p):
-				parserName += "_Enum_"+t.get().name;
+			case TEnum(_.get() => t, p):
+				parserName += "_Enum_"+t.name;
 				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
-				parsedName = t.get().name;
+				parsedName = t.name;
 				noConstruct = false;
 				useNew = false;
 				defaultEnum = true;
 
-				var constructs = t.get().constructs;
+				var constructs = t.constructs;
 
-				for (name in t.get().names) {
+				for (name in t.names) {
 					var enumField = constructs.get(name);
 					var args = switch (enumField.type) {
 						case TFun(a, _): a;
 						default: [];
 					}
-					var arrayValues:Array<Expr> = [];
+					var enumParams:Array<Expr> = [];
 					var blockExpr = [macro if (s0.length != $v{args.length}) {
-							warnings.push(IncorrectType(field.name, $v{t.toString()}, putils.convertPosition(field.value.pos)));
+							warnings.push(IncorrectType(field.name, $v{t.name}, putils.convertPosition(field.value.pos)));
 							throw "json2object: Invalid type";
 						}];
 
 					var argCount = 0;
 					for (a in args) {
-						arrayValues.push(macro $i{a.name});
+						enumParams.push(macro $i{a.name});
 						var type = a.t;
 						blockExpr.push({expr: EVars([{name:a.name, type:type.toComplexType(), expr:null}]), pos:Context.currentPos()});
 
@@ -477,32 +504,36 @@ class DataBuilder {
 						argCount++;
 					}
 
-					var arrayDecl = {expr: EArrayDecl(arrayValues), pos:Context.currentPos()};
+					var l = t.module.split(".");
+					l.push(t.name);
+					l.push(name);
+					var subExpr = {expr:EConst(CIdent(l.shift())), pos:Context.currentPos()};
+					while (l.length > 0) {
+						subExpr = {expr:EField(subExpr, l.shift()), pos:Context.currentPos()};
+					}
 
-					blockExpr.push(macro try {
-						object = Type.createEnum(Type.resolveEnum($v{t.toString()}), $v{name}, ${arrayDecl});
-					} catch (_:Dynamic) {
-						// Shall never be reached
-					});
-
+					var subExpr = (enumParams.length > 0)
+						? {expr:ECall(subExpr, enumParams), pos:Context.currentPos()}
+						: subExpr;
+					blockExpr.push(macro object = ${subExpr});
 
 					var lil_expr:Expr = {expr: EBlock(blockExpr), pos:Context.currentPos()};
 					cases.push({ expr: lil_expr, guard: null, values: [{ expr: EConst(CString($v{name})), pos: Context.currentPos()}] });
 				}
 
-				var default_e = macro { warnings.push(IncorrectType(field.name, $v{t.toString()}, putils.convertPosition(field.namePos))); throw "json2object: Invalid type"; } ;
+				var default_e = macro { warnings.push(IncorrectType(field.name, $v{t.name}, putils.convertPosition(field.namePos))); throw "json2object: Invalid type"; } ;
 				var expr = {expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
 
 				expr = macro switch (field.value.value) {
 					case JObject(s0):
 						${expr};
 					default:
-						warnings.push(IncorrectType(field.name, $v{t.toString()}, putils.convertPosition(field.value.pos))); throw "json2object: Invalid type";
+						warnings.push(IncorrectType(field.name, $v{t.name}, putils.convertPosition(field.value.pos))); throw "json2object: Invalid type";
 				}
 
 				loop = macro {
 					if (fields.length != 1) {
-						warnings.push(IncorrectType(field.name, $v{t.toString()}, putils.convertPosition(objectPos)));
+						warnings.push(IncorrectType(field.name, $v{t.name}, putils.convertPosition(objectPos)));
 						throw "json2object: Invalid type";
 					}
 					else {
