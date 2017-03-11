@@ -12,6 +12,9 @@ enum Color {
 typedef EnumStruct = {
 	var value : Color;
 }
+typedef ArrayEnumStruct = {
+	var value : Array<Color>;
+}
 
 
 class EnumTest extends haxe.unit.TestCase {
@@ -43,7 +46,7 @@ class EnumTest extends haxe.unit.TestCase {
 			var parser = new JsonParser<EnumStruct>();
 			var data = parser.fromJson('{"value":{"Red":{"a":0.5}}}', "test.json");
 			assertEquals(null, data.value);
-			assertEquals(1, parser.warnings.length);
+			assertEquals(2, parser.warnings.length);
 		}
 
 		{
@@ -56,7 +59,13 @@ class EnumTest extends haxe.unit.TestCase {
 				default:
 					assertEquals(None({a:25}), data.value);
 			}
+		}
 
+		{
+			var parser = new JsonParser<ArrayEnumStruct>();
+			var data = parser.fromJson('{"value":["Red", "Green", "Yellow", {"Red":{}}, {"RGBA":{"r":1, "g":1, "b":0}}, {"RGBA":{"r":1, "g":1, "b":0, "a":0.2}}]}', "");
+			assertEquals(4,data.value.length);
+			assertEquals(-1, data.value.indexOf(null));
 		}
 	}
 }
