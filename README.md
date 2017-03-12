@@ -48,10 +48,11 @@ trace(json2object.ErrorUtils.convertErrorArray(parser.warnings));
 - Anonymous structure
 - Typedef alias of supported types
 - Asbtract over a supported type
+- Enum values
 
 ### Other
 
-Anonymous structure variables can be defined to be loaded with a default value if none is specified in the json using the `@:default` metadata
+- Anonymous structure variables can be defined to be loaded with a default value if none is specified in the json using the `@:default` metadata
 ```haxe
 typedef Struct = {
 	var normal:String;
@@ -63,6 +64,10 @@ typedef Struct = {
 	var id:Int;
 }
 ```
+
+- No parser will be generated for the types `String`, `Int`, `Float` and `Bool`.
+
+- Variable defined as `(default, null)` may have unexpected behaviour on some `extern` classes.
 
 ## Example
 

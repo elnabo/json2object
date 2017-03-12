@@ -271,6 +271,7 @@ class DataBuilder {
 
 		switch (parsedType) {
 			case TInst(t, params):
+				if (t.get().module == "String") Context.fatalError("json2object: Parser of String are not generated", Context.currentPos());
 				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
 
 				parsedName = t.get().name;
@@ -324,6 +325,10 @@ class DataBuilder {
 				return makeParser(c, parsedType.follow().applyTypeParameters(t.params, params), parsedType);
 
 			case TAbstract(_.get() => t, params):
+				if (t.module == "StdTypes" && t.name == "Int") Context.fatalError("json2object: Parser of Int are not generated", Context.currentPos());
+				if (t.module == "StdTypes" && t.name == "Float") Context.fatalError("json2object: Parser of Float are not generated", Context.currentPos());
+				if (t.module == "StdTypes" && t.name == "Bool") Context.fatalError("json2object: Parser of Bool are not generated", Context.currentPos());
+
 				if (t.module != "Map" && t.module != "IMap") {
 					return makeParser(c, t.type.applyTypeParameters(t.params, params), parsedType, true);
 				}
