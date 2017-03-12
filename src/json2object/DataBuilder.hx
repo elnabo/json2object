@@ -42,6 +42,9 @@ enum WarningType {
 
 class DataBuilder {
 
+	private static var counter = 0;
+	private static var parsers = new Map<String, Type>();
+
 	private static function notNull(type:Type):Type {
 		return switch (type) {
 			case TType(_.get()=>t, p):
@@ -186,7 +189,7 @@ class DataBuilder {
 
 								if (variable != null) {
 									subExpr = macro {
-										${variable} = ${subExpr};
+										${variable} = cast ${subExpr};
 										${assigned};
 									};
 								}
@@ -253,7 +256,22 @@ class DataBuilder {
 		var parsedName:String = null;
 		var classParams:Array<TypeParam>;
 		var cases = new Array<Case>();
-		var parserName = c.name + getParserName(parsedType);
+
+		switch (parsedType) {
+			case TType(_.get()=>t, params):
+				return makeParser(c, parsedType.follow().applyTypeParameters(t.params, params), parsedType);
+			case TAbstract(_.get()=>t, params):
+				if (t.module != "Map" && t.module != "IMap") {
+					return makeParser(c, t.type.applyTypeParameters(t.params, params), parsedType, true);
+				}
+			default:
+		}
+
+		if (parsers.exists(parsedType.toString())) {
+			return parsers.get(parsedType.toString());
+		}
+		var parserName = "JsonParser_RandomlyNamed_"+(counter++);
+
 		var packs:Array<String> = [];
 		var parserInfo:ParserInfo = {clsName:c.name, packs:c.pack};
 
@@ -272,7 +290,6 @@ class DataBuilder {
 		switch (parsedType) {
 			case TInst(t, params):
 				if (t.get().module == "String") Context.fatalError("json2object: Parser of String are not generated", Context.currentPos());
-				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
 
 				parsedName = t.get().name;
 				packs = t.get().pack;
@@ -321,17 +338,9 @@ class DataBuilder {
 					loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
 				}
 
-			case TType(_.get() => t, params):
-				return makeParser(c, parsedType.follow().applyTypeParameters(t.params, params), parsedType);
-
 			case TAbstract(_.get() => t, params):
 				if (t.module == "StdTypes") Context.fatalError("json2object: Parser of "+t.name+" are not generated", Context.currentPos());
 
-				if (t.module != "Map" && t.module != "IMap") {
-					return makeParser(c, t.type.applyTypeParameters(t.params, params), parsedType, true);
-				}
-
-				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
 				parsedName = "Map";
 				classParams = params.map(function(ty:Type) {return TPType(ty.toComplexType());});
 				packs = t.pack;
@@ -357,7 +366,6 @@ class DataBuilder {
 				loop = macro object.set($keyExpr, $valueExpr);
 
 			case TAnonymous(_.get() => a):
-				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
 				useNew = false;
 
 				for (field in a.fields) {
@@ -412,8 +420,6 @@ class DataBuilder {
 				loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
 
 			case TEnum(_.get() => t, p):
-				parserName += "_Enum_"+t.name;
-				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
 				parsedName = t.name;
 				noConstruct = false;
 				useNew = false;
@@ -457,7 +463,7 @@ class DataBuilder {
 					var subExpr = (enumParams.length > 0)
 						? {expr:ECall(subExpr, enumParams), pos:Context.currentPos()}
 						: subExpr;
-					blockExpr.push(macro object = ${subExpr});
+					blockExpr.push(macro object = cast ${subExpr});
 
 					var lil_expr:Expr = {expr: EBlock(blockExpr), pos:Context.currentPos()};
 					cases.push({ expr: lil_expr, guard: null, values: [{ expr: EConst(CString($v{name})), pos: Context.currentPos()}] });
@@ -588,6 +594,7 @@ class DataBuilder {
 			meta: null,
 		};
 
+
 		var loadJsonClass = macro class $parserName {
 
 			public var warnings:Array<json2object.Error>;
@@ -626,7 +633,10 @@ class DataBuilder {
 		//trace(p.printTypeDefinition(loadJsonClass));
 
 		haxe.macro.Context.defineType(loadJsonClass);
-		return haxe.macro.Context.getType(parserName);
+
+		var constructedType = haxe.macro.Context.getType(parserName);
+		parsers.set(parsedType.toString(), constructedType);
+		return constructedType;
 	}
 
 	public static function build() {
