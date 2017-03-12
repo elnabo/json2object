@@ -154,18 +154,7 @@ class DataBuilder {
 				default : Context.fatalError("json2object: Unsupported number format: " + info.name, Context.currentPos());
 			}
 			case "JArray": handleArray(info.params[0], level+1, parser);
-			case "JObject":
-				if (info.name == "IMap" || info.name == "Map") {
-					handleMap(
-						info.params[0],
-						info.params[1],
-						level+1,
-						parser
-					);
-				}
-				else {
-					macro new $cls(warnings, putils).loadJson($i{caseVar}, ${json}.pos);
-				}
+			case "JObject": $cls(warnings, putils).loadJson($i{caseVar}, ${json}.pos);
 			default: Context.fatalError("json2object: Unsupported element: " + info.name, Context.currentPos());
 		}
 
@@ -289,38 +278,6 @@ class DataBuilder {
 			}];
 	}
 
-	private static function handleMap(key:Type, value:Type, level=1, parser:ParserInfo) : Expr {
-		var forVar = "s" + (level-1);
-		var caseVar = "s" + level;
-		var fieldVar = "field" + level;
-
-		var info = typeToHxjsonAst(value);
-
-		var keyExpr = switch (typeToHxjsonAst(key.follow()).name) {
-			case "String": macro $i{fieldVar}.name;
-			case "Int": macro {
-				if (Std.parseInt($i{fieldVar}.name) != null && Std.parseInt($i{fieldVar}.name) == Std.parseFloat($i{fieldVar}.name))
-					Std.parseInt($i{fieldVar}.name);
-				else {
-					warnings.push(IncorrectType(field.name, "Int", putils.convertPosition($i{fieldVar}.namePos)));
-					continue;
-				}
-			};
-			default: Context.fatalError("json2object: Map key can only be String or Int", Context.currentPos());
-		}
-
-		var json = macro $i{fieldVar}.value;
-		var valueExpr = parseType(value, info, level, parser, json, CONTINUE);
-
-		var packs = ["json2object"];
-		var params = [TPType(key.toComplexType()), TPType(value.toComplexType())];
-		var pair = { name:"Pair", pack:packs, params:params };
-		var map = { name:"Map", pack:[], params:params};
-		var filler = { name:"MapTools", pack:packs, params:params};
-		return macro new $filler().fromArray(new $map(), [ for ($i{fieldVar} in $i{forVar}) new $pair(${keyExpr}, ${valueExpr})]);
-
-	}
-
 	private static function handleVariable(type:Type, variable:Expr, parser:ParserInfo) {
 		var info = typeToHxjsonAst(type);
 		var clsname = info.name;
@@ -397,7 +354,7 @@ class DataBuilder {
 				var keyExpr = switch (typeToHxjsonAst(params[0].follow()).name) {
 					case "String": macro field.name;
 					case "Int": macro {
-						if (Std.parseInt(field.name) != null)
+						if (Std.parseInt(field.name) != null && Std.parseInt(field.name) == Std.parseFloat(field.name))
 							Std.parseInt(field.name);
 						else {
 							warnings.push(IncorrectType(field.name, "Int", putils.convertPosition(field.namePos)));
