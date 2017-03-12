@@ -270,7 +270,7 @@ class DataBuilder {
 		if (parsers.exists(parsedType.toString())) {
 			return parsers.get(parsedType.toString());
 		}
-		var parserName = "JsonParser_RandomlyNamed_"+(counter++);
+		var parserName = c.name+"_Impl"+(counter++);
 
 		var packs:Array<String> = [];
 		var parserInfo:ParserInfo = {clsName:c.name, packs:c.pack};
