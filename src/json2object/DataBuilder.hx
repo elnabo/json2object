@@ -79,40 +79,12 @@ class DataBuilder {
 		return res;
 	}
 
-	private static function useParams(type:Type, paramsDef:Array<TypeParameter>, paramsValue:Array<Type>) {
-		for (i in 0...paramsDef.length) {
-			if (type.unify(paramsDef[i].t)) {
-				return paramsValue[i];
-			}
-		}
-		return type;
-	}
-
-	private static function applyParams(type:Type, paramsDef:Array<TypeParameter>, paramsValue:Array<Type>) {
-		var appliedType = useParams(type, paramsDef, paramsValue);
-		var paramsType = switch (type) {
-			case TInst(_, p), TAbstract(_,p), TEnum(_,p), TType(_,p):
-				p.map(function(p:Type) { return applyParams(useParams(p, paramsDef, paramsValue), paramsDef, paramsValue);});
-			default:
-				return type;
-		}
-		return switch(appliedType) {
-			case TInst(t,_): return TInst(t, paramsType);
-			case TAbstract(t,_): return TAbstract(t, paramsType);
-			case TEnum(t,_): return TEnum(t, paramsType);
-			case TType(t,_): return TType(t, paramsType);
-			default: return type;
-		}
-	}
-
 	private static function typeToHxjsonAst(type:Type) {
 		return switch (type) {
 			case TInst(t, p):
-				switch (t.get().name) {
-					case "String":
-						{ jtype: "JString", name: "String", params: [] };
-					case "Array":
-						{ jtype: "JArray", name: "Array", params: p };
+				switch (t.get().module) {
+					case "String": { jtype: "JString", name: "String", params: [] };
+					case "Array": { jtype: "JArray", name: "Array", params: p };
 					default:  { jtype: "JObject", name: t.get().name, params: p };
 				}
 			case TAbstract(_.get() => t, p):
@@ -128,7 +100,7 @@ class DataBuilder {
 					case "Null":
 						typeToHxjsonAst(p[0].follow());
 					default:
-						typeToHxjsonAst(applyParams(t.type, t.params, p));
+						typeToHxjsonAst(t.type.applyTypeParameters(t.params, p));
 				}
 			case TType(t,_):
 				typeToHxjsonAst(type.follow());
@@ -140,7 +112,7 @@ class DataBuilder {
 		}
 	}
 
-	private static function parseType(type:Type, info:JsonType, level=0, parser:ParserInfo, json:Expr, ?variable:Expr=null, ?warnings:WarningType): Expr {
+	private static function parseType(type:Type, info:JsonType, level=0, parser:ParserInfo, json:Expr, ?variable:Expr=null, ?warnings:WarningType, ?useFieldName:Bool=true): Expr {
 		var caseVar = "s" + level;
 		var cls = { name:parser.clsName, pack:parser.packs, params:[TPType(type.toComplexType())]};
 
@@ -153,21 +125,24 @@ class DataBuilder {
 				case "Float": macro Std.parseFloat($i{caseVar});
 				default : Context.fatalError("json2object: Unsupported number format: " + info.name, Context.currentPos());
 			}
-			case "JArray": handleArray(info.params[0], level+1, parser);
-			case "JObject": $cls(warnings, putils).loadJson($i{caseVar}, ${json}.pos);
+			case "JArray": macro new $cls(warnings, putils).loadJson($i{caseVar}, ${json}.pos);
+			case "JObject": macro new $cls(warnings, putils).loadJson($i{caseVar}, ${json}.pos);
 			default: Context.fatalError("json2object: Unsupported element: " + info.name, Context.currentPos());
 		}
+
+		var assigned = (useFieldName) ? macro assigned.set(field.name, true) : macro {};
+		var field = (useFieldName) ? macro field.name : macro "Array value";
 
 		var nullValue = macro null;
 		if (variable != null) {
 			expr = macro {
 				${variable} = cast ${expr};
-				assigned.set(field.name, true);
+				${assigned};
 			};
 
 			nullValue = macro {
 				${variable} = ${nullValue};
-				assigned.set(field.name, true);
+				${assigned};
 			};
 		}
 
@@ -183,7 +158,7 @@ class DataBuilder {
 					${expr};
 				}
 				else {
-					warnings.push(IncorrectType(field.name, "Int", putils.convertPosition(${json}.pos)));
+					warnings.push(IncorrectType(${field}, "Int", putils.convertPosition(${json}.pos)));
 					${onWarnings};
 				}
 			cases.push({ expr: expr, guard: null, values: [macro JNumber($i{caseVar})] });
@@ -212,7 +187,7 @@ class DataBuilder {
 								if (variable != null) {
 									subExpr = macro {
 										${variable} = ${subExpr};
-										assigned.set(field.name, true);
+										${assigned};
 									};
 								}
 								cases.push({expr: subExpr, guard: null, values: [macro $v{n}]});
@@ -221,7 +196,7 @@ class DataBuilder {
 					};
 
 					var default_e =macro {
-						warnings.push(IncorrectType(field.name, $v{type.toString()}, putils.convertPosition(${json}.pos)));
+						warnings.push(IncorrectType(${field}, $v{type.toString()}, putils.convertPosition(${json}.pos)));
 						${onWarnings}
 					};
 					strExpr = {expr: ESwitch(macro $i{caseVar}, cases, default_e), pos: Context.currentPos() };
@@ -232,7 +207,7 @@ class DataBuilder {
 			if (variable != null) {
 				objExpr = macro {
 					${variable} = cast ${objExpr};
-					assigned.set(field.name, true);
+					${assigned};
 				};
 			}
 
@@ -249,7 +224,7 @@ class DataBuilder {
 
 		var nullExpr = (info.name == "Float" || info.name == "Int" || info.name == "Bool")
 			? macro {
-				warnings.push(IncorrectType(field.name, $v{info.name}, putils.convertPosition(${json}.pos)));
+				warnings.push(IncorrectType(${field}, $v{info.name}, putils.convertPosition(${json}.pos)));
 				${onWarnings};
 			}
 			: nullValue;
@@ -257,25 +232,13 @@ class DataBuilder {
 		cases.push({expr: nullExpr, guard: null, values: [macro JNull]});
 		var defaultExpr = macro {
 			warnings.push(IncorrectType(
-				field.name,
+				${field},
 				$v{info.name},
 				putils.convertPosition(${json}.pos)));
 			${onWarnings}
 		};
 
 		return { expr: ESwitch(macro ${json}.value, cases, defaultExpr), pos: Context.currentPos() };
-	}
-
-	private static function handleArray(type:Type, level=1, parser:ParserInfo) : Expr {
-		var forVar = "s" + (level-1);
-		var caseVar = "s" + level;
-		var content = "content"+level;
-
-		var info = typeToHxjsonAst(type);
-		var json = macro $i{content};
-		return macro [for ($i{content} in $i{forVar})  {
-				${parseType(type, info, level, parser, json, CONTINUE)};
-			}];
 	}
 
 	private static function handleVariable(type:Type, variable:Expr, parser:ParserInfo) {
@@ -302,9 +265,14 @@ class DataBuilder {
 
 		var ano_constr_fields = [];
 
+		var fromJsonSwitch = macro hxjsonast.Json.JsonValue.JObject(s);
+
+		var isArray = false;
+
 		switch (parsedType) {
 			case TInst(t, params):
 				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
+
 				parsedName = t.get().name;
 				packs = t.get().pack;
 
@@ -315,35 +283,49 @@ class DataBuilder {
 				}
 
 				classParams = [for (p in params) TPType(p.toComplexType())];
-				for (field in t.get().fields.get()) {
-					if (!field.isPublic || field.meta.has(":jignored")) { continue; }
 
-					switch(field.kind) {
-						case FVar(_,w):
-							if (w == AccNever)
-							{
-								continue;
-							}
+				if (t.get().module == "Array") {
+					var info = typeToHxjsonAst(params[0]);
+					var json = macro v;
+					loop = macro object = cast [ for (v in values)
+						${parseType(params[0], info, parserInfo, json, CONTINUE, false)}
+					];
+					fromJsonSwitch = macro hxjsonast.Json.JsonValue.JArray(s);
 
-							names.push(macro { assigned.set($v{field.name}, $v{field.meta.has(":optional")});});
-							var fieldType = applyParams(field.type, t.get().params, params);
-
-							var f_a = { expr: EField(macro object, field.name), pos: Context.currentPos() };
-							var lil_switch = handleVariable(fieldType, f_a, parserInfo);
-							cases.push({ expr: lil_switch, guard: null, values: [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}] });
-						default: // Ignore
-					}
+					isArray = true;
 				}
 
-				var default_e = macro warnings.push(UnknownVariable(field.name, putils.convertPosition(field.namePos)));
-				loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
+				else {
+					for (field in t.get().fields.get()) {
+						if (!field.isPublic || field.meta.has(":jignored")) { continue; }
+
+						switch(field.kind) {
+							case FVar(_,w):
+								if (w == AccNever)
+								{
+									continue;
+								}
+
+								names.push(macro { assigned.set($v{field.name}, $v{field.meta.has(":optional")});});
+								var fieldType = field.type.applyTypeParameters(t.get().params, params);
+
+								var f_a = { expr: EField(macro object, field.name), pos: Context.currentPos() };
+								var lil_switch = handleVariable(fieldType, f_a, parserInfo);
+								cases.push({ expr: lil_switch, guard: null, values: [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}] });
+							default: // Ignore
+						}
+					}
+
+					var default_e = macro warnings.push(UnknownVariable(field.name, putils.convertPosition(field.namePos)));
+					loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
+				}
 
 			case TType(_.get() => t, params):
-				return makeParser(c, applyParams(parsedType.follow(), t.params, params), parsedType);
+				return makeParser(c, parsedType.follow().applyTypeParameters(t.params, params), parsedType);
 
 			case TAbstract(_.get() => t, params):
-				if (t.name != "Map" && t.name != "IMap") {
-					return makeParser(c, applyParams(t.type, t.params, params), parsedType, true);
+				if (t.module != "Map" && t.module != "IMap") {
+					return makeParser(c, t.type.applyTypeParameters(t.params, params), parsedType, true);
 				}
 
 				try { return haxe.macro.Context.getType(parserName); } catch (_:Dynamic) {}
@@ -528,9 +510,77 @@ class DataBuilder {
 
 		var obj:Field = {
 			doc: null,
-			access: [APublic],
 			kind: FVar(TypeUtils.toComplexType(base != null ? base : parsedType), null),
+			access: [APublic],
 			name: "object",
+			pos: Context.currentPos(),
+			meta: null,
+		};
+
+
+		var fct:Function;
+		var doc:String;
+
+		var fctArgs = [{meta:null, name:"objectPos", opt:null, type:TypeUtils.toComplexType(Context.getType("hxjsonast.Position")), value:null}];
+		var fctReturn = TypeUtils.toComplexType(base != null ? base : parsedType);
+
+		var firstArgType = Context.getType("Array");
+
+		if (isArray) {
+			switch (firstArgType) {
+				case TInst(t,p):
+					firstArgType = TInst(t, [Context.getType("hxjsonast.Json.Json")]);
+				default:
+			}
+			fctArgs.unshift({meta:null, name:"values", opt:null, value:null, type:TypeUtils.toComplexType(firstArgType)});
+			fct = {args:fctArgs, params:null, ret:fctReturn,
+				expr: macro {
+					${loop};
+					return object;
+				}
+			};
+
+			doc = "Create an instance initialized from a hxjsonast.\n\n @param values Value of the JSON array.\n @param objectPos Position of the current json object in the main file.";
+		}
+		else {
+			switch (firstArgType) {
+				case TInst(t,p):
+					firstArgType = TInst(t, [Context.getType("hxjsonast.Json.JObjectField")]);
+				default:
+			}
+			fctArgs.unshift({meta:null, name:"fields", opt:null, value:null, type:TypeUtils.toComplexType(firstArgType)});
+			fct = {args:fctArgs, params:null, ret:fctReturn,
+				expr: macro {
+					var assigned = new Map<String,Bool>();
+					$b{names}
+
+					@:privateAccess {
+						${new_e};
+
+						// Assign every JSON fields.
+						for (field in fields) {
+							${loop}
+						}
+					}
+
+					// Verify that all variables are assigned.
+					var lastPos = putils.convertPosition(new hxjsonast.Position(objectPos.file, objectPos.max-1, objectPos.max-1));
+					for (s in assigned.keys()) {
+						if (!assigned[s]) {
+							warnings.push(UninitializedVariable(s, lastPos));
+						}
+					}
+					return object;
+				}
+			};
+			doc = "Create an instance initialized from a hxjsonast.\n\n @param fields JSON fields.\n @param objectPos Position of the current json object in the main file.";
+		}
+
+		var loadJsonFct:Field = {
+			doc: doc,
+			kind: FFun(fct),
+			access: [APublic],
+			name: "loadJson",
 			pos: Context.currentPos(),
 			meta: null,
 		};
@@ -545,36 +595,6 @@ class DataBuilder {
 				this.putils = putils;
 			}
 
-			/**
-			 * Create an instance initialized from a hxjsonast.
-			 *
-			 * @param fields JSON fields.
-			 * @param objectPos Position of the current json object in the main file.
-			 */
-			public function loadJson(fields:Array<hxjsonast.Json.JObjectField>, objectPos:hxjsonast.Position) {
-				var assigned = new Map<String,Bool>();
-				$b{names}
-
-				@:privateAccess {
-					${new_e};
-
-					// Assign every JSON fields.
-					for (field in fields) {
-						${loop}
-					}
-				}
-
-				// Verify that all variables are assigned.
-				var lastPos = putils.convertPosition(new hxjsonast.Position(objectPos.file, objectPos.max-1, objectPos.max-1));
-				for (s in assigned.keys()) {
-					if (!assigned[s]) {
-						warnings.push(UninitializedVariable(s, lastPos));
-					}
-				}
-
-				return object;
-			}
-
 			/** Create an instance initialized from a JSON.
 			 *
 			 * Return `null` if the JSON is invalid.
@@ -583,12 +603,12 @@ class DataBuilder {
 				putils = new json2object.PosUtils(jsonString);
 				try {
 					var json = hxjsonast.Parser.parse(jsonString, filename);
-					switch (json.value) {
-						case hxjsonast.Json.JsonValue.JObject(fields):
-							return loadJson(fields, json.pos);
+					return switch (json.value) {
+						case ${fromJsonSwitch}:
+							loadJson(s, json.pos);
 						default:
-							return null;
-					}
+							null;
+					};
 				}
 				catch (e:hxjsonast.Error) {
 					throw json2object.Error.ParserError(e.message, putils.convertPosition(e.pos));
@@ -596,6 +616,7 @@ class DataBuilder {
 			}
 		};
 
+		loadJsonClass.fields.push(loadJsonFct);
 		loadJsonClass.fields.push(obj);
 
 		//var p = new haxe.macro.Printer();

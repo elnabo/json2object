@@ -22,18 +22,27 @@ SOFTWARE.
 
 package tests;
 
-class Main {
-	public static function main() {
-		var r = new haxe.unit.TestRunner();
-		r.add(new AbstractTest());
-		r.add(new ArrayTest());
-		r.add(new EnumTest());
-		r.add(new MapTest());
-		r.add(new ObjectTest<String,String>());
-		r.add(new StructureTest());
+import json2object.JsonParser;
 
-		#if sys
-		Sys.exit(r.run() ? 0 : 1);
-		#end
+class ArrayTest extends haxe.unit.TestCase {
+
+	public function test () {
+		{
+			var parser = new json2object.JsonParser<Array<Int>>();
+			var data = parser.fromJson('[0,1,4,3]', "");
+			var oracle = [0,1,4,3];
+			for (i in 0...data.length) {
+				assertEquals(oracle[i],data[i]);
+			}
+			assertEquals(0, parser.warnings.length);
+
+			data = parser.fromJson('[0,1,4.4,3]', "");
+			assertEquals(1, parser.warnings.length);
+			oracle = [0,1,3];
+			for (i in 0...data.length) {
+				assertEquals(oracle[i],data[i]);
+			}
+		}
 	}
+
 }
