@@ -91,19 +91,39 @@ class DataBuilder {
 					default:  { jtype: "JObject", name: t.get().name, params: p };
 				}
 			case TAbstract(_.get() => t, p):
-				switch(t.name) {
-					case "Bool":
-						{ jtype: "JBool", name: "Bool", params: [] };
-					case "Int":
-						{ jtype: "JNumber", name: "Int", params: [] };
-					case "Float":
-						{ jtype: "JNumber", name: "Float", params: [] };
-					case "Map", "IMap":
-						{ jtype: "JObject", name: "Map", params: p };
-					case "Null":
-						typeToHxjsonAst(p[0].follow());
-					default:
-						typeToHxjsonAst(t.type.applyTypeParameters(t.params, p));
+
+				if (t.meta.has(":enum")) {
+					switch (t.type) {
+						case TInst(_.get() => ti, _):
+							switch (ti.module) {
+								case "String": { jtype: "JString", name: "enum", params: [] };
+								default: Context.fatalError("json2object: Only String and Int abstract enums are supported", Context.currentPos());
+							}
+						case TAbstract(_.get() => ta, _):
+							if (ta.module == "StdTypes" && ta.name == "Int") {
+								{jtype: "JNumber", name: "enum", params: []};
+							}
+							else {
+								Context.fatalError("json2object: Only String and Int abstract enums are supported", Context.currentPos());
+							}
+						default: Context.fatalError("json2object: Only String and Int abstract enums are supported", Context.currentPos());
+					}
+				}
+				else {
+					switch(t.name) {
+						case "Bool":
+							{ jtype: "JBool", name: "Bool", params: [] };
+						case "Int":
+							{ jtype: "JNumber", name: "Int", params: [] };
+						case "Float":
+							{ jtype: "JNumber", name: "Float", params: [] };
+						case "Map", "IMap":
+							{ jtype: "JObject", name: "Map", params: p };
+						case "Null":
+							typeToHxjsonAst(p[0].follow());
+						default:
+							typeToHxjsonAst(t.type.applyTypeParameters(t.params, p));
+					}
 				}
 			case TType(t,_):
 				typeToHxjsonAst(type.follow());
@@ -121,34 +141,8 @@ class DataBuilder {
 
 		var cases:Array<Case> = [];
 
-		var expr = switch (info.jtype) {
-			case "JString", "JBool": macro $i{caseVar};
-			case "JNumber": switch (info.name) {
-				case "Int": macro Std.parseInt($i{caseVar});
-				case "Float": macro Std.parseFloat($i{caseVar});
-				default : Context.fatalError("json2object: Unsupported number format: " + info.name, Context.currentPos());
-			}
-			case "JArray": macro new $cls(warnings, putils).loadJson($i{caseVar}, ${json}.pos);
-			case "JObject": macro new $cls(warnings, putils).loadJson($i{caseVar}, ${json}.pos);
-			default: Context.fatalError("json2object: Unsupported element: " + info.name, Context.currentPos());
-		}
-
 		var assigned = (useFieldName) ? macro assigned.set(field.name, true) : macro {};
 		var field = (useFieldName) ? macro field.name : macro "Array value";
-
-		var nullValue = macro null;
-		if (variable != null) {
-			expr = macro {
-				${variable} = cast ${expr};
-				${assigned};
-			};
-
-			nullValue = macro {
-				${variable} = ${nullValue};
-				${assigned};
-			};
-		}
-
 		var onWarnings = switch (warnings) {
 			case BREAK: macro break;
 			case CONTINUE: macro continue;
@@ -156,25 +150,64 @@ class DataBuilder {
 			default: macro {};
 		};
 
-		if (info.jtype == "JNumber"  && info.name == "Int") {
-			expr = macro if (Std.parseInt($i{caseVar}) != null && Std.parseInt($i{caseVar}) == Std.parseFloat($i{caseVar})) {
-					${expr};
-				}
-				else {
-					warnings.push(IncorrectType(${field}, "Int", putils.convertPosition(${json}.pos)));
-					${onWarnings};
-				}
-			cases.push({ expr: expr, guard: null, values: [macro JNumber($i{caseVar})] });
+		if (info.name == "enum" && info.jtype != "JObject") {
+			var internCases = new Array<Case>();
+			var cvar = "s" + (level+1);
+			switch (type) {
+				case TAbstract(_.get() => t, p):
+					var caseValues = new Array<Expr>();
+					var subExpr = (info.jtype == "JNumber") ? macro Std.parseInt($i{caseVar}) : macro $i{caseVar};
+					subExpr = (variable == null)
+							? macro ${subExpr}
+							: macro { ${variable} = cast ${subExpr}; ${assigned}}
+
+					for (field in t.impl.get().statics.get()) {
+						if (!field.meta.has(":enum") || !field.meta.has(":impl")) {
+							continue;
+						}
+
+						if (field.expr() == null) { continue; }
+						caseValues.push(
+							switch(field.expr().expr) {
+								case TConst(_) : Context.getTypedExpr(field.expr());
+								case TCast(caste, _) : Context.getTypedExpr(caste);
+								default: continue;
+							}
+						);
+
+					}
+
+					if (caseValues.length == 0 && info.jtype == "JNumber") {
+						Context.fatalError("json2object: Int enum abstract can't be empty", Context.currentPos());
+					}
+					internCases.push({expr:subExpr, guard: null, values:caseValues});
+
+					var typeString = switch (info.jtype) {
+						case "JString": "String";
+						case "JNumber":"Int";
+						default:"";
+					};
+					var default_e = macro {
+							warnings.push(IncorrectType(${field}, $v{typeString}, putils.convertPosition(${json}.pos)));
+							${onWarnings}
+						};
+
+					var switchVar = (info.jtype == "JNumber") ? macro Std.parseFloat($i{caseVar}) : macro $i{caseVar};
+					var expr = {expr: ESwitch(macro ${switchVar}, internCases, default_e), pos: Context.currentPos() };
+					cases.push({expr:expr, guard:null, values:[macro $i{info.jtype}($i{caseVar})]});
+
+				default: Context.fatalError("json2object: Invalid enum abstract type should be String or Int", Context.currentPos());
+			}
 		}
 
-		else if (info.name == "enum") {
+		else if (info.name == "enum" && info.jtype == "JObject") {
 			var objExpr = macro new $cls(warnings, putils).loadJson($i{caseVar}, ${json}.pos);
 			var strExpr:Expr = null;
 
 			switch (type) {
 				case TEnum(_.get()=>t, p):
 
-					var cases = new Array<Case>();
+					var internCases = new Array<Case>();
 					for (n in t.names) {
 						switch (t.constructs.get(n).type) {
 							case TEnum(_,_):
@@ -193,7 +226,7 @@ class DataBuilder {
 										${assigned};
 									};
 								}
-								cases.push({expr: subExpr, guard: null, values: [macro $v{n}]});
+								internCases.push({expr: subExpr, guard: null, values: [macro $v{n}]});
 							default:
 						}
 					};
@@ -202,7 +235,7 @@ class DataBuilder {
 						warnings.push(IncorrectType(${field}, $v{type.toString()}, putils.convertPosition(${json}.pos)));
 						${onWarnings}
 					};
-					strExpr = {expr: ESwitch(macro $i{caseVar}, cases, default_e), pos: Context.currentPos() };
+					strExpr = {expr: ESwitch(macro $i{caseVar}, internCases, default_e), pos: Context.currentPos() };
 				default:
 			}
 
@@ -221,11 +254,50 @@ class DataBuilder {
 		}
 
 		else {
-			cases.push({ expr: expr, guard: null, values: [macro $i{info.jtype}($i{caseVar})] });
+			var expr = switch (info.jtype) {
+				case "JString", "JBool": macro $i{caseVar};
+				case "JNumber": switch (info.name) {
+					case "Int": macro Std.parseInt($i{caseVar});
+					case "Float": macro Std.parseFloat($i{caseVar});
+					default : Context.fatalError("json2object: Unsupported number format: " + info.name, Context.currentPos());
+				}
+				case "JArray": macro new $cls(warnings, putils).loadJson($i{caseVar}, ${json}.pos);
+				case "JObject": macro new $cls(warnings, putils).loadJson($i{caseVar}, ${json}.pos);
+				default: Context.fatalError("json2object: Unsupported element: " + info.name, Context.currentPos());
+			}
+
+			if (variable != null) {
+				expr = macro {
+					${variable} = cast ${expr};
+					${assigned};
+				};
+			}
+
+			if (info.jtype == "JNumber"  && info.name == "Int") {
+				var expr = macro if (Std.parseInt($i{caseVar}) != null && Std.parseInt($i{caseVar}) == Std.parseFloat($i{caseVar})) {
+						${expr};
+					}
+					else {
+						warnings.push(IncorrectType(${field}, "Int", putils.convertPosition(${json}.pos)));
+						${onWarnings};
+					}
+				cases.push({ expr: expr, guard: null, values: [macro JNumber($i{caseVar})] });
+			}
+			else {
+				cases.push({ expr: expr, guard: null, values: [macro $i{info.jtype}($i{caseVar})] });
+			}
+		}
+
+		var nullValue = macro null;
+		if (variable != null) {
+			nullValue = macro {
+				${variable} = ${nullValue};
+				${assigned};
+			};
 		}
 
 
-		var nullExpr = (info.name == "Float" || info.name == "Int" || info.name == "Bool")
+		var nullExpr = (info.name == "Float" || info.name == "Int" || info.name == "Bool" || (info.name == "enum" && info.jtype == "JNumber"))
 			? macro {
 				warnings.push(IncorrectType(${field}, $v{info.name}, putils.convertPosition(${json}.pos)));
 				${onWarnings};
@@ -261,6 +333,9 @@ class DataBuilder {
 			case TType(_.get()=>t, params):
 				return makeParser(c, parsedType.follow().applyTypeParameters(t.params, params), parsedType);
 			case TAbstract(_.get()=>t, params):
+				if (t.meta.has("enum")) {
+					Context.fatalError("json2object: Parser of abstract enums are not generated", Context.currentPos());
+				}
 				if (t.module != "Map" && t.module != "IMap") {
 					return makeParser(c, t.type.applyTypeParameters(t.params, params), parsedType, true);
 				}
@@ -402,11 +477,29 @@ class DataBuilder {
 
 							var ano_field_default = (defaultValue != null) ? defaultValue : switch (notNull(field.type)) {
 								case TAbstract(_.get() => t, p):
-									switch(t.name) {
-										case "Bool": macro false;
-										case "Int": macro 0;
-										case "Float": macro 0.0;
-										default: macro null;
+									if (t.meta.has(":enum")) {
+										if (t.impl.get().module == "String") { macro null;}
+										else {
+											var e:Expr = null;
+											for (field in t.impl.get().statics.get()) {
+												if (field.meta.has(":enum") && field.meta.has(":impl")) {
+													e = Context.getTypedExpr(field.expr());
+													break;
+												}
+											}
+											if (e == null) {
+												Context.fatalError("json2object: enum abstract "+t.name+" has no values", Context.currentPos());
+											}
+											e;
+										}
+									}
+									else {
+										switch(t.name) {
+											case "Bool": macro false;
+											case "Int": macro 0;
+											case "Float": macro 0.0;
+											default: macro null;
+										}
 									}
 								default: macro null;
 							}

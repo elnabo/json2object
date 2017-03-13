@@ -52,6 +52,27 @@ typedef AbstractStruct = {
 @:forward(length, toString)
 abstract ReadonlyArray<T>(Array<T>) from Array<T> {}
 
+@:enum
+abstract EnumAbstractInt(Int) {
+	var A = 1;
+	var B = 2;
+	var Z = 26;
+}
+
+typedef EnumAbstractIntStruct = {
+	val:EnumAbstractInt
+}
+
+@:enum
+abstract EnumAbstractString(String) {
+	var SA = "Z";
+	var SB = "Y";
+	var SZ = "A";
+}
+
+typedef EnumAbstractStringStruct = {
+	val:EnumAbstractString
+}
 
 class AbstractTest extends haxe.unit.TestCase {
 
@@ -94,6 +115,44 @@ class AbstractTest extends haxe.unit.TestCase {
 			data = parser.fromJson('{"a":[1,1,2,3]}', 'test');
 			assertEquals(data.a.toString(), "[1,1,2,3]");
 			assertEquals(parser.warnings.length, 0);
+		}
+
+		{
+			var parser = new json2object.JsonParser<EnumAbstractIntStruct>();
+			var data = parser.fromJson('{"val":1}','');
+			assertEquals(A, data.val);
+			assertEquals(0, parser.warnings.length);
+
+			data = parser.fromJson('{"val":26}','');
+			assertEquals(Z, data.val);
+			assertEquals(0, parser.warnings.length);
+
+			data = parser.fromJson('{"val":16}','');
+			assertEquals(A, data.val);
+			assertEquals(2, parser.warnings.length);
+
+			data = parser.fromJson('{"val":26.2}','');
+			assertEquals(A, data.val);
+			assertEquals(4, parser.warnings.length);
+		}
+
+		{
+			var parser = new json2object.JsonParser<EnumAbstractStringStruct>();
+			var data = parser.fromJson('{"val":"Z"}','');
+			assertEquals(SA, data.val);
+			assertEquals(0, parser.warnings.length);
+
+			data = parser.fromJson('{"val":"A"}','');
+			assertEquals(SZ, data.val);
+			assertEquals(0, parser.warnings.length);
+
+			data = parser.fromJson('{"val":"B"}','');
+			assertEquals(SA, data.val);
+			assertEquals(2, parser.warnings.length);
+
+			data = parser.fromJson('{"val":26.2}','');
+			assertEquals(SA, data.val);
+			assertEquals(4, parser.warnings.length);
 		}
 	}
 

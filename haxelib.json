@@ -4,7 +4,7 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Initialize object directly from json with macro",
-	"version": "2.2.1",
+	"version": "2.2.2",
 	"releasenote": "Allow usage of enum.",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",

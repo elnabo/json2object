@@ -47,8 +47,9 @@ trace(json2object.ErrorUtils.convertErrorArray(parser.warnings));
 - Class (generics are supported)
 - Anonymous structure
 - Typedef alias of supported types
-- Asbtract over a supported type
 - Enum values
+- Abstract over a supported type
+- Abstract enum of String or Int
 
 ### Other
 
