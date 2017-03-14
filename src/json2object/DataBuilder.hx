@@ -93,20 +93,20 @@ class DataBuilder {
 			case TAbstract(_.get() => t, p):
 
 				if (t.meta.has(":enum")) {
-					switch (t.type) {
+					switch (notNull(t.type)) {
 						case TInst(_.get() => ti, _):
 							switch (ti.module) {
-								case "String": { jtype: "JString", name: "enum", params: [] };
+								case "String": { jtype: "AbstractEnum", name: "String", params: [] };
 								default: Context.fatalError("json2object: Only String and Int abstract enums are supported", Context.currentPos());
 							}
 						case TAbstract(_.get() => ta, _):
-							if (ta.module == "StdTypes" && ta.name == "Int") {
-								{jtype: "JNumber", name: "enum", params: []};
+							if (ta.module == "StdTypes" && (ta.name == "Int" ||ta.name == "Float" ||ta.name == "Bool")) {
+								{jtype: "AbstractEnum", name: ta.name, params: []};
 							}
 							else {
-								Context.fatalError("json2object: Only String and Int abstract enums are supported", Context.currentPos());
+								Context.fatalError("json2object: Only String, Int, Float and Bool abstract enums are supported", Context.currentPos());
 							}
-						default: Context.fatalError("json2object: Only String and Int abstract enums are supported", Context.currentPos());
+						default: Context.fatalError("json2object: String, Int, Float and Bool abstract enums are supported", Context.currentPos());
 					}
 				}
 				else {
@@ -141,6 +141,8 @@ class DataBuilder {
 
 		var cases:Array<Case> = [];
 
+		var nullable = (notNull(type) != type);
+
 		var assigned = (useFieldName) ? macro assigned.set(field.name, true) : macro {};
 		var field = (useFieldName) ? macro field.name : macro "Array value";
 		var onWarnings = switch (warnings) {
@@ -150,13 +152,20 @@ class DataBuilder {
 			default: macro {};
 		};
 
-		if (info.name == "enum" && info.jtype != "JObject") {
+		if (info.jtype == "AbstractEnum") {
 			var internCases = new Array<Case>();
 			var cvar = "s" + (level+1);
 			switch (type) {
 				case TAbstract(_.get() => t, p):
+
+					nullable  = (info.name == "String") || (notNull(t.type) != t.type);
 					var caseValues = new Array<Expr>();
-					var subExpr = (info.jtype == "JNumber") ? macro Std.parseInt($i{caseVar}) : macro $i{caseVar};
+					var subExpr = switch (info.name) {
+						case "Int":  macro Std.parseInt($i{caseVar});
+						case "Float":  macro Std.parseFloat($i{caseVar});
+						case "String", "Bool" : macro $i{caseVar};
+						default:  Context.fatalError("json2object: Unsupported abstract enum type:"+info.name, Context.currentPos());
+					};
 					subExpr = (variable == null)
 							? macro ${subExpr}
 							: macro { ${variable} = cast ${subExpr}; ${assigned}}
@@ -170,37 +179,49 @@ class DataBuilder {
 						caseValues.push(
 							switch(field.expr().expr) {
 								case TConst(_) : Context.getTypedExpr(field.expr());
-								case TCast(caste, _) : Context.getTypedExpr(caste);
+								case TCast(caste, _) :
+									switch (caste.expr) {
+										case TConst(tc) :
+											switch (tc) {
+												case TNull: continue;
+												default: Context.getTypedExpr(caste);
+											}
+										default : Context.getTypedExpr(caste);
+									}
 								default: continue;
 							}
 						);
 
 					}
 
-					if (caseValues.length == 0 && info.jtype == "JNumber") {
-						Context.fatalError("json2object: Int enum abstract can't be empty", Context.currentPos());
+					if (caseValues.length == 0 && info.name != "String") {
+						Context.fatalError("json2object: Non String enum abstract can't be empty", Context.currentPos());
 					}
 					internCases.push({expr:subExpr, guard: null, values:caseValues});
 
-					var typeString = switch (info.jtype) {
-						case "JString": "String";
-						case "JNumber":"Int";
-						default:"";
-					};
 					var default_e = macro {
-							warnings.push(IncorrectType(${field}, $v{typeString}, putils.convertPosition(${json}.pos)));
+							warnings.push(IncorrectType(${field}, $v{info.name}, putils.convertPosition(${json}.pos)));
 							${onWarnings}
 						};
 
-					var switchVar = (info.jtype == "JNumber") ? macro Std.parseFloat($i{caseVar}) : macro $i{caseVar};
+					var jtype = switch (info.name) {
+						case "Int", "Float": "JNumber";
+						case "String" : "JString";
+						default: "JBool";
+					}
+
+					var switchVar = (jtype == "JNumber") ? macro Std.parseFloat($i{caseVar}) : macro $i{caseVar};
 					var expr = {expr: ESwitch(macro ${switchVar}, internCases, default_e), pos: Context.currentPos() };
-					cases.push({expr:expr, guard:null, values:[macro $i{info.jtype}($i{caseVar})]});
+
+					cases.push({expr:expr, guard:null, values:[macro $i{jtype}($i{caseVar})]});
 
 				default: Context.fatalError("json2object: Invalid enum abstract type should be String or Int", Context.currentPos());
 			}
 		}
 
 		else if (info.name == "enum" && info.jtype == "JObject") {
+
+			nullable = true;
 			var objExpr = macro new $cls(warnings, putils).loadJson($i{caseVar}, ${json}.pos);
 			var strExpr:Expr = null;
 
@@ -296,8 +317,7 @@ class DataBuilder {
 			};
 		}
 
-
-		var nullExpr = (info.name == "Float" || info.name == "Int" || info.name == "Bool" || (info.name == "enum" && info.jtype == "JNumber"))
+		var nullExpr = (!nullable && (info.name == "Float" || info.name == "Int" || info.name == "Bool" || (info.name == "enum" && info.jtype == "JNumber")))
 			? macro {
 				warnings.push(IncorrectType(${field}, $v{info.name}, putils.convertPosition(${json}.pos)));
 				${onWarnings};
@@ -478,19 +498,24 @@ class DataBuilder {
 							var ano_field_default = (defaultValue != null) ? defaultValue : switch (notNull(field.type)) {
 								case TAbstract(_.get() => t, p):
 									if (t.meta.has(":enum")) {
-										if (t.impl.get().module == "String") { macro null;}
+										if (notNull(t.type) != t.type) { macro null; }
 										else {
-											var e:Expr = null;
-											for (field in t.impl.get().statics.get()) {
-												if (field.meta.has(":enum") && field.meta.has(":impl")) {
-													e = Context.getTypedExpr(field.expr());
-													break;
-												}
+											switch (t.type) {
+												case TInst(_,_): macro null;
+												case TAbstract(_,_):
+													var e:Expr = null;
+													for (field in t.impl.get().statics.get()) {
+														if (field.meta.has(":enum") && field.meta.has(":impl")) {
+															e = Context.getTypedExpr(field.expr());
+															break;
+														}
+													}
+													if (e == null) {
+														Context.fatalError("json2object: enum abstract "+t.name+" has no values", Context.currentPos());
+													}
+													e;
+												default: null;// Never reached
 											}
-											if (e == null) {
-												Context.fatalError("json2object: enum abstract "+t.name+" has no values", Context.currentPos());
-											}
-											e;
 										}
 									}
 									else {

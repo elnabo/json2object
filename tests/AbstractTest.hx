@@ -64,14 +64,35 @@ typedef EnumAbstractIntStruct = {
 }
 
 @:enum
-abstract EnumAbstractString(String) {
+abstract EnumAbstractString(Null<String>) {
 	var SA = "Z";
 	var SB = "Y";
 	var SZ = "A";
 }
 
 typedef EnumAbstractStringStruct = {
-	val:EnumAbstractString
+	@optional var val:EnumAbstractString;
+}
+
+@:enum
+abstract TernaryValue(Null<Bool>) {
+	var BA = true;
+	var BB = false;
+	var BC = null;
+}
+
+typedef TernaryStruct = {
+	var val:TernaryValue;
+}
+
+@:enum
+abstract FloatValue(Float) {
+	var PI = 3.14;
+	var ZERO = 0.0;
+}
+
+typedef FloatStruct = {
+	var val:FloatValue;
 }
 
 class AbstractTest extends haxe.unit.TestCase {
@@ -147,12 +168,42 @@ class AbstractTest extends haxe.unit.TestCase {
 			assertEquals(0, parser.warnings.length);
 
 			data = parser.fromJson('{"val":"B"}','');
-			assertEquals(SA, data.val);
+			assertEquals(null, data.val);
 			assertEquals(2, parser.warnings.length);
 
 			data = parser.fromJson('{"val":26.2}','');
-			assertEquals(SA, data.val);
+			assertEquals(null, data.val);
 			assertEquals(4, parser.warnings.length);
+		}
+
+		{
+			var parser = new json2object.JsonParser<TernaryStruct>();
+			var data = parser.fromJson('{"val":true}','');
+			assertEquals(BA, data.val);
+			assertEquals(0, parser.warnings.length);
+
+			data = parser.fromJson('{"val":null}','');
+			assertEquals(BC, data.val);
+			assertEquals(0, parser.warnings.length);
+
+			data = parser.fromJson('{"val":"B"}','');
+			assertEquals(null, data.val);
+			assertEquals(2, parser.warnings.length);
+		}
+
+		{
+			var parser = new json2object.JsonParser<FloatStruct>();
+			var data = parser.fromJson('{"val":3.14}','');
+			assertEquals(PI, data.val);
+			assertEquals(0, parser.warnings.length);
+
+			data = parser.fromJson('{"val":0.0}','');
+			assertEquals(ZERO, data.val);
+			assertEquals(0, parser.warnings.length);
+
+			data = parser.fromJson('{"val":1}','');
+			assertEquals(PI, data.val);
+			assertEquals(2, parser.warnings.length);
 		}
 	}
 

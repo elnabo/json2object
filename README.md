@@ -49,7 +49,7 @@ trace(json2object.ErrorUtils.convertErrorArray(parser.warnings));
 - Typedef alias of supported types
 - Enum values
 - Abstract over a supported type
-- Abstract enum of String or Int
+- Abstract enum of String, Int, Float or Bool
 
 ### Other
 
