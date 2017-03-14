@@ -155,6 +155,7 @@ class DataBuilder {
 		if (info.jtype == "AbstractEnum") {
 			var internCases = new Array<Case>();
 			var cvar = "s" + (level+1);
+			type = notNull(type);
 			switch (type) {
 				case TAbstract(_.get() => t, p):
 
@@ -215,7 +216,7 @@ class DataBuilder {
 
 					cases.push({expr:expr, guard:null, values:[macro $i{jtype}($i{caseVar})]});
 
-				default: Context.fatalError("json2object: Invalid enum abstract type should be String or Int", Context.currentPos());
+				default: Context.fatalError("json2object: Invalid enum abstract type should be String, Int, Float or Bool", Context.currentPos());
 			}
 		}
 
