@@ -36,6 +36,24 @@ enum Error {
 	IncorrectType(variable:String, expected:String, pos:Position);
 
 	/**
+	 * Incorrect enum value.
+	 *
+	 * @param variable Value affected.
+	 * @param expected Expected type.
+	 * @param pos Position in the JSON file.
+	 */
+	IncorrectEnumValue(value:String, expected:String, pos:Position);
+
+	/**
+	 * Incorrect enum contructor.
+	 *
+	 * @param variable Value affected.
+	 * @param expected Expected type.
+	 * @param pos Position in the JSON file.
+	 */
+	InvalidEnumConstructor(value:String, expected:String, pos:Position);
+
+	/**
 	 * Variable has not been initialized.
 	 *
 	 * @param variable Variable affected.

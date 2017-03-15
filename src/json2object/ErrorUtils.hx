@@ -28,7 +28,7 @@ package json2object;
 class ErrorUtils {
 	public static function convertError (e:Error) : String {
 		var pos = switch (e) {
-			case IncorrectType(_, _, pos) | UninitializedVariable(_, pos) | UnknownVariable(_, pos) | ParserError(_, pos): pos;
+			case IncorrectType(_, _, pos) | IncorrectEnumValue(_, _, pos) | InvalidEnumConstructor(_, _, pos) | UninitializedVariable(_, pos) | UnknownVariable(_, pos) | ParserError(_, pos): pos;
 		}
 
 		var res = pos != null ? '${pos.file}:${pos.line.number}: characters ${pos.line.start}-${pos.line.end} : ' : "";
@@ -36,13 +36,19 @@ class ErrorUtils {
 		switch (e)
 		{
 			case IncorrectType(variable, expected, _):
-				res += 'variable ${variable} should have been of type ${expected}';
+				res += 'variable \'${variable}\' should have been of type \'${expected}\'';
+
+			case IncorrectEnumValue(variable, expected, _):
+				res += 'identifier \'${variable}\' is not a part of type \'${expected}\'';
+
+			case InvalidEnumConstructor(variable, expected, _):
+				res += '\'${variable}\' is used with an invalid number of arguments for type \'${expected}\'';
 
 			case UnknownVariable(variable, _):
-				res += 'variable ${variable} isn\'t in the schema';
+				res += 'variable \'${variable}\' isn\'t in the schema';
 
 			case UninitializedVariable(variable, _):
-				res += 'variable ${variable} isn\'t in the json';
+				res += 'variable \'${variable}\' isn\'t in the json';
 
 			case ParserError(message, _):
 				res += 'parser eror: ${message}';

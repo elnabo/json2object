@@ -51,6 +51,13 @@ class EnumTest extends haxe.unit.TestCase {
 
 		{
 			var parser = new JsonParser<EnumStruct>();
+			var data = parser.fromJson('{"value":{"None":{"a":0.5}}}', "test.json");
+			assertEquals(null, data.value);
+			assertEquals(2, parser.warnings.length);
+		}
+
+		{
+			var parser = new JsonParser<EnumStruct>();
 			var data = parser.fromJson('{"value":{"None":{"r":{"a":25}}}}', "test.json");
 			assertEquals(0, parser.warnings.length);
 			switch (data.value) {

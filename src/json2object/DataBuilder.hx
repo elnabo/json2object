@@ -135,7 +135,7 @@ class DataBuilder {
 		}
 	}
 
-	private static function parseType(type:Type, info:JsonType, level=0, parser:ParserInfo, json:Expr, ?variable:Expr=null, ?warnings:WarningType, ?useFieldName:Bool=true): Expr {
+	private static function parseType(type:Type, info:JsonType, level=0, parser:ParserInfo, json:Expr, ?variable:Expr=null, ?warnings:WarningType, ?useFieldName:Bool=true, ?field:Expr = null): Expr {
 		var caseVar = "s" + level;
 		var cls = { name:parser.clsName, pack:parser.packs, params:[TPType(type.toComplexType())]};
 
@@ -144,7 +144,9 @@ class DataBuilder {
 		var nullable = (notNull(type) != type);
 
 		var assigned = (useFieldName) ? macro assigned.set(field.name, true) : macro {};
-		var field = (useFieldName) ? macro field.name : macro "Array value";
+		if (field == null) {
+			field = (useFieldName) ? macro field.name : macro "Array value";
+		}
 		var onWarnings = switch (warnings) {
 			case BREAK: macro break;
 			case CONTINUE: macro continue;
@@ -201,7 +203,7 @@ class DataBuilder {
 					internCases.push({expr:subExpr, guard: null, values:caseValues});
 
 					var default_e = macro {
-							warnings.push(IncorrectType(${field}, $v{info.name}, putils.convertPosition(${json}.pos)));
+							warnings.push(IncorrectType(${field}, $v{t.name}, putils.convertPosition(${json}.pos)));
 							${onWarnings}
 						};
 
@@ -254,7 +256,7 @@ class DataBuilder {
 					};
 
 					var default_e =macro {
-						warnings.push(IncorrectType(${field}, $v{type.toString()}, putils.convertPosition(${json}.pos)));
+						warnings.push(IncorrectEnumValue(${field}, $v{t.name}, putils.convertPosition(${json}.pos)));
 						${onWarnings}
 					};
 					strExpr = {expr: ESwitch(macro $i{caseVar}, internCases, default_e), pos: Context.currentPos() };
@@ -554,7 +556,7 @@ class DataBuilder {
 					}
 					var enumParams:Array<Expr> = [];
 					var blockExpr = [macro if (s0.length != $v{args.length}) {
-							warnings.push(IncorrectType(field.name, $v{t.name}, putils.convertPosition(field.value.pos)));
+							warnings.push(InvalidEnumConstructor(field.name, $v{t.name}, putils.convertPosition(field.value.pos)));
 							throw "json2object: Invalid type";
 						}];
 
@@ -567,7 +569,7 @@ class DataBuilder {
 						var info = typeToHxjsonAst(type);
 						var variable = macro $i{a.name};
 						var json = macro s0[$v{argCount}].value;
-						blockExpr.push(parseType(type, info, 1, parserInfo, json, variable, THROW));
+						blockExpr.push(parseType(type, info, 1, parserInfo, json, variable, THROW, macro field.name + "."+ $v{a.name}));
 						argCount++;
 					}
 
@@ -588,7 +590,7 @@ class DataBuilder {
 					cases.push({ expr: lil_expr, guard: null, values: [{ expr: EConst(CString($v{name})), pos: Context.currentPos()}] });
 				}
 
-				var default_e = macro { warnings.push(IncorrectType(field.name, $v{t.name}, putils.convertPosition(field.namePos))); throw "json2object: Invalid type"; } ;
+				var default_e = macro { warnings.push(IncorrectEnumValue(field.name, $v{t.name}, putils.convertPosition(field.namePos))); throw "json2object: Invalid type"; } ;
 				var expr = {expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
 
 				expr = macro switch (field.value.value) {
@@ -748,8 +750,8 @@ class DataBuilder {
 		loadJsonClass.fields.push(loadJsonFct);
 		loadJsonClass.fields.push(obj);
 
-		//var p = new haxe.macro.Printer();
-		//trace(p.printTypeDefinition(loadJsonClass));
+		//~ var p = new haxe.macro.Printer();
+		//~ trace(p.printTypeDefinition(loadJsonClass));
 
 		haxe.macro.Context.defineType(loadJsonClass);
 
