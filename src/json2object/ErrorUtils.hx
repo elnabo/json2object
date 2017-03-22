@@ -31,30 +31,28 @@ class ErrorUtils {
 			case IncorrectType(_, _, pos) | IncorrectEnumValue(_, _, pos) | InvalidEnumConstructor(_, _, pos) | UninitializedVariable(_, pos) | UnknownVariable(_, pos) | ParserError(_, pos): pos;
 		}
 
-		var res = pos != null ? '${pos.file}:${pos.line.number}: characters ${pos.line.start}-${pos.line.end} : ' : "";
+		var header = pos != null ? '${pos.file}:${pos.line.number}: characters ${pos.line.start}-${pos.line.end} : ' : "";
 
-		switch (e)
+		return switch (e)
 		{
 			case IncorrectType(variable, expected, _):
-				res += 'variable \'${variable}\' should have been of type \'${expected}\'';
+				header + 'Variable \'${variable}\' should be of type \'${expected}\'';
 
 			case IncorrectEnumValue(variable, expected, _):
-				res += 'identifier \'${variable}\' is not a part of type \'${expected}\'';
+				header + 'Identifier \'${variable}\' isn\'t part of \'${expected}\'';
 
 			case InvalidEnumConstructor(variable, expected, _):
-				res += '\'${variable}\' is used with an invalid number of arguments for type \'${expected}\'';
+				header + 'Enum argument \'${variable}\' should be of type \'${expected}\'';
 
 			case UnknownVariable(variable, _):
-				res += 'variable \'${variable}\' isn\'t in the schema';
+				header + 'Variable \'${variable}\' isn\'t part of the schema';
 
 			case UninitializedVariable(variable, _):
-				res += 'variable \'${variable}\' isn\'t in the json';
+				header + 'Variable \'${variable}\' should be in the json';
 
 			case ParserError(message, _):
-				res += 'parser eror: ${message}';
+				header + 'Parser eror: ${message}';
 		}
-
-		return res;
 	}
 
 	public static function convertErrorArray (e:Array<Error>) : String {

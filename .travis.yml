@@ -2,11 +2,10 @@ language: haxe
 
 os:
   - linux
-  #- osx
+  - osx
 
 haxe:
-  # Js bug somewhere between 3.4 and dev "src/json2object/DataBuilder.hx:161: characters 4-12 : This expression cannot be compiled to Javascript"
-  #- "3.4.0"
+  - 3.4.2
   - development
 
 sudo: false
