@@ -22,6 +22,9 @@ SOFTWARE.
 
 package json2object;
 
+#if !macro
+class DataBuilder {}
+#else
 import haxe.macro.Expr;
 import haxe.macro.Context;
 import haxe.macro.Type;
@@ -770,3 +773,4 @@ class DataBuilder {
 		}
 	}
 }
+#end
