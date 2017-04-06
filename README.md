@@ -6,6 +6,8 @@ This library uses macro and a typed position aware JSON parsing (hxjsonast : <ht
 
 Incorrect json files or mismatched between the object and the json will yield warnings or exceptions, with information on the position of the problematic parts.
 
+Requires at least haxe 3.3.0-rc.1.
+
 ## Installation
 
 ```
