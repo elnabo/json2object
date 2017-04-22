@@ -430,7 +430,26 @@ class DataBuilder {
 
 								var f_a = { expr: EField(macro object, field.name), pos: Context.currentPos() };
 								var lil_switch = handleVariable(fieldType, f_a, parserInfo);
-								cases.push({ expr: lil_switch, guard: null, values: [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}] });
+								//~ cases.push({ expr: lil_switch, guard: null, values: [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}] });
+								var caseValues = [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}];
+								if (field.meta.has(":alias")) {
+									var metas = field.meta.extract(":alias");
+									for (m in metas) {
+										for (mp in m.params) {
+											if (mp == null) { continue; }
+											switch (mp.expr) {
+												case EConst(c):
+													switch (c) {
+														case CString(_):
+															caseValues.push(mp);
+														default:
+													}
+												default:
+											}
+										}
+									}
+								}
+								cases.push({ expr: lil_switch, guard: null, values: caseValues });
 							default: // Ignore
 						}
 					}
@@ -483,7 +502,26 @@ class DataBuilder {
 
 							var f_a = { expr: EField(macro object, field.name), pos: Context.currentPos() };
 							var lil_switch = handleVariable(field.type, f_a, parserInfo);
-							cases.push({ expr: lil_switch, guard: null, values: [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}] });
+
+							var caseValues = [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}];
+							if (field.meta.has(":alias")) {
+								var metas = field.meta.extract(":alias");
+								for (m in metas) {
+									for (mp in m.params) {
+										if (mp == null) { continue; }
+										switch (mp.expr) {
+											case EConst(c):
+												switch (c) {
+													case CString(_):
+														caseValues.push(mp);
+													default:
+												}
+											default:
+										}
+									}
+								}
+							}
+							cases.push({ expr: lil_switch, guard: null, values: caseValues });
 
 							var defaultValue:Expr = null;
 							if (field.meta.has(":default")) {
