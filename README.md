@@ -72,6 +72,21 @@ typedef Struct = {
 
 - Variable defined as `(default, null)` may have unexpected behaviour on some `extern` classes.
 
+- You can alias a field from the json into another name, for instance if the field name isn't a valid haxe identifier.
+```haxe
+typedef Struct = {
+	@:alias("public") var isPublic:Bool;
+}
+class Main {
+	static function main() {
+		var parser = new JsonParser<Struct>();
+		var data = parser.fromJson('{"public": true }', "file.json");
+		trace(data.isPublic);
+	}
+}
+```
+If multiple alias metadata are on the variable only the last one is taken into account.
+
 ## Example
 
 With an anonymous structure:

@@ -22,19 +22,30 @@ SOFTWARE.
 
 package tests;
 
-class Main {
-	public static function main() {
-		var r = new haxe.unit.TestRunner();
-		r.add(new AliasTest());
-		r.add(new AbstractTest());
-		r.add(new ArrayTest());
-		r.add(new EnumTest());
-		r.add(new MapTest());
-		r.add(new ObjectTest<String,String>());
-		r.add(new StructureTest());
+import json2object.JsonParser;
 
-		#if sys
-		Sys.exit(r.run() ? 0 : 1);
-		#end
+typedef Aliased = {
+	@:alias("public") var isPublic : Bool;
+}
+
+typedef MultiAliased = {
+	@:alias("first") @:alias("public") var isPublic : Bool;
+}
+
+class AliasTest extends haxe.unit.TestCase {
+
+	public function test () {
+		{
+			var parser = new JsonParser<Aliased>();
+			var data = parser.fromJson('{ "public": true }', "test");
+			assertEquals(data.isPublic, true);
+		}
+
+		{
+			var parser = new JsonParser<MultiAliased>();
+			var data = parser.fromJson('{ "public": true }', "test");
+			assertEquals(data.isPublic, true);
+		}
 	}
+
 }
