@@ -39,7 +39,8 @@ install:
     fi
   # Install haxelibs
   - if [ "${TRAVIS_HAXE_VERSION}" = "development" ]; then
-      haxelib git hxcpp https://github.com/HaxeFoundation/hxcpp.git;
+      git clone https://github.com/HaxeFoundation/hxcpp.git;
+      haxelib dev hxcpp hxcpp;
       pushd $(haxelib path hxcpp | head -1);
         pushd tools/hxcpp; haxe compile.hxml; popd;
         pushd project; neko build.n; haxe compile-cppia.hxml; popd;
