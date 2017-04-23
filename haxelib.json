@@ -4,8 +4,8 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Initialize object directly from json with macro",
-	"version": "2.2.3",
-	"releasenote": "Allow usage of enum.",
+	"version": "2.3.0",
+	"releasenote": "Added @:alias(name) support to field",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
 	"dependencies": {
