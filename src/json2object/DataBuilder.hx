@@ -352,6 +352,7 @@ class DataBuilder {
 
 	private static function makeParser(c:BaseType, parsedType:Type, ?base:Type, ?noConstruct:Bool) {
 		var parsedName:String = null;
+		var module = null;
 		var classParams:Array<TypeParam>;
 		var cases = new Array<Case>();
 
@@ -389,21 +390,29 @@ class DataBuilder {
 		var isArray = false;
 
 		switch (parsedType) {
-			case TInst(t, params):
-				if (t.get().module == "String") Context.fatalError("json2object: Parser of String are not generated", Context.currentPos());
+			case TInst(_.get() => t, params):
+				if (t.module == "String") Context.fatalError("json2object: Parser of String are not generated", Context.currentPos());
 
-				parsedName = t.get().name;
-				packs = t.get().pack;
+				parsedName = t.name;
+				packs = t.pack;
 
-				switch (t.get().kind) {
+				if (t.module != t.pack.join(".") + "." + t.name)
+				{
+					packs = t.module.split(".");
+					module = packs.pop();
+				}
+
+				switch (t.kind)
+				{
 					case KTypeParameter(arrayType):
-						Context.fatalError("json2object: Type parameters are not parsable: "+t.get().name, Context.currentPos());
+						Context.fatalError("json2object: Type parameters are not parsable: " + t.name, Context.currentPos());
+
 					default:
 				}
 
 				classParams = [for (p in params) TPType(p.toComplexType())];
 
-				if (t.get().module == "Array") {
+				if (t.module == "Array") {
 					var info = typeToHxjsonAst(params[0]);
 					var json = macro v;
 					loop = macro object = cast [ for (v in values)
@@ -415,7 +424,7 @@ class DataBuilder {
 				}
 
 				else {
-					for (field in t.get().fields.get()) {
+					for (field in t.fields.get()) {
 						if (!field.isPublic || field.meta.has(":jignored")) { continue; }
 
 						switch(field.kind) {
@@ -426,31 +435,28 @@ class DataBuilder {
 								}
 
 								names.push(macro { assigned.set($v{field.name}, $v{field.meta.has(":optional")});});
-								var fieldType = field.type.applyTypeParameters(t.get().params, params);
+								var fieldType = field.type.applyTypeParameters(t.params, params);
 
 								var f_a = { expr: EField(macro object, field.name), pos: Context.currentPos() };
 								var lil_switch = handleVariable(fieldType, f_a, parserInfo);
 								//~ cases.push({ expr: lil_switch, guard: null, values: [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}] });
 								var caseValues = null;
 
-								if (field.meta.has(":alias"))
+								for (m in field.meta.get())
 								{
-									for (m in field.meta.extract(":alias"))
+									if (caseValues != null)
 									{
-										if (caseValues != null)
-										{
-											break;
-										}
+										break;
+									}
 
-										if (m.params.length == 1)
+									if (m.name == ":alias" && m.params.length == 1)
+									{
+										switch (m.params[0].expr)
 										{
-											switch (m.params[0].expr)
-											{
-												case EConst(CString(_)):
-													caseValues = m.params[0];
+											case EConst(CString(_)):
+												caseValues = m.params[0];
 
-												default:
-											}
+											default:
 										}
 									}
 								}
@@ -514,25 +520,33 @@ class DataBuilder {
 							var f_a = { expr: EField(macro object, field.name), pos: Context.currentPos() };
 							var lil_switch = handleVariable(field.type, f_a, parserInfo);
 
-							var caseValues = [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}];
-							if (field.meta.has(":alias")) {
-								var metas = field.meta.extract(":alias");
-								for (m in metas) {
-									for (mp in m.params) {
-										if (mp == null) { continue; }
-										switch (mp.expr) {
-											case EConst(c):
-												switch (c) {
-													case CString(_):
-														caseValues.push(mp);
-													default:
-												}
-											default:
-										}
+							var caseValues = null;
+
+							for (m in field.meta.get())
+							{
+								if (caseValues != null)
+								{
+									break;
+								}
+
+								if (m.name == ":alias" && m.params.length == 1)
+								{
+									switch (m.params[0].expr)
+									{
+										case EConst(CString(_)):
+											caseValues = m.params[0];
+
+										default:
 									}
 								}
 							}
-							cases.push({ expr: lil_switch, guard: null, values: caseValues });
+
+							if (caseValues == null)
+							{
+								caseValues = { expr: EConst(CString(${field.name})), pos: Context.currentPos()};
+							}
+
+							cases.push({ expr: lil_switch, guard: null, values: [caseValues] });
 
 							var defaultValue:Expr = null;
 							if (field.meta.has(":default")) {
@@ -666,7 +680,7 @@ class DataBuilder {
 				Context.fatalError("json2object: " + parsedType.toString() + " can't be parsed", Context.currentPos());
 		}
 
-		var cls = { name:parsedName, pack:packs, params:classParams};
+		var cls = { name: module != null ? module : parsedName, pack: packs, params: classParams, sub: module != null ? parsedName : null };
 		var new_e;
 
 		if (noConstruct) {

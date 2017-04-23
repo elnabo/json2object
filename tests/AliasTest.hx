@@ -32,9 +32,20 @@ typedef MultiAliased = {
 	@:alias("first") @:alias("public") var isPublic : Bool;
 }
 
+class AliasedClass {
+	@:alias("public") public var isPublic : Bool;
+	public function new () {}
+}
+
+class MultiAliasedClass {
+	@:alias("first") @:alias("public") public var isPublic : Bool;
+	public function new () {}
+}
+
 class AliasTest extends haxe.unit.TestCase {
 
 	public function test () {
+
 		{
 			var parser = new JsonParser<Aliased>();
 			var data = parser.fromJson('{ "public": true }', "test");
@@ -46,6 +57,19 @@ class AliasTest extends haxe.unit.TestCase {
 			var data = parser.fromJson('{ "public": true }', "test");
 			assertEquals(data.isPublic, true);
 		}
+
+		{
+			var parser = new JsonParser<AliasedClass>();
+			var data = parser.fromJson('{ "public": true }', "test");
+			assertEquals(data.isPublic, true);
+		}
+
+		{
+			var parser = new JsonParser<MultiAliasedClass>();
+			var data = parser.fromJson('{ "public": true }', "test");
+			assertEquals(data.isPublic, true);
+		}
+
 	}
 
 }
