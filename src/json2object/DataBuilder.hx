@@ -76,7 +76,23 @@ class DataBuilder {
 			case TAnonymous(_.get() => a):
 				res += "_".lpad("_", level) + "Ano_";
 				for (f in a.fields) {
-					res += f.name + "_" + getParserName(f.type, level+1);
+					var name = f.name;
+
+					for (m in f.meta.get())
+					{
+						if (m.name == ":alias" && m.params.length == 1)
+						{
+							switch (m.params[0].expr)
+							{
+								case EConst(CString(s)):
+									name = s;
+
+								default:
+							}
+						}
+					}
+
+					res += name + "_" + getParserName(f.type, level+1);
 				}
 
 			default:
@@ -444,11 +460,6 @@ class DataBuilder {
 
 								for (m in field.meta.get())
 								{
-									if (caseValues != null)
-									{
-										break;
-									}
-
 									if (m.name == ":alias" && m.params.length == 1)
 									{
 										switch (m.params[0].expr)
@@ -524,11 +535,6 @@ class DataBuilder {
 
 							for (m in field.meta.get())
 							{
-								if (caseValues != null)
-								{
-									break;
-								}
-
 								if (m.name == ":alias" && m.params.length == 1)
 								{
 									switch (m.params[0].expr)
