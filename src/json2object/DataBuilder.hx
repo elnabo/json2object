@@ -36,13 +36,6 @@ using haxe.macro.TypeTools;
 typedef JsonType = {jtype:String, name:String, params:Array<Type>}
 typedef ParserInfo = {packs:Array<String>, clsName:String}
 
-enum WarningType {
-	BREAK;
-	CONTINUE;
-	THROW;
-	NONE;
-}
-
 class DataBuilder {
 
 	private static var counter = 0;
@@ -54,6 +47,16 @@ class DataBuilder {
 				(t.name == "Null") ? notNull(type.follow()) : type;
 			default:
 				type;
+		}
+	}
+
+	private static function isNullable(type:Type) {
+		if (notNull(type) != type) { return true; }
+		return switch (type.followWithAbstracts()) {
+			case TAbstract(_.get()=>t,_):
+				!t.meta.has(":notNull");
+			default:
+				true;
 		}
 	}
 
@@ -101,742 +104,345 @@ class DataBuilder {
 		return res;
 	}
 
-	private static function typeToHxjsonAst(type:Type) {
-		return switch (type) {
-			case TInst(t, p):
-				switch (t.get().module) {
-					case "String": { jtype: "JString", name: "String", params: [] };
-					case "Array": { jtype: "JArray", name: "Array", params: p };
-					default:  { jtype: "JObject", name: t.get().name, params: p };
-				}
-			case TAbstract(_.get() => t, p):
-
-				if (t.meta.has(":enum")) {
-					switch (notNull(t.type)) {
-						case TInst(_.get() => ti, _):
-							switch (ti.module) {
-								case "String": { jtype: "AbstractEnum", name: "String", params: [] };
-								default: Context.fatalError("json2object: Only String and Int abstract enums are supported", Context.currentPos());
-							}
-						case TAbstract(_.get() => ta, _):
-							if (ta.module == "StdTypes" && (ta.name == "Int" ||ta.name == "Float" ||ta.name == "Bool")) {
-								{jtype: "AbstractEnum", name: ta.name, params: []};
-							}
-							else {
-								Context.fatalError("json2object: Only String, Int, Float and Bool abstract enums are supported", Context.currentPos());
-							}
-						default: Context.fatalError("json2object: String, Int, Float and Bool abstract enums are supported", Context.currentPos());
-					}
-				}
-				else {
-					switch(t.name) {
-						case "Bool":
-							{ jtype: "JBool", name: "Bool", params: [] };
-						case "Int":
-							{ jtype: "JNumber", name: "Int", params: [] };
-						case "Float":
-							{ jtype: "JNumber", name: "Float", params: [] };
-						case "Map", "IMap":
-							{ jtype: "JObject", name: "Map", params: p };
-						case "Null":
-							typeToHxjsonAst(p[0].follow());
-						default:
-							typeToHxjsonAst(t.type.applyTypeParameters(t.params, p));
-					}
-				}
-			case TType(t,_):
-				typeToHxjsonAst(type.follow());
-			case TAnonymous(t):
-				{jtype:"JObject", name:"Anonymous", params:[]};
-			case TEnum(_.get() => t, p):
-				{ jtype: "JObject", name: "enum", params: p }
-			default: Context.fatalError("json2object: Unsupported type : "+type.toString(), Context.currentPos()); null;
+	private static function changeExprOf(field:Field, e:Expr) {
+		switch (field.kind) {
+			case FFun(f):
+				f.expr = e;
+			default: return;
 		}
 	}
 
-	private static function parseType(type:Type, info:JsonType, level=0, parser:ParserInfo, json:Expr, ?variable:Expr=null, ?warnings:WarningType, ?useFieldName:Bool=true, ?field:Expr = null): Expr {
-		var caseVar = "s" + level;
-		var cls = { name:parser.clsName, pack:parser.packs, params:[TPType(type.toComplexType())]};
-
-		var cases:Array<Case> = [];
-
-		var nullable = (notNull(type) != type);
-
-		var assigned = (useFieldName) ? macro assigned.set(field.name, true) : macro {};
-		if (field == null) {
-			field = (useFieldName) ? macro field.name : macro "Array value";
-		}
-		var onWarnings = switch (warnings) {
-			case BREAK: macro break;
-			case CONTINUE: macro continue;
-			case THROW: macro throw "json2object: Invalid type";
-			default: macro {};
-		};
-
-		if (info.jtype == "AbstractEnum") {
-			var internCases = new Array<Case>();
-			var cvar = "s" + (level+1);
-			type = notNull(type);
-			switch (type) {
-				case TAbstract(_.get() => t, p):
-
-					nullable  = (info.name == "String") || (notNull(t.type) != t.type);
-					var caseValues = new Array<Expr>();
-					var subExpr = switch (info.name) {
-						case "Int":  macro Std.parseInt($i{caseVar});
-						case "Float":  macro Std.parseFloat($i{caseVar});
-						case "String", "Bool" : macro $i{caseVar};
-						default:  Context.fatalError("json2object: Unsupported abstract enum type:"+info.name, Context.currentPos());
-					};
-					subExpr = (variable == null)
-							? macro ${subExpr}
-							: macro { ${variable} = cast ${subExpr}; ${assigned}}
-
-					for (field in t.impl.get().statics.get()) {
-						if (!field.meta.has(":enum") || !field.meta.has(":impl")) {
-							continue;
-						}
-
-						if (field.expr() == null) { continue; }
-						caseValues.push(
-							switch(field.expr().expr) {
-								case TConst(_) : Context.getTypedExpr(field.expr());
-								case TCast(caste, _) :
-									switch (caste.expr) {
-										case TConst(tc) :
-											switch (tc) {
-												case TNull: continue;
-												default: Context.getTypedExpr(caste);
-											}
-										default : Context.getTypedExpr(caste);
-									}
-								default: continue;
-							}
-						);
-
-					}
-
-					if (caseValues.length == 0 && info.name != "String") {
-						Context.fatalError("json2object: Non String enum abstract can't be empty", Context.currentPos());
-					}
-					internCases.push({expr:subExpr, guard: null, values:caseValues});
-
-					var default_e = macro {
-							warnings.push(IncorrectType(${field}, $v{t.name}, putils.convertPosition(${json}.pos)));
-							${onWarnings}
-						};
-
-					var jtype = switch (info.name) {
-						case "Int", "Float": "JNumber";
-						case "String" : "JString";
-						default: "JBool";
-					}
-
-					var switchVar = (jtype == "JNumber") ? macro Std.parseFloat($i{caseVar}) : macro $i{caseVar};
-					var expr = {expr: ESwitch(macro ${switchVar}, internCases, default_e), pos: Context.currentPos() };
-
-					cases.push({expr:expr, guard:null, values:[macro $i{jtype}($i{caseVar})]});
-
-				default: Context.fatalError("json2object: Invalid enum abstract type should be String, Int, Float or Bool", Context.currentPos());
+	private static function changeFunction(name:String, of:TypeDefinition, to:Expr) {
+		for (field in of.fields) {
+			if (field.name == name) {
+				changeExprOf(field, to);
 			}
 		}
+	}
 
-		else if (info.name == "enum" && info.jtype == "JObject") {
+	public static function makeStringParser(parser:TypeDefinition) {
+		changeFunction("loadJsonString", parser, macro {value = s;});
+		changeFunction("loadJsonNull", parser, macro {value = null;});
+	}
 
-			nullable = true;
-			var objExpr = macro new $cls(warnings, putils).loadJson($i{caseVar}, ${json}.pos);
-			var strExpr:Expr = null;
-
-			switch (type) {
-				case TEnum(_.get()=>t, p):
-
-					var internCases = new Array<Case>();
-					for (n in t.names) {
-						switch (t.constructs.get(n).type) {
-							case TEnum(_,_):
-
-								var l = t.module.split(".");
-								l.push(t.name);
-								l.push(n);
-								var subExpr = {expr:EConst(CIdent(l.shift())), pos:Context.currentPos()};
-								while (l.length > 0) {
-									subExpr = {expr:EField(subExpr, l.shift()), pos:Context.currentPos()};
-								}
-
-								if (variable != null) {
-									subExpr = macro {
-										${variable} = cast ${subExpr};
-										${assigned};
-									};
-								}
-								internCases.push({expr: subExpr, guard: null, values: [macro $v{n}]});
-							default:
-						}
-					};
-
-					var default_e =macro {
-						warnings.push(IncorrectEnumValue(${field}, $v{t.name}, putils.convertPosition(${json}.pos)));
-						${onWarnings}
-					};
-					strExpr = {expr: ESwitch(macro $i{caseVar}, internCases, default_e), pos: Context.currentPos() };
-				default:
-			}
-
-
-			if (variable != null) {
-				objExpr = macro {
-					${variable} = cast ${objExpr};
-					${assigned};
-				};
-			}
-
-			objExpr = macro try { ${objExpr} } catch (_:String) {${onWarnings}};
-
-			cases.push({ expr: strExpr, guard: null, values: [macro JString($i{caseVar})] });
-			cases.push({ expr: objExpr, guard: null, values: [macro JObject($i{caseVar})] });
-		}
-
-		else {
-			var expr = switch (info.jtype) {
-				case "JString", "JBool": macro $i{caseVar};
-				case "JNumber": switch (info.name) {
-					case "Int": macro Std.parseInt($i{caseVar});
-					case "Float": macro Std.parseFloat($i{caseVar});
-					default : Context.fatalError("json2object: Unsupported number format: " + info.name, Context.currentPos());
-				}
-				case "JArray": macro new $cls(warnings, putils).loadJson($i{caseVar}, ${json}.pos);
-				case "JObject": macro new $cls(warnings, putils).loadJson($i{caseVar}, ${json}.pos);
-				default: Context.fatalError("json2object: Unsupported element: " + info.name, Context.currentPos());
-			}
-
-			if (variable != null) {
-				expr = macro {
-					${variable} = cast ${expr};
-					${assigned};
-				};
-			}
-
-			if (info.jtype == "JNumber"  && info.name == "Int") {
-				var expr = macro if (Std.parseInt($i{caseVar}) != null && Std.parseInt($i{caseVar}) == Std.parseFloat($i{caseVar})) {
-						${expr};
-					}
-					else {
-						warnings.push(IncorrectType(${field}, "Int", putils.convertPosition(${json}.pos)));
-						${onWarnings};
-					}
-				cases.push({ expr: expr, guard: null, values: [macro JNumber($i{caseVar})] });
+	public static function makeIntParser(parser:TypeDefinition) {
+		var e = macro {
+			if (Std.parseInt(f) != null && Std.parseInt(f) == Std.parseFloat(f)) {
+				value = Std.parseInt(f);
 			}
 			else {
-				cases.push({ expr: expr, guard: null, values: [macro $i{info.jtype}($i{caseVar})] });
+				onIncorrectType(pos, variable);
 			}
-		}
-
-		var nullValue = macro null;
-		if (variable != null) {
-			nullValue = macro {
-				${variable} = ${nullValue};
-				${assigned};
-			};
-		}
-
-		var nullExpr = (!nullable && (info.name == "Float" || info.name == "Int" || info.name == "Bool" || (info.name == "enum" && info.jtype == "JNumber")))
-			? macro {
-				warnings.push(IncorrectType(${field}, $v{info.name}, putils.convertPosition(${json}.pos)));
-				${onWarnings};
-			}
-			: nullValue;
-
-		cases.push({expr: nullExpr, guard: null, values: [macro JNull]});
-		var defaultExpr = macro {
-			warnings.push(IncorrectType(
-				${field},
-				$v{info.name},
-				putils.convertPosition(${json}.pos)));
-			${onWarnings}
 		};
-
-		return { expr: ESwitch(macro ${json}.value, cases, defaultExpr), pos: Context.currentPos() };
+		changeFunction("loadJsonNumber", parser, e);
 	}
 
-	private static function handleVariable(type:Type, variable:Expr, parser:ParserInfo) {
-		var info = typeToHxjsonAst(type);
-		var clsname = info.name;
-
-		var json = macro field.value;
-		return parseType(type, info, parser, json, variable, NONE);
+	public static function makeFloatParser(parser:TypeDefinition) {
+		var e = macro {
+			if (Std.parseInt(f) != null) {
+				value = cast Std.parseFloat(f);
+			}
+			else {
+				onIncorrectType(pos, variable);
+			}
+		};
+		changeFunction("loadJsonNumber", parser, e);
 	}
 
-	private static function makeParser(c:BaseType, parsedType:Type, ?base:Type, ?noConstruct:Bool) {
-		var parsedName:String = null;
-		var module = null;
-		var classParams:Array<TypeParam>;
-		var cases = new Array<Case>();
+	public static function makeBoolParser(parser:TypeDefinition) {
+		changeFunction("loadJsonBool", parser, macro { value = b; });
+	}
 
-		switch (parsedType) {
-			case TType(_.get()=>t, params):
-				return makeParser(c, parsedType.follow().applyTypeParameters(t.params, params), parsedType);
-			case TAbstract(_.get()=>t, params):
-				if (t.meta.has("enum")) {
-					Context.fatalError("json2object: Parser of abstract enums are not generated", Context.currentPos());
-				}
-				if (t.module != "Map" && t.module != "IMap") {
-					return makeParser(c, t.type.applyTypeParameters(t.params, params), parsedType, true);
-				}
-			default:
+	public static function makeArrayParser(parser:TypeDefinition, subType:Type, baseParser:BaseType) {
+		var cls = { name:baseParser.name, pack:baseParser.pack, params:[TPType(subType.toComplexType())]};
+		var e = macro {
+			value = [
+				for (j in a)
+					try { new $cls(errors, putils, THROW).loadJson(j); }
+					catch (_:String) { continue; }
+			];
+		}
+		changeFunction("loadJsonArray", parser, e);
+	}
+
+	public static function makeObjectOrAnonParser(parser:TypeDefinition, type:Type, baseParser:BaseType) {
+		var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(type.toComplexType())]};
+
+
+		var initializator:Expr;
+		var isAnon = false;
+		var fields:Array<ClassField>;
+
+		var tParams:Array<TypeParameter>;
+		var params:Array<Type>;
+
+		switch (type) {
+			case TAnonymous(_.get()=>t):
+				isAnon = true;
+				fields = t.fields;
+				tParams = [];
+				params = [];
+
+			case TInst(_.get()=>t, p):
+				fields = t.fields.get();
+				tParams = t.params;
+				params = p;
+
+				var t_cls = {name:t.name, pack:t.pack, params:[for (i in p) TPType(i.toComplexType())]};
+				initializator = macro new $t_cls();
+
+			case _: return;
 		}
 
-		if (parsers.exists(parsedType.toString())) {
-			return parsers.get(parsedType.toString());
-		}
-		var parserName = c.name+"_Impl"+(counter++);
+		// TODO @:default + constructor
 
-		var packs:Array<String> = [];
-		var parserInfo:ParserInfo = {clsName:c.name, packs:c.pack};
+		var anonBaseValues:Array<{field:String, expr:Expr}> = [];
+		var assigned:Array<Expr> = [];
+		var cases:Array<Case> = [];
 
-		var names:Array<Expr> = [];
-		var loop:Expr;
+		for (field in fields) {
+			if (!field.isPublic || field.meta.has(":jignored")) { continue; }
 
-		var useNew = true;
-		var defaultEnum = false;
+			switch(field.kind) {
+				case FVar(_,w):
+					if (w == AccNever) { continue; }
 
-		var ano_constr_fields = [];
+					assigned.push(macro { assigned.set($v{field.name}, $v{field.meta.has(":optional")});});
 
-		var fromJsonSwitch = macro hxjsonast.Json.JsonValue.JObject(s);
+					var f_a = { expr: EField(macro value, field.name), pos: Context.currentPos() };
+					var f_type = field.type.applyTypeParameters(tParams, params);
+					var f_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(f_type.toComplexType())]};
 
-		var isArray = false;
+					var assignation = macro {
+						try {
+							$f_a = new $f_cls(errors, putils, THROW).loadJson(field.value);
+						} catch (_:Dynamic) {}
+					}
 
-		switch (parsedType) {
-			case TInst(_.get() => t, params):
-				if (t.module == "String") Context.fatalError("json2object: Parser of String are not generated", Context.currentPos());
-
-				parsedName = t.name;
-				packs = t.pack;
-
-				if (t.module != t.pack.join(".") + "." + t.name)
-				{
-					packs = t.module.split(".");
-					module = packs.pop();
-				}
-
-				switch (t.kind)
-				{
-					case KTypeParameter(arrayType):
-						Context.fatalError("json2object: Type parameters are not parsable: " + t.name, Context.currentPos());
-
-					default:
-				}
-
-				classParams = [for (p in params) TPType(p.toComplexType())];
-
-				if (t.module == "Array") {
-					var info = typeToHxjsonAst(params[0]);
-					var json = macro v;
-					loop = macro object = cast [ for (v in values)
-						${parseType(params[0], info, parserInfo, json, CONTINUE, false)}
-					];
-					fromJsonSwitch = macro hxjsonast.Json.JsonValue.JArray(s);
-
-					isArray = true;
-				}
-
-				else {
-					for (field in t.fields.get()) {
-						if (!field.isPublic || field.meta.has(":jignored")) { continue; }
-
-						switch(field.kind) {
-							case FVar(_,w):
-								if (w == AccNever)
-								{
-									continue;
-								}
-
-								names.push(macro { assigned.set($v{field.name}, $v{field.meta.has(":optional")});});
-								var fieldType = field.type.applyTypeParameters(t.params, params);
-
-								var f_a = { expr: EField(macro object, field.name), pos: Context.currentPos() };
-								var lil_switch = handleVariable(fieldType, f_a, parserInfo);
-								//~ cases.push({ expr: lil_switch, guard: null, values: [{ expr: EConst(CString(${field.name})), pos: Context.currentPos()}] });
-								var caseValues = null;
-
-								for (m in field.meta.get())
-								{
-									if (m.name == ":alias" && m.params.length == 1)
-									{
-										switch (m.params[0].expr)
-										{
-											case EConst(CString(_)):
-												caseValues = m.params[0];
-
-											default:
-										}
-									}
-								}
-
-								if (caseValues == null)
-								{
-									caseValues = { expr: EConst(CString(${field.name})), pos: Context.currentPos()};
-								}
-
-								cases.push({ expr: lil_switch, guard: null, values: [caseValues] });
-							default: // Ignore
+					var caseValue = null;
+					for (m in field.meta.get()) {
+						if (m.name == ":alias" && m.params.length == 1) {
+							switch (m.params[0].expr) {
+								case EConst(CString(_)):
+									caseValue = m.params[0];
+								default:
+							}
 						}
 					}
 
-					var default_e = macro warnings.push(UnknownVariable(field.name, putils.convertPosition(field.namePos)));
-					loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
-				}
+					if (caseValue == null) {
+						caseValue = { expr: EConst(CString(${field.name})), pos: Context.currentPos()};
+					}
 
-			case TAbstract(_.get() => t, params):
-				if (t.module == "StdTypes") Context.fatalError("json2object: Parser of "+t.name+" are not generated", Context.currentPos());
+					cases.push({ expr: assignation, guard: null, values: [caseValue] });
 
-				parsedName = "Map";
-				classParams = params.map(function(ty:Type) {return TPType(ty.toComplexType());});
-				packs = t.pack;
+					if (isAnon) {
 
-				var keyExpr = switch (typeToHxjsonAst(params[0].follow()).name) {
-					case "String": macro field.name;
-					case "Int": macro {
-						if (Std.parseInt(field.name) != null && Std.parseInt(field.name) == Std.parseFloat(field.name))
-							Std.parseInt(field.name);
-						else {
-							warnings.push(IncorrectType(field.name, "Int", putils.convertPosition(field.namePos)));
-							continue;
-						}
-					};
-					default: Context.fatalError("json2object: Map key can only be String or Int", Context.currentPos());
-				}
-
-				var value = params[1];
-				var info = typeToHxjsonAst(value);
-
-				var json = macro field.value;
-				var valueExpr = parseType(value, info, parserInfo, json, CONTINUE);
-				loop = macro object.set($keyExpr, $valueExpr);
-
-			case TAnonymous(_.get() => a):
-				useNew = false;
-
-				for (field in a.fields) {
-					if (!field.isPublic || field.meta.has(":jignored")) { continue; }
-
-					switch(field.kind) {
-						case FVar(_,w):
-							if (w == AccNever)
-							{
-								continue;
-							}
-
-							names.push(macro { assigned.set($v{field.name}, $v{field.meta.has(":optional")});});
-
-							var f_a = { expr: EField(macro object, field.name), pos: Context.currentPos() };
-							var lil_switch = handleVariable(field.type, f_a, parserInfo);
-
-							var caseValues = null;
-
-							for (m in field.meta.get())
-							{
-								if (m.name == ":alias" && m.params.length == 1)
-								{
-									switch (m.params[0].expr)
-									{
-										case EConst(CString(_)):
-											caseValues = m.params[0];
-
-										default:
-									}
-								}
-							}
-
-							if (caseValues == null)
-							{
-								caseValues = { expr: EConst(CString(${field.name})), pos: Context.currentPos()};
-							}
-
-							cases.push({ expr: lil_switch, guard: null, values: [caseValues] });
-
-							var defaultValue:Expr = null;
-							if (field.meta.has(":default")) {
-								var metas = field.meta.extract(":default");
-								if (metas.length > 0) {
-									var meta = metas[0];
-									if (meta.params != null && meta.params.length == 1) {
-										if (field.type.followWithAbstracts().unify(Context.typeof(meta.params[0]).followWithAbstracts())) {
-											defaultValue = meta.params[0];
-										}
-										else {
-											Context.fatalError("json2object: default value for "+field.name+" is of incorrect type", Context.currentPos());
-										}
-									}
-								}
-							}
-
-							var ano_field_default = (defaultValue != null) ? defaultValue : switch (notNull(field.type)) {
-								case TAbstract(_.get() => t, p):
-									if (t.meta.has(":enum")) {
-										if (notNull(t.type) != t.type) { macro null; }
-										else {
-											switch (t.type) {
-												case TInst(_,_): macro null;
-												case TAbstract(_,_):
-													var e:Expr = null;
-													for (field in t.impl.get().statics.get()) {
-														if (field.meta.has(":enum") && field.meta.has(":impl")) {
-															e = Context.getTypedExpr(field.expr());
-															break;
-														}
-													}
-													if (e == null) {
-														Context.fatalError("json2object: enum abstract "+t.name+" has no values", Context.currentPos());
-													}
-													e;
-												default: null;// Never reached
-											}
-										}
+						if (field.meta.has(":default")) {
+							var metas = field.meta.extract(":default");
+							if (metas.length > 0) {
+								var meta = metas[0];
+								if (meta.params != null && meta.params.length == 1) {
+									if (f_type.followWithAbstracts().unify(Context.typeof(meta.params[0]).followWithAbstracts())) {
+										anonBaseValues.push({field:field.name, expr:meta.params[0]});
 									}
 									else {
-										switch(t.name) {
-											case "Bool": macro false;
-											case "Int": macro 0;
-											case "Float": macro 0.0;
-											default: macro null;
-										}
+										Context.fatalError("json2object: default value for "+field.name+" is of incorrect type", Context.currentPos());
 									}
-								default: macro null;
+								}
 							}
-							ano_constr_fields.push({ field: field.name, expr: ano_field_default });
-
-						default: // Ignore
-					}
-				}
-
-				var default_e = macro warnings.push(UnknownVariable(field.name, putils.convertPosition(field.namePos)));
-				loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
-
-			case TEnum(_.get() => t, p):
-				parsedName = t.name;
-				noConstruct = false;
-				useNew = false;
-				defaultEnum = true;
-
-				var constructs = t.constructs;
-
-				for (name in t.names) {
-					var enumField = constructs.get(name);
-					var args = switch (enumField.type) {
-						case TFun(a, _): a;
-						default: [];
-					}
-					var enumParams:Array<Expr> = [];
-					var blockExpr = [macro if (s0.length != $v{args.length}) {
-							warnings.push(InvalidEnumConstructor(field.name, $v{t.name}, putils.convertPosition(field.value.pos)));
-							throw "json2object: Invalid type";
-						}];
-
-					var argCount = 0;
-					for (a in args) {
-						enumParams.push(macro $i{a.name});
-						var type = a.t;
-						blockExpr.push({expr: EVars([{name:a.name, type:type.toComplexType(), expr:null}]), pos:Context.currentPos()});
-
-						var info = typeToHxjsonAst(type);
-						var variable = macro $i{a.name};
-						var json = macro s0[$v{argCount}].value;
-						blockExpr.push(parseType(type, info, 1, parserInfo, json, variable, THROW, macro field.name + "."+ $v{a.name}));
-						argCount++;
-					}
-
-					var l = t.module.split(".");
-					l.push(t.name);
-					l.push(name);
-					var subExpr = {expr:EConst(CIdent(l.shift())), pos:Context.currentPos()};
-					while (l.length > 0) {
-						subExpr = {expr:EField(subExpr, l.shift()), pos:Context.currentPos()};
-					}
-
-					var subExpr = (enumParams.length > 0)
-						? {expr:ECall(subExpr, enumParams), pos:Context.currentPos()}
-						: subExpr;
-					blockExpr.push(macro object = cast ${subExpr});
-
-					var lil_expr:Expr = {expr: EBlock(blockExpr), pos:Context.currentPos()};
-					cases.push({ expr: lil_expr, guard: null, values: [{ expr: EConst(CString($v{name})), pos: Context.currentPos()}] });
-				}
-
-				var default_e = macro { warnings.push(IncorrectEnumValue(field.name, $v{t.name}, putils.convertPosition(field.namePos))); throw "json2object: Invalid type"; } ;
-				var expr = {expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
-
-				expr = macro switch (field.value.value) {
-					case JObject(s0):
-						${expr};
-					default:
-						warnings.push(IncorrectType(field.name, $v{t.name}, putils.convertPosition(field.value.pos))); throw "json2object: Invalid type";
-				}
-
-				loop = macro {
-					if (fields.length != 1) {
-						warnings.push(IncorrectType(field.name, $v{t.name}, putils.convertPosition(objectPos)));
-						throw "json2object: Invalid type";
-					}
-					else {
-						${expr};
-					}
-				}
-
-			default:
-				Context.fatalError("json2object: " + parsedType.toString() + " can't be parsed", Context.currentPos());
-		}
-
-		var cls = { name: module != null ? module : parsedName, pack: packs, params: classParams, sub: module != null ? parsedName : null };
-		var new_e;
-
-		if (noConstruct) {
-			new_e = macro {};
-		} else if (useNew) {
-			new_e = macro object = new $cls();
-		} else if (defaultEnum) {
-			new_e = macro object = null;
-		} else {
-			new_e = {
-				expr: EBinop(OpAssign, {
-						expr: EConst(CIdent("object")),
-						pos: Context.currentPos()
-					},
-					{
-						expr: EObjectDecl(ano_constr_fields),
-						pos: Context.currentPos()
-					}
-				),
-				pos: Context.currentPos()
-			};
-		}
-
-		var obj:Field = {
-			doc: null,
-			kind: FVar(TypeUtils.toComplexType(base != null ? base : parsedType), null),
-			access: [APublic],
-			name: "object",
-			pos: Context.currentPos(),
-			meta: null,
-		};
-
-
-		var fct:Function;
-		var doc:String;
-
-		var fctArgs = [{meta:null, name:"objectPos", opt:null, type:TypeUtils.toComplexType(Context.getType("hxjsonast.Position")), value:null}];
-		var fctReturn = TypeUtils.toComplexType(base != null ? base : parsedType);
-
-		var firstArgType = Context.getType("Array");
-
-		if (isArray) {
-			switch (firstArgType) {
-				case TInst(t,p):
-					firstArgType = TInst(t, [Context.getType("hxjsonast.Json.Json")]);
-				default:
-			}
-			fctArgs.unshift({meta:null, name:"values", opt:null, value:null, type:TypeUtils.toComplexType(firstArgType)});
-			fct = {args:fctArgs, params:null, ret:fctReturn,
-				expr: macro {
-					${loop};
-					return object;
-				}
-			};
-
-			doc = "Create an instance initialized from a hxjsonast.\n\n @param values Value of the JSON array.\n @param objectPos Position of the current json object in the main file.";
-		}
-		else {
-			switch (firstArgType) {
-				case TInst(t,p):
-					firstArgType = TInst(t, [Context.getType("hxjsonast.Json.JObjectField")]);
-				default:
-			}
-			fctArgs.unshift({meta:null, name:"fields", opt:null, value:null, type:TypeUtils.toComplexType(firstArgType)});
-			fct = {args:fctArgs, params:null, ret:fctReturn,
-				expr: macro {
-					var assigned = new Map<String,Bool>();
-					$b{names}
-
-					@:privateAccess {
-						${new_e};
-
-						// Assign every JSON fields.
-						for (field in fields) {
-							${loop}
+						}
+						else {
+							anonBaseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}})});
 						}
 					}
 
-					// Verify that all variables are assigned.
-					var lastPos = putils.convertPosition(new hxjsonast.Position(objectPos.file, objectPos.max-1, objectPos.max-1));
-					for (s in assigned.keys()) {
-						if (!assigned[s]) {
-							warnings.push(UninitializedVariable(s, lastPos));
-						}
-					}
-					return object;
-				}
-			};
-			doc = "Create an instance initialized from a hxjsonast.\n\n @param fields JSON fields.\n @param objectPos Position of the current json object in the main file.";
+				default:
+			}
 		}
 
-		var loadJsonFct:Field = {
-			doc: doc,
-			kind: FFun(fct),
-			access: [APublic],
-			name: "loadJson",
-			pos: Context.currentPos(),
-			meta: null,
+		var default_e = macro errors.push(UnknownVariable(field.name, putils.convertPosition(field.namePos)));
+		var loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
+
+		if (isAnon) {
+			initializator = { expr: EObjectDecl(anonBaseValues), pos: Context.currentPos() };
+		}
+
+
+		var e = macro {
+			var assigned = new Map<String,Bool>();
+			$b{assigned}
+			@:privateAccess {
+				value = $initializator;
+				for (field in o) {
+					$loop;
+				}
+			}
+
+			var lastPos = putils.convertPosition(new hxjsonast.Position(pos.file, pos.max-1, pos.max-1));
+			for (s in assigned.keys()) {
+				if (!assigned[s]) {
+					errors.push(UninitializedVariable(s, lastPos));
+				}
+			}
 		};
 
+		changeFunction("loadJsonObjectOrAnon", parser, e);
+		changeFunction("loadJsonNull", parser, macro {value = null;});
+	}
 
-		var loadJsonClass = macro class $parserName {
+	public static function makeMapParser(parser:TypeDefinition, type:Type, baseParser:BaseType) {
+		// TODO : test if key type = String or Int
+		// and the rest
+	}
 
-			public var warnings:Array<json2object.Error>;
+	public static function makeParser(c:BaseType, type:Type) {
+
+		if (parsers.exists(type.toString())) {
+			return parsers.get(type.toString());
+		}
+
+		var name = getParserName(type);
+		var parser = macro class $name {
+			public var errors:Array<json2object.Error>;
+			@:deprecated
+			public var warnings(get,never):Array<json2object.Error>;
+			private inline function get_warnings():Array<json2object.Error> { return errors; }
+
+			private inline function get_object() { return value; }
+
+			private var errorType:json2object.ErrorType;
+
 			private var putils:json2object.PosUtils;
 
-			public function new(?warnings:Array<json2object.Error>=null,?putils:json2object.PosUtils=null) {
-				this.warnings = (warnings == null) ? [] : warnings;
+			public function new(?errors:Array<json2object.Error>=null, ?putils:json2object.PosUtils=null, ?errorType:json2object.ErrorType=null) {
+				this.errors = (errors == null) ? [] : errors;
 				this.putils = putils;
+				this.errorType = (errorType == null) ? NONE : errorType;
 			}
 
-			/** Create an instance initialized from a JSON.
-			 *
-			 * Return `null` if the JSON is invalid.
-			 */
 			public function fromJson(jsonString:String, filename:String) {
 				putils = new json2object.PosUtils(jsonString);
 				try {
 					var json = hxjsonast.Parser.parse(jsonString, filename);
-					return switch (json.value) {
-						case ${fromJsonSwitch}:
-							loadJson(s, json.pos);
-						default:
-							null;
-					};
+					loadJson(json);
+					return value;
 				}
 				catch (e:hxjsonast.Error) {
 					throw json2object.Error.ParserError(e.message, putils.convertPosition(e.pos));
 				}
 			}
+
+			public function loadJson(json:hxjsonast.Json, ?variable:String="") {
+				var pos = putils.convertPosition(json.pos);
+				switch (json.value) {
+					case JNull : loadJsonNull(pos, variable);
+					case JString(s) : loadJsonString(s, pos, variable);
+					case JNumber(n) : loadJsonNumber(n, pos, variable);
+					case JBool(b) : loadJsonBool(b, pos, variable);
+					case JArray(a) : loadJsonArray(a, pos, variable);
+					case JObject(o) : loadJsonObjectOrAnon(o, pos, variable);
+				}
+				return value;
+			}
+
+			private function onIncorrectType(pos:json2object.Position, variable:String) {
+				errors.push(IncorrectType(variable, $v{type.toString()}, pos));
+				switch (errorType) {
+					case THROW : throw "parsing failed";
+					case _:
+				}
+			}
+
+			private function loadJsonNull(pos:json2object.Position, variable:String) {
+				onIncorrectType(pos, variable);
+			}
+			private function loadJsonString(s:String, pos:json2object.Position, variable:String) {
+				onIncorrectType(pos, variable);
+			}
+			private function loadJsonNumber(f:String, pos:json2object.Position, variable:String) {
+				onIncorrectType(pos, variable);
+			}
+			private function loadJsonBool(b:Bool, pos:json2object.Position, variable:String) {
+				onIncorrectType(pos, variable);
+			}
+			private function loadJsonArray(a:Array<hxjsonast.Json>, pos:json2object.Position, variable:String) {
+				onIncorrectType(pos, variable);
+			}
+			private function loadJsonObjectOrAnon(o:Array<hxjsonast.Json.JObjectField>, pos:json2object.Position, variable:String) {
+				onIncorrectType(pos, variable);
+			}
 		};
 
-		loadJsonClass.fields.push(loadJsonFct);
-		loadJsonClass.fields.push(obj);
+		var value:Field = {
+			doc: null,
+			kind: FVar(TypeUtils.toComplexType(type), null),
+			access: [APublic],
+			name: "value",
+			pos: Context.currentPos(),
+			meta: null,
+		};
+		parser.fields.push(value);
+
+		var object:Field = {
+			doc: null,
+			kind: FProp("get", "never",TypeUtils.toComplexType(type), null),
+			access: [APublic],
+			name: "object",
+			pos: Context.currentPos(),
+			meta: [{name:":deprecated", params:null, pos:Context.currentPos()}],
+		};
+		parser.fields.push(object);
+
+		switch (type) {
+			case TInst(_.get()=>t, p) :
+				switch(t.module) {
+					case "String":
+						makeStringParser(parser);
+					case "Array":
+						if (p.length == 1 && p[0] != null) {
+							makeArrayParser(parser, p[0], c);
+						}
+					case _:
+						switch (t.kind) {
+							case KTypeParameter(_):
+								Context.fatalError("json2object: Type parameters are not parsable: " + t.name, Context.currentPos());
+
+							default:
+						}
+						makeObjectOrAnonParser(parser, type, c);
+				}
+			case TAnonymous(_.get()=>t):
+				makeObjectOrAnonParser(parser, type, c);
+			case TAbstract(_.get()=>t, p):
+				if (t.module == "StdTypes") {
+					switch (t.name) {
+						case "Int" : makeIntParser(parser);
+						case "Float", "Single": makeFloatParser(parser);
+						case "Bool": makeBoolParser(parser);
+						default: Context.fatalError("json2object: Parser of "+t.name+" are not generated", Context.currentPos());
+					}
+				}
+			default:
+		}
+
+		haxe.macro.Context.defineType(parser);
 
 		//~ var p = new haxe.macro.Printer();
-		//~ trace(p.printTypeDefinition(loadJsonClass));
+		//~ trace(p.printTypeDefinition(parser));
 
-		haxe.macro.Context.defineType(loadJsonClass);
-
-		var constructedType = haxe.macro.Context.getType(parserName);
-		parsers.set(parsedType.toString(), constructedType);
+		var constructedType = haxe.macro.Context.getType(name);
+		parsers.set(type.toString(), constructedType);
 		return constructedType;
+
 	}
 
 	public static function build() {
 		switch (Context.getLocalType()) {
 			case TInst(c, [type]):
+				trace(type, isNullable(type));
 				return makeParser(c.get(), type);
-			case t:
+			case _:
 				Context.fatalError("Parsing tools must be a class expected", Context.currentPos());
 				return null;
 		}
