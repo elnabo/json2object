@@ -34,10 +34,10 @@ class ArrayTest extends haxe.unit.TestCase {
 			for (i in 0...data.length) {
 				assertEquals(oracle[i],data[i]);
 			}
-			assertEquals(0, parser.warnings.length);
+			assertEquals(0, parser.errors.length);
 
 			data = parser.fromJson('[0,1,4.4,3]', "");
-			assertEquals(1, parser.warnings.length);
+			assertEquals(1, parser.errors.length);
 			oracle = [0,1,3];
 			for (i in 0...data.length) {
 				assertEquals(oracle[i],data[i]);

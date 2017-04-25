@@ -56,30 +56,32 @@ class ObjectTest<K,V> extends haxe.unit.TestCase {
 		// Optional/Jignored + missing
 		{
 			var parser = new JsonParser<ObjectTest<String, Float>>();
-			var data = parser.fromJson('{ "base": true, "array": [0,2], "map":{"key":{"base":false, "array":[1], "map":{"t":null}, "struct":{"i": 9}}}, "struct":{"i":1}, "foo": 25 }', "test");
-			assertEquals(data.base, true);
-			assertEquals(data.array.toString(), "[0,2]");
-			assertEquals(data.map.get("key").base, false);
-			assertEquals(data.map.get("key").array.toString(), "[1]");
-			assertEquals(data.map.get("key").map.get("t"), null);
-			assertEquals(data.struct.i, 1);
-			assertEquals(parser.warnings.length, 7);
-			assertEquals(data.foo, 25);
+			var data:ObjectTest<String, Float> = parser.fromJson('{ "base": true, "array": [0,2], "map":{"key":{"base":false, "array":[1], "map":{"t":null}, "struct":{"i": 9}}}, "struct":{"i":1}, "foo": 25 }', "test");
+			assertEquals(true, data.base);
+			assertEquals("[0,2]",data.array.toString());
+			assertEquals(false, data.map.get("key").base);
+			assertEquals("[1]",data.map.get("key").array.toString());
+			assertEquals(null, data.map.get("key").map.get("t"));
+			assertEquals(1, data.struct.i);
+			assertEquals(25, data.foo);
+
+			assertEquals(7, parser.errors.length);
 		}
 
 		// Optional
 		{
 			var parser = new JsonParser<ObjectTest<String, Float>>();
 			var data = parser.fromJson('{ "base": true, "objTest":{"base":true, "array":[], "map":{}, "struct":{"i":10}, "array_array":null, "array_map":null, "array_obj":null, "foo":45}, "array": null, "map":{"key":null}, "struct":{"i":2}, "array_array":[[0,1], [4, -1]], "array_map":[{"a":1}, null], "array_obj":[{"base":true, "array":[], "map":{}, "struct":{"i":10}, "array_array":null, "array_map":null, "array_obj":null, "foo":46}], "foo": 63 }', "test");
-			assertEquals(data.base, true);
-			assertEquals(data.array, null);
-			assertEquals(data.map.get("key"), null);
-			assertEquals(data.struct.i,2);
-			assertEquals(data.objTest.base,true);
-			assertEquals(data.objTest.array.toString(),"[]");
-			assertEquals(data.objTest.map.toString(),"{}");
-			assertEquals(parser.warnings.length, 0);
-			assertEquals(data.foo, 63);
+			assertEquals(true, data.base);
+			assertEquals(null, data.array);
+			assertEquals(null, data.map.get("key"));
+			assertEquals(2, data.struct.i);
+			assertEquals(true, data.objTest.base);
+			assertEquals("[]",data.objTest.array.toString());
+			assertEquals("{}", data.objTest.map.toString());
+			assertEquals(63, data.foo);
+
+			assertEquals(0, parser.errors.length);
 		}
 	}
 

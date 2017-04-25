@@ -163,6 +163,7 @@ class DataBuilder {
 			];
 		}
 		changeFunction("loadJsonArray", parser, e);
+		changeFunction("loadJsonNull", parser, macro {value = null;});
 	}
 
 	public static function makeObjectOrAnonParser(parser:TypeDefinition, type:Type, baseParser:BaseType) {
@@ -188,7 +189,14 @@ class DataBuilder {
 				tParams = t.params;
 				params = p;
 
-				var t_cls = {name:t.name, pack:t.pack, params:[for (i in p) TPType(i.toComplexType())]};
+				var pack = t.pack;
+				var module = null;
+				if (t.module != t.pack.join(".") + "." + t.name)
+				{
+					pack = t.module.split(".");
+					module = pack.pop();
+				}
+				var t_cls = { name: module != null ? module : t.name, pack: pack, params: [for (i in p) TPType(i.toComplexType())], sub: module != null ? t.name : null };
 				initializator = macro new $t_cls();
 
 			case _: return;
@@ -215,7 +223,8 @@ class DataBuilder {
 
 					var assignation = macro {
 						try {
-							$f_a = new $f_cls(errors, putils, THROW).loadJson(field.value);
+							$f_a = new $f_cls(errors, putils, THROW).loadJson(field.value, field.name);
+							assigned.set($v{field.name}, true);
 						} catch (_:Dynamic) {}
 					}
 
@@ -291,9 +300,59 @@ class DataBuilder {
 		changeFunction("loadJsonNull", parser, macro {value = null;});
 	}
 
-	public static function makeMapParser(parser:TypeDefinition, type:Type, baseParser:BaseType) {
-		// TODO : test if key type = String or Int
-		// and the rest
+	public static function makeMapParser(parser:TypeDefinition, key:Type, value:Type, baseParser:BaseType) {
+
+		var keyMacro = switch (key.followWithAbstracts()) {
+			case TInst(_.get()=>t, _):
+				if (t.module == "String") {
+					macro field.name;
+				}
+				else {
+					Context.fatalError("json2object: Only map with Int or String key are parsable, got"+key.toString(), Context.currentPos());
+				}
+			case TAbstract(_.get()=>t, _):
+				if (t.module == "StdTypes" && t.name == "Int") {
+					macro {
+						if (Std.parseInt(field.name) != null && Std.parseFloat(field.name) == Std.parseInt(field.name)) {
+							Std.parseInt(field.name);
+						}
+						else{
+							try {
+								onIncorrectType(putils.convertPosition(field.namePos), field.name);
+							}
+							catch (_:Dynamic) {}
+							continue;
+						}
+					}
+				}
+				else {
+					Context.fatalError("json2object: Only map with Int or String key are parsable, got"+key.toString(), Context.currentPos());
+				}
+			default: Context.fatalError("json2object: Only map with Int or String key are parsable, got"+key.toString(), Context.currentPos());
+		}
+
+		var v_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(value.toComplexType())]};
+		var valueMacro = macro {
+			try {
+				new $v_cls(errors, putils, THROW).loadJson(field.value, field.name);
+			}
+			catch (_:Dynamic) {
+				continue;
+			}
+		};
+
+		var cls = {name:"Map", pack:[], params:[TPType(key.toComplexType()), TPType(value.toComplexType())]};
+
+		var e = macro {
+			value = cast new $cls();
+			for (field in o) {
+				//~ trace(field.name+ " uio" + new $v_cls([], putils, NONE).loadJson(field.value, field.name));
+				value.set($keyMacro, $valueMacro);
+			}
+		}
+
+		changeFunction("loadJsonObjectOrAnon", parser, e);
+		changeFunction("loadJsonNull", parser, macro {value = null;});
 	}
 
 	public static function makeParser(c:BaseType, type:Type) {
@@ -423,7 +482,13 @@ class DataBuilder {
 						default: Context.fatalError("json2object: Parser of "+t.name+" are not generated", Context.currentPos());
 					}
 				}
-			default:
+				else if (t.module == "Map" && t.name == "Map") {
+					makeMapParser(parser, p[0], p[1], c);
+				}
+				else {
+				}
+			case TType(_) : return makeParser(c, type.follow());
+			default: Context.fatalError("json2object: Parser of "+type.toString()+" are not generated", Context.currentPos());
 		}
 
 		haxe.macro.Context.defineType(parser);
@@ -440,7 +505,6 @@ class DataBuilder {
 	public static function build() {
 		switch (Context.getLocalType()) {
 			case TInst(c, [type]):
-				trace(type, isNullable(type));
 				return makeParser(c.get(), type);
 			case _:
 				Context.fatalError("Parsing tools must be a class expected", Context.currentPos());

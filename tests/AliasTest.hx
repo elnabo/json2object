@@ -49,25 +49,25 @@ class AliasTest extends haxe.unit.TestCase {
 		{
 			var parser = new JsonParser<Aliased>();
 			var data = parser.fromJson('{ "public": true }', "test");
-			assertEquals(data.isPublic, true);
+			assertEquals(true, data.isPublic);
 		}
 
 		{
 			var parser = new JsonParser<MultiAliased>();
 			var data = parser.fromJson('{ "public": true }', "test");
-			assertEquals(data.isPublic, true);
+			assertEquals(true, data.isPublic);
 		}
 
 		{
 			var parser = new JsonParser<AliasedClass>();
 			var data = parser.fromJson('{ "public": true }', "test");
-			assertEquals(data.isPublic, true);
+			assertEquals(true, data.isPublic);
 		}
 
 		{
 			var parser = new JsonParser<MultiAliasedClass>();
 			var data = parser.fromJson('{ "public": true }', "test");
-			assertEquals(data.isPublic, true);
+			assertEquals(true, data.isPublic);
 		}
 
 	}

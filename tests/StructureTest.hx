@@ -109,7 +109,11 @@ class StructureTest extends haxe.unit.TestCase {
 			var parser = new json2object.JsonParser<ReadonlyStruct>();
 			var data = parser.fromJson('{"foo":1.2}', "");
 			assertEquals(parser.warnings.length, 2);
-			assertEquals(data.foo, 0);
+			#if (cpp || cs || java || flash || hl)
+			assertEquals(0, data.foo);
+			#else
+			assertEquals(null, data.foo);
+			#end
 		}
 
 		{
@@ -120,7 +124,12 @@ class StructureTest extends haxe.unit.TestCase {
 
 		{
 			var parser = new json2object.JsonParser<OuterStruct>();
-			assertEquals(parser.fromJson('{"outer": {}}', "").outer.inner, 0);
+			var data = parser.fromJson('{"outer": {}}', "");
+			#if (cpp || cs || java || flash || hl)
+			assertEquals(0, data.outer.inner);
+			#else
+			assertEquals(null, data.outer.inner);
+			#end
 		}
 
 		{
