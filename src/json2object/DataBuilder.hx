@@ -549,6 +549,7 @@ class DataBuilder {
 												variable);
 											});
 								}
+								hasOneFrom = true;
 							}
 							if (st.module == "Array") {
 								var subType = sp[0];
@@ -576,6 +577,7 @@ class DataBuilder {
 													variable);
 												});
 									}
+									hasOneFrom = true;
 								}
 							}
 						case TAbstract(_.get()=>st, sp):
@@ -596,6 +598,7 @@ class DataBuilder {
 															variable);
 														});
 											}
+											hasOneFrom = true;
 										}
 									case "Float":
 										if (i == 0) {
@@ -611,6 +614,7 @@ class DataBuilder {
 													});
 										}
 										hasFromFloat = true;
+										hasOneFrom = true;
 									case "Bool":
 										if (i == 0) {
 											makeBoolParser(parser, fromType.t);
@@ -624,6 +628,7 @@ class DataBuilder {
 														variable);
 													});
 										}
+										hasOneFrom = true;
 								}
 							}
 						default:
@@ -635,6 +640,9 @@ class DataBuilder {
 					changeFunction("loadJsonNull", parser, macro {value = cast null;});
 				}
 			default:
+		}
+		if (!hasOneFrom) {
+			Context.fatalError("json2object: No parser can be generated for "+type.toString()+ " as it has no supported @:from", Context.currentPos());
 		}
 	}
 
@@ -803,7 +811,7 @@ class DataBuilder {
 			case TInst(c, [type]):
 				return makeParser(c.get(), type);
 			case _:
-				Context.fatalError("Parsing tools must be a class expected", Context.currentPos());
+				Context.fatalError("json2object: Parsing tools must be a class", Context.currentPos());
 				return null;
 		}
 	}
