@@ -60,50 +60,6 @@ class DataBuilder {
 		}
 	}
 
-	private static function getParserName(parsed:Type, ?level=1) {
-		var res = "";
-
-		switch (parsed) {
-			case TInst(t, params):
-				res += "_".lpad("_", level) + "Inst_" + t.get().name;
-				for (p in params) {
-					res += getParserName(p.follow(), level+1);
-				}
-
-			case TAbstract(t, params):
-				res += "_".lpad("_", level) + "Abstract_" + t.get().name;
-				for (p in params) {
-					res += getParserName(p.follow(), level+1);
-				}
-
-			case TAnonymous(_.get() => a):
-				res += "_".lpad("_", level) + "Ano_";
-				for (f in a.fields) {
-					var name = f.name;
-
-					for (m in f.meta.get())
-					{
-						if (m.name == ":alias" && m.params.length == 1)
-						{
-							switch (m.params[0].expr)
-							{
-								case EConst(CString(s)):
-									name = s;
-
-								default:
-							}
-						}
-					}
-
-					res += name + "_" + getParserName(f.type, level+1);
-				}
-
-			default:
-		}
-
-		return res;
-	}
-
 	private static function changeExprOf(field:Field, e:Expr) {
 		switch (field.kind) {
 			case FFun(f):
@@ -202,8 +158,6 @@ class DataBuilder {
 			case _: return;
 		}
 
-		// TODO @:default + constructor
-
 		var anonBaseValues:Array<{field:String, expr:Expr}> = [];
 		var assigned:Array<Expr> = [];
 		var cases:Array<Case> = [];
@@ -296,7 +250,7 @@ class DataBuilder {
 			}
 		};
 
-		changeFunction("loadJsonObjectOrAnon", parser, e);
+		changeFunction("loadJsonObject", parser, e);
 		changeFunction("loadJsonNull", parser, macro {value = null;});
 	}
 
@@ -351,8 +305,115 @@ class DataBuilder {
 			}
 		}
 
-		changeFunction("loadJsonObjectOrAnon", parser, e);
+		changeFunction("loadJsonObject", parser, e);
 		changeFunction("loadJsonNull", parser, macro {value = null;});
+	}
+
+	public static function makeEnumParser(parser:TypeDefinition, type:Type, baseParser:BaseType) {
+
+		var objMacro:Expr;
+		var strMacro:Expr;
+
+		var typeName:String;
+		switch (type) {
+			case TEnum(_.get()=>t, p):
+				typeName = t.name;
+				var internStringCases = new Array<Case>();
+				var internObjectCases = new Array<Case>();
+				for (n in t.names) {
+
+					var l = t.module.split(".");
+					l.push(t.name);
+					l.push(n);
+					var subExpr = {expr:EConst(CIdent(l.shift())), pos:Context.currentPos()};
+					while (l.length > 0) {
+						subExpr = {expr:EField(subExpr, l.shift()), pos:Context.currentPos()};
+					}
+
+					switch (t.constructs.get(n).type) {
+						case TEnum(_,_):
+							subExpr = macro value = cast ${subExpr};
+							internStringCases.push({expr: subExpr, guard: null, values: [macro $v{n}]});
+
+							var objSubExpr = macro if (s0.length == 0) {
+								$subExpr;
+							} else {
+								errors.push(InvalidEnumConstructor(field.name, $v{t.name}, pos));
+									switch (errorType) {
+										case THROW : throw "json2object: parsing throw";
+										case _:
+									}
+							};
+							internObjectCases.push({expr: objSubExpr, guard: null, values: [macro $v{n}]});
+
+						case TFun(args, _):
+							var enumParams:Array<Expr> = [];
+							var blockExpr = [
+								macro if (s0.length != $v{args.length}) {
+									errors.push(InvalidEnumConstructor(field.name, $v{t.name}, pos));
+									switch (errorType) {
+										case THROW : throw "json2object: parsing throw";
+										case _:
+									}
+								}
+							];
+							var argCount = 0;
+							for (a in args) {
+								enumParams.push(macro $i{a.name});
+								blockExpr.push({expr: EVars([{name:a.name, type:a.t.toComplexType(), expr:null}]), pos:Context.currentPos()});
+
+								var a_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(a.t.toComplexType())]};
+								var v = macro $i{a.name} = new $a_cls(errors, putils, THROW).loadJson(s0[$v{argCount}].value, field.name+"."+$v{a.name});
+								blockExpr.push(v);
+								argCount++;
+							}
+
+							subExpr = (enumParams.length > 0)
+								? {expr:ECall(subExpr, enumParams), pos:Context.currentPos()}
+								: subExpr;
+							blockExpr.push(macro value = cast ${subExpr});
+
+							var lil_expr:Expr = {expr: EBlock(blockExpr), pos:Context.currentPos()};
+							internObjectCases.push({ expr: lil_expr, guard: null, values: [{ expr: EConst(CString($v{n})), pos: Context.currentPos()}] });
+
+
+						default:
+					}
+				}
+				var default_e = macro {
+						errors.push(IncorrectEnumValue(variable, $v{t.name}, pos));
+						switch (errorType) {
+							case THROW : throw "json2object: parsing throw";
+							case _:
+						}
+					};
+				objMacro = {expr: ESwitch(macro field.name, internObjectCases, default_e), pos: Context.currentPos() };
+				objMacro = macro if (o.length != 1) {
+					errors.push(IncorrectType(variable, $v{typeName}, pos));
+					switch (errorType) {
+						case THROW : throw "json2object: parsing throw";
+						case _:
+					}
+				} else {
+					var field = o[0];
+					switch (o[0].value.value) {
+						case JObject(s0):
+							${objMacro};
+						default:
+							errors.push(IncorrectType(field.name, $v{typeName}, putils.convertPosition(field.value.pos)));
+							switch (errorType) {
+								case THROW : throw "json2object: parsing throw";
+								case _:
+							}
+					}
+				}
+				strMacro = {expr: ESwitch(macro $i{"s"}, internStringCases, default_e), pos: Context.currentPos() };
+			default:
+		}
+
+		changeFunction("loadJsonObject", parser, objMacro);
+		changeFunction("loadJsonString", parser, strMacro);
+		changeFunction("loadJsonNull", parser, macro { value = null; });
 	}
 
 	public static function makeParser(c:BaseType, type:Type) {
@@ -361,8 +422,8 @@ class DataBuilder {
 			return parsers.get(type.toString());
 		}
 
-		var name = getParserName(type);
-		var parser = macro class $name {
+		var parserName = c.name + "_" + (counter++);
+		var parser = macro class $parserName {
 			public var errors:Array<json2object.Error>;
 			@:deprecated
 			public var warnings(get,never):Array<json2object.Error>;
@@ -400,7 +461,7 @@ class DataBuilder {
 					case JNumber(n) : loadJsonNumber(n, pos, variable);
 					case JBool(b) : loadJsonBool(b, pos, variable);
 					case JArray(a) : loadJsonArray(a, pos, variable);
-					case JObject(o) : loadJsonObjectOrAnon(o, pos, variable);
+					case JObject(o) : loadJsonObject(o, pos, variable);
 				}
 				return value;
 			}
@@ -408,7 +469,7 @@ class DataBuilder {
 			private function onIncorrectType(pos:json2object.Position, variable:String) {
 				errors.push(IncorrectType(variable, $v{type.toString()}, pos));
 				switch (errorType) {
-					case THROW : throw "parsing failed";
+					case THROW : throw "json2object: parsing throw";
 					case _:
 				}
 			}
@@ -428,7 +489,7 @@ class DataBuilder {
 			private function loadJsonArray(a:Array<hxjsonast.Json>, pos:json2object.Position, variable:String) {
 				onIncorrectType(pos, variable);
 			}
-			private function loadJsonObjectOrAnon(o:Array<hxjsonast.Json.JObjectField>, pos:json2object.Position, variable:String) {
+			private function loadJsonObject(o:Array<hxjsonast.Json.JObjectField>, pos:json2object.Position, variable:String) {
 				onIncorrectType(pos, variable);
 			}
 		};
@@ -487,7 +548,12 @@ class DataBuilder {
 				}
 				else {
 				}
-			case TType(_) : return makeParser(c, type.follow());
+			case TEnum(_.get()=>t, p):
+				makeEnumParser(parser, type.applyTypeParameters(t.params, p), c);
+			case TType(_.get()=>t, p) :
+				return makeParser(c, t.type.applyTypeParameters(t.params, p));
+			case TLazy(f):
+				return makeParser(c, f());
 			default: Context.fatalError("json2object: Parser of "+type.toString()+" are not generated", Context.currentPos());
 		}
 
@@ -496,7 +562,7 @@ class DataBuilder {
 		//~ var p = new haxe.macro.Printer();
 		//~ trace(p.printTypeDefinition(parser));
 
-		var constructedType = haxe.macro.Context.getType(name);
+		var constructedType = haxe.macro.Context.getType(parserName);
 		parsers.set(type.toString(), constructedType);
 		return constructedType;
 
