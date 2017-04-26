@@ -659,8 +659,10 @@ class DataBuilder {
 	public static function makeParser(c:BaseType, type:Type, ?base:Type=null) {
 
 		if (base == null) { base = type; }
-		if (parsers.exists(type.toString())) {
-			return parsers.get(type.toString());
+
+		var parserMapName = base.toString();
+		if (parsers.exists(parserMapName)) {
+			return parsers.get(parserMapName);
 		}
 
 		var parserName = c.name + "_" + (counter++);
@@ -811,7 +813,7 @@ class DataBuilder {
 		//~ trace(p.printTypeDefinition(parser));
 
 		var constructedType = haxe.macro.Context.getType(parserName);
-		parsers.set(type.toString(), constructedType);
+		parsers.set(parserMapName, constructedType);
 		return constructedType;
 
 	}
