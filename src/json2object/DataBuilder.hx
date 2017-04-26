@@ -60,6 +60,17 @@ class DataBuilder {
 		}
 	}
 
+	// return true if type.followWithAbstract == String, Int, Float or Bool or Array of the previous
+	private static function isBaseType(type:Type) {
+		return switch (type.followWithAbstracts()) {
+			case TInst(_.get()=>t, p):
+				(t.module == "String" || (t.module == "Array" && isBaseType(p[0])));
+			case TAbstract(_.get()=>t, p):
+				(t.module == "StdTypes" && (t.name == "Int" || t.name == "Float" || t.name == "Bool"));
+			default: false;
+		}
+	}
+
 	private static function changeExprOf(field:Field, e:Expr) {
 		switch (field.kind) {
 			case FFun(f):
@@ -120,13 +131,11 @@ class DataBuilder {
 
 	public static function makeArrayParser(parser:TypeDefinition, subType:Type, baseParser:BaseType) {
 		var cls = { name:baseParser.name, pack:baseParser.pack, params:[TPType(subType.toComplexType())]};
-		var e = macro {
-			value = cast [
+		var e = macro value = cast [
 				for (j in a)
 					try { new $cls(errors, putils, THROW).loadJson(j, variable); }
 					catch (_:String) { continue; }
 			];
-		}
 		changeFunction("loadJsonArray", parser, e);
 		changeFunction("loadJsonNull", parser, macro {value = null;});
 	}
@@ -513,8 +522,120 @@ class DataBuilder {
 				changeFunction("loadJsonBool", parser, e);
 			default:
 		}
+	}
 
+	public static function makeAbstractParser(parser:TypeDefinition, type:Type, baseParser:BaseType) {
+		var hasFromFloat = false;
+		var hasOneFrom = false;
 
+		switch (type) {
+			case TAbstract(_.get()=>t, p):
+
+				var from = (t.from.length == 0) ? [{t:t.type, field:null}] : t.from;
+				var i = 0;
+				for(fromType in from) {
+
+					switch (fromType.t.followWithAbstracts()) {
+						case TInst(_.get()=>st, sp):
+							if (st.module == "String") {
+								if (i == 0) { makeStringParser(parser); }
+								else {
+									var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(fromType.t.toComplexType())]};
+									changeFunction("loadJsonString",
+										parser,
+										macro {
+											value = new $cls(errors, putils, NONE).loadJson(
+											{value:JString(s), pos:{file:pos.file, min:pos.min, max:pos.max}},
+												variable);
+											});
+								}
+							}
+							if (st.module == "Array") {
+								var subType = sp[0];
+								for (i in 0...t.params.length) {
+									if (subType.unify(t.params[i].t)) {
+										subType = p[i];
+										break;
+									}
+								}
+								if (isBaseType(subType.followWithAbstracts())) {
+									if (i == 0) {
+										makeArrayParser(parser,subType.followWithAbstracts(), baseParser);
+									}
+									else {
+										var aParams = switch (fromType.t.followWithAbstracts()) {
+											case TInst(r,_): [TPType(TInst(r,[subType]).toComplexType())];
+											default:[];
+										}
+										var cls = {name:baseParser.name, pack:baseParser.pack, params:aParams};
+										changeFunction("loadJsonArray",
+											parser,
+											macro {
+												value = new $cls(errors, putils, NONE).loadJson(
+												{value:JArray(a), pos:{file:pos.file, min:pos.min, max:pos.max}},
+													variable);
+												});
+									}
+								}
+							}
+						case TAbstract(_.get()=>st, sp):
+							if (st.module == "StdTypes") {
+								var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(fromType.t.toComplexType())]};
+								switch (st.name) {
+									case "Int":
+										if (!hasFromFloat) {
+											if (i == 0) {
+												makeIntParser(parser, fromType.t);
+											}
+											else {
+												changeFunction("loadJsonNumber",
+													parser,
+													macro {
+														value = new $cls(errors, putils, NONE).loadJson(
+														{value:JNumber(f), pos:{file:pos.file, min:pos.min, max:pos.max}},
+															variable);
+														});
+											}
+										}
+									case "Float":
+										if (i == 0) {
+												makeFloatParser(parser, fromType.t);
+										}
+										else {
+											changeFunction("loadJsonNumber",
+												parser,
+												macro {
+													value = new $cls(errors, putils, NONE).loadJson(
+													{value:JNumber(f), pos:{file:pos.file, min:pos.min, max:pos.max}},
+														variable);
+													});
+										}
+										hasFromFloat = true;
+									case "Bool":
+										if (i == 0) {
+											makeBoolParser(parser, fromType.t);
+										}
+										else {
+											changeFunction("loadJsonNumber",
+												parser,
+												macro {
+													value = new $cls(errors, putils, NONE).loadJson(
+													{value:JBool(b), pos:{file:pos.file, min:pos.min, max:pos.max}},
+														variable);
+													});
+										}
+								}
+							}
+						default:
+					}
+					i++;
+				}
+
+				if (isNullable(t.type)) {
+					changeFunction("loadJsonNull", parser, macro {value = cast null;});
+				}
+			default:
+		}
 	}
 
 	public static function makeParser(c:BaseType, type:Type, ?base:Type=null) {
@@ -654,7 +775,7 @@ class DataBuilder {
 						makeAbstractEnumParser(parser, type.applyTypeParameters(t.params, p), c);
 					}
 					else {
-						//makeAbstractParser(parser, type.applyTypeParameters(t.params, p), c);
+						makeAbstractParser(parser, type.applyTypeParameters(t.params, p), c);
 					}
 				}
 			case TEnum(_.get()=>t, p):

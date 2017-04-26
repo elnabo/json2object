@@ -58,17 +58,17 @@ class MapTest extends haxe.unit.TestCase {
 		// Str -> Map<Str,Str>
 		{
 			var data = new JsonParser<Map<String, Map<String,String>>>().fromJson('{ "key1": {}, "key2": {"i":"9"}, "key3":{"a":"0"} }', "test");
-			assertEquals("{}",data.get("key1").toString());
-			assertEquals("9",data.get("key2").get("i"));
-			assertEquals("0",data.get("key3").get("a"));
+			assertEquals("{}", data.get("key1").toString());
+			assertEquals("9", data.get("key2").get("i"));
+			assertEquals("0", data.get("key3").get("a"));
 		}
 
 		// Str -> Array<Str>
 		{
 			var data = new JsonParser<Map<String, Array<String>>>().fromJson('{ "key1": [], "key2": ["i","9"], "key3":["a"] }', "test");
 			assertEquals("[]", data.get("key1").toString());
-			assertEquals('[i,9]', data.get("key2").toString());
-			assertEquals('[a]', data.get("key3").toString());
+			assertEquals("[i,9]", data.get("key2").toString());
+			assertEquals("[a]", data.get("key3").toString());
 		}
 	}
 

@@ -71,38 +71,38 @@ class StructureTest extends haxe.unit.TestCase {
 		{
 			var parser = new JsonParser<DefaultStruct>();
 			var data = parser.fromJson('{}', "test");
-			assertEquals(parser.warnings.length, 0);
-			assertEquals(data.d.a, true);
-			assertEquals(data.d.b, 0);
-			assertEquals(data.map.toString(), "{}");
-			assertEquals(data.s, null);
+			assertEquals(0, parser.errors.length);
+			assertEquals(true, data.d.a);
+			assertEquals(0, data.d.b);
+			assertEquals("{}", data.map.toString());
+			assertEquals(null, data.s);
 
 			data = parser.fromJson('{"d":{"a":false, "b":1}, "map":{"key1":55, "key2": 46, "key3":43}, "s":"sup"}', "test");
-			assertEquals(parser.warnings.length, 0);
-			assertEquals(data.d.a, false);
-			assertEquals(data.d.b, 1);
-			assertEquals(data.map["key2"], 46);
-			assertEquals(data.s, "sup");
+			assertEquals(0, parser.errors.length);
+			assertEquals(false, data.d.a);
+			assertEquals(1, data.d.b);
+			assertEquals(46, data.map["key2"]);
+			assertEquals("sup", data.s);
 		}
 
 		{
 			var parser = new JsonParser<Struct>();
 			var data = parser.fromJson('{ "a": true, "b": 12 }', "test");
-			assertEquals(data.a, true);
-			assertEquals(data.b, 12);
+			assertEquals(true, data.a);
+			assertEquals(12, data.b);
 		}
 
 		{
 			var parser = new JsonParser<Struct>();
 			var data = parser.fromJson('{ "a": 12, "b": 12 }', "test");
-			assertEquals(data.a,true);
-			assertEquals(parser.warnings.length, 2); // IncorrectType + UninitializedVariable
+			assertEquals(true, data.a);
+			assertEquals(2, parser.errors.length); // IncorrectType + UninitializedVariable
 		}
 
 		{
 			var parser = new json2object.JsonParser<ReadonlyStruct>();
 			var data = parser.fromJson('{"foo":1}', "");
-			assertEquals(data.foo, 1);
+			assertEquals(1, data.foo);
 		}
 
 		{
@@ -119,7 +119,7 @@ class StructureTest extends haxe.unit.TestCase {
 		{
 			var parser = new json2object.JsonParser<{ var foo(default,null):Int; }>();
 			var data = parser.fromJson('{"foo":12}', "");
-			assertEquals(data.foo, 12);
+			assertEquals(12, data.foo);
 		}
 
 		{
@@ -135,16 +135,17 @@ class StructureTest extends haxe.unit.TestCase {
 		{
 			var parser = new json2object.JsonParser<ArrayStruct>();
 			var data = parser.fromJson('{"array": [1,2,3.2]}', "");
-			assertEquals(parser.warnings.length, 1);
-			assertEquals(data.array.toString(), "[1,2]");
+			assertEquals(1, parser.errors.length);
+			assertEquals("[1,2]", data.array.toString());
 		}
+
 		{
 			var parser = new json2object.JsonParser<MapIIStruct>();
 			var data = parser.fromJson('{"map": {"1":2, "3.1": 4, "5":6, "7":8.2}}', "");
-			assertEquals(parser.warnings.length, 2);
-			assertEquals(data.map.get(1),2);
-			assertEquals(data.map.get(5),6);
-			assertEquals(data.map.exists(7),false);
+			assertEquals(2, parser.errors.length);
+			assertEquals(2, data.map.get(1));
+			assertEquals(6, data.map.get(5));
+			assertEquals(false, data.map.exists(7));
 		}
 	}
 
