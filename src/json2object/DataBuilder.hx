@@ -77,23 +77,26 @@ class DataBuilder {
 	}
 
 	public static function makeStringParser(parser:TypeDefinition) {
-		changeFunction("loadJsonString", parser, macro {value = s;});
+		changeFunction("loadJsonString", parser, macro {value = cast s;});
 		changeFunction("loadJsonNull", parser, macro {value = null;});
 	}
 
-	public static function makeIntParser(parser:TypeDefinition) {
+	public static function makeIntParser(parser:TypeDefinition, ?base:Type=null) {
 		var e = macro {
 			if (Std.parseInt(f) != null && Std.parseInt(f) == Std.parseFloat(f)) {
-				value = Std.parseInt(f);
+				value = cast Std.parseInt(f);
 			}
 			else {
 				onIncorrectType(pos, variable);
 			}
 		};
 		changeFunction("loadJsonNumber", parser, e);
+		if (base != null && isNullable(base)) {
+			changeFunction("loadJsonNull", parser, macro {value = null;});
+		}
 	}
 
-	public static function makeFloatParser(parser:TypeDefinition) {
+	public static function makeFloatParser(parser:TypeDefinition, ?base:Type=null) {
 		var e = macro {
 			if (Std.parseInt(f) != null) {
 				value = cast Std.parseFloat(f);
@@ -103,18 +106,24 @@ class DataBuilder {
 			}
 		};
 		changeFunction("loadJsonNumber", parser, e);
+		if (base != null && isNullable(base)) {
+			changeFunction("loadJsonNull", parser, macro {value = null;});
+		}
 	}
 
-	public static function makeBoolParser(parser:TypeDefinition) {
-		changeFunction("loadJsonBool", parser, macro { value = b; });
+	public static function makeBoolParser(parser:TypeDefinition, ?base:Type=null) {
+		changeFunction("loadJsonBool", parser, macro { value = cast b; });
+		if (base != null && isNullable(base)) {
+			changeFunction("loadJsonNull", parser, macro {value = null;});
+		}
 	}
 
 	public static function makeArrayParser(parser:TypeDefinition, subType:Type, baseParser:BaseType) {
 		var cls = { name:baseParser.name, pack:baseParser.pack, params:[TPType(subType.toComplexType())]};
 		var e = macro {
-			value = [
+			value = cast [
 				for (j in a)
-					try { new $cls(errors, putils, THROW).loadJson(j); }
+					try { new $cls(errors, putils, THROW).loadJson(j, variable); }
 					catch (_:String) { continue; }
 			];
 		}
@@ -177,7 +186,7 @@ class DataBuilder {
 
 					var assignation = macro {
 						try {
-							$f_a = new $f_cls(errors, putils, THROW).loadJson(field.value, field.name);
+							$f_a = cast new $f_cls(errors, putils, OBJECTTHROW).loadJson(field.value, field.name);
 							assigned.set($v{field.name}, true);
 						} catch (_:Dynamic) {}
 					}
@@ -300,8 +309,7 @@ class DataBuilder {
 		var e = macro {
 			value = cast new $cls();
 			for (field in o) {
-				//~ trace(field.name+ " uio" + new $v_cls([], putils, NONE).loadJson(field.value, field.name));
-				value.set($keyMacro, $valueMacro);
+				value.set(cast $keyMacro, cast $valueMacro);
 			}
 		}
 
@@ -340,7 +348,7 @@ class DataBuilder {
 							} else {
 								errors.push(InvalidEnumConstructor(field.name, $v{t.name}, pos));
 									switch (errorType) {
-										case THROW : throw "json2object: parsing throw";
+										case OBJECTTHROW, THROW : throw "json2object: parsing throw";
 										case _:
 									}
 							};
@@ -352,7 +360,7 @@ class DataBuilder {
 								macro if (s0.length != $v{args.length}) {
 									errors.push(InvalidEnumConstructor(field.name, $v{t.name}, pos));
 									switch (errorType) {
-										case THROW : throw "json2object: parsing throw";
+										case OBJECTTHROW, THROW : throw "json2object: parsing throw";
 										case _:
 									}
 								}
@@ -383,7 +391,7 @@ class DataBuilder {
 				var default_e = macro {
 						errors.push(IncorrectEnumValue(variable, $v{t.name}, pos));
 						switch (errorType) {
-							case THROW : throw "json2object: parsing throw";
+							case OBJECTTHROW, THROW : throw "json2object: parsing throw";
 							case _:
 						}
 					};
@@ -391,7 +399,7 @@ class DataBuilder {
 				objMacro = macro if (o.length != 1) {
 					errors.push(IncorrectType(variable, $v{typeName}, pos));
 					switch (errorType) {
-						case THROW : throw "json2object: parsing throw";
+						case OBJECTTHROW, THROW : throw "json2object: parsing throw";
 						case _:
 					}
 				} else {
@@ -402,7 +410,7 @@ class DataBuilder {
 						default:
 							errors.push(IncorrectType(field.name, $v{typeName}, putils.convertPosition(field.value.pos)));
 							switch (errorType) {
-								case THROW : throw "json2object: parsing throw";
+								case OBJECTTHROW, THROW : throw "json2object: parsing throw";
 								case _:
 							}
 					}
@@ -416,8 +424,102 @@ class DataBuilder {
 		changeFunction("loadJsonNull", parser, macro { value = null; });
 	}
 
-	public static function makeParser(c:BaseType, type:Type) {
+	public static function makeAbstractEnumParser(parser:TypeDefinition, type:Type, baseParser:BaseType) {
+		var name:String;
 
+		switch (type.followWithAbstracts()) {
+			case TInst(_.get()=>t, _):
+				if (t.module != "String") {
+					Context.fatalError("json2object: Unsupported abstract enum type:"+type.toString(), Context.currentPos());
+				}
+				name = "String";
+			case TAbstract(_.get()=>t, _):
+				if (t.module != "StdTypes" && (t.name != "Int" && t.name != "Bool" && t.name != "Float")) {
+					Context.fatalError("json2object: Unsupported abstract enum type:"+type.toString(), Context.currentPos());
+				}
+				name = t.name;
+			default: Context.fatalError("json2object: Unsupported abstract enum type:"+type.toString(), Context.currentPos());
+		}
+
+		var caseValues = new Array<Expr>();
+
+		var e = macro null;
+
+		switch (type) {
+			case TAbstract(_.get()=>t, p) :
+				for (field in t.impl.get().statics.get()) {
+					if (!field.meta.has(":enum") || !field.meta.has(":impl")) {
+						continue;
+					}
+					if (field.expr() == null) { continue; }
+					caseValues.push(
+						switch (field.expr().expr) {
+							case TConst(_): Context.getTypedExpr(field.expr());
+							case TCast(caste, _):
+								switch (caste.expr) {
+									case TConst(tc):
+										switch (tc) {
+											case TNull: continue;
+											default: Context.getTypedExpr(caste);
+										}
+									default: Context.getTypedExpr(caste);
+								}
+							default: continue;
+						}
+					);
+				}
+
+				if (caseValues.length == 0 && !isNullable(type)) {
+					Context.fatalError("json2object: Abstract enum of type "+ type.toString() +"can't be parsed if empty", Context.currentPos());
+				}
+
+
+
+				var v = switch (name) {
+					case "String": macro s;
+					case "Int", "Float":
+						var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(Context.getType(name).toComplexType())]} ;
+						macro new $cls([], putils, NONE).loadJson({value:JNumber(f), pos:{file:pos.file, min:pos.min, max:pos.max}}, variable);
+					case "Bool": macro b;
+					default: macro null;
+				}
+				var case_e = [{expr:macro value = cast $v, guard:null, values:caseValues}];
+				var default_e = macro {value = cast ${caseValues[0]}; onIncorrectType(pos, variable);};
+
+				e = {expr: ESwitch(macro cast $v, case_e, default_e), pos: Context.currentPos() };
+
+				changeFunction("onIncorrectType", parser, macro {
+					value = cast ${caseValues[0]};
+					errors.push(IncorrectType(variable, $v{type.toString()}, pos));
+					switch (errorType) {
+						case THROW: throw "json2object: parsing throw";
+						case OBJECTTHROW: errors.push(UninitializedVariable(variable, pos));
+						case NONE:
+					}
+				});
+
+				if (isNullable(t.type)) {
+					changeFunction("loadJsonNull", parser, macro {value = cast null;});
+				}
+			default:
+		}
+
+		switch (name) {
+			case "String":
+				changeFunction("loadJsonString", parser, e);
+			case "Int", "Float":
+				changeFunction("loadJsonNumber", parser, e);
+			case "Bool":
+				changeFunction("loadJsonBool", parser, e);
+			default:
+		}
+
+
+	}
+
+	public static function makeParser(c:BaseType, type:Type, ?base:Type=null) {
+
+		if (base == null) { base = type; }
 		if (parsers.exists(type.toString())) {
 			return parsers.get(type.toString());
 		}
@@ -443,6 +545,7 @@ class DataBuilder {
 
 			public function fromJson(jsonString:String, filename:String) {
 				putils = new json2object.PosUtils(jsonString);
+				errors = [];
 				try {
 					var json = hxjsonast.Parser.parse(jsonString, filename);
 					loadJson(json);
@@ -469,8 +572,8 @@ class DataBuilder {
 			private function onIncorrectType(pos:json2object.Position, variable:String) {
 				errors.push(IncorrectType(variable, $v{type.toString()}, pos));
 				switch (errorType) {
-					case THROW : throw "json2object: parsing throw";
-					case _:
+					case OBJECTTHROW, THROW: throw "json2object: parsing throw";
+					case NONE:
 				}
 			}
 
@@ -496,7 +599,7 @@ class DataBuilder {
 
 		var value:Field = {
 			doc: null,
-			kind: FVar(TypeUtils.toComplexType(type), null),
+			kind: FVar(TypeUtils.toComplexType(base), null),
 			access: [APublic],
 			name: "value",
 			pos: Context.currentPos(),
@@ -506,7 +609,7 @@ class DataBuilder {
 
 		var object:Field = {
 			doc: null,
-			kind: FProp("get", "never",TypeUtils.toComplexType(type), null),
+			kind: FProp("get", "never",TypeUtils.toComplexType(base), null),
 			access: [APublic],
 			name: "object",
 			pos: Context.currentPos(),
@@ -537,9 +640,9 @@ class DataBuilder {
 			case TAbstract(_.get()=>t, p):
 				if (t.module == "StdTypes") {
 					switch (t.name) {
-						case "Int" : makeIntParser(parser);
-						case "Float", "Single": makeFloatParser(parser);
-						case "Bool": makeBoolParser(parser);
+						case "Int" : makeIntParser(parser, base);
+						case "Float", "Single": makeFloatParser(parser, base);
+						case "Bool": makeBoolParser(parser, base);
 						default: Context.fatalError("json2object: Parser of "+t.name+" are not generated", Context.currentPos());
 					}
 				}
@@ -547,11 +650,17 @@ class DataBuilder {
 					makeMapParser(parser, p[0], p[1], c);
 				}
 				else {
+					if (t.meta.has(":enum")) {
+						makeAbstractEnumParser(parser, type.applyTypeParameters(t.params, p), c);
+					}
+					else {
+						//makeAbstractParser(parser, type.applyTypeParameters(t.params, p), c);
+					}
 				}
 			case TEnum(_.get()=>t, p):
 				makeEnumParser(parser, type.applyTypeParameters(t.params, p), c);
 			case TType(_.get()=>t, p) :
-				return makeParser(c, t.type.applyTypeParameters(t.params, p));
+				return makeParser(c, t.type.applyTypeParameters(t.params, p), type);
 			case TLazy(f):
 				return makeParser(c, f());
 			default: Context.fatalError("json2object: Parser of "+type.toString()+" are not generated", Context.currentPos());

@@ -23,8 +23,7 @@ SOFTWARE.
 package json2object;
 
 enum ErrorType {
-	BREAK;
-	CONTINUE;
-	THROW;
 	NONE;
+	OBJECTTHROW;
+	THROW;
 }
