@@ -193,12 +193,22 @@ class DataBuilder {
 					var f_type = field.type.applyTypeParameters(tParams, params);
 					var f_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(f_type.toComplexType())]};
 
-					var assignation = macro {
-						try {
-							$f_a = cast new $f_cls(errors, putils, OBJECTTHROW).loadJson(field.value, field.name);
-							assigned.set($v{field.name}, true);
-						} catch (_:Dynamic) {}
-					}
+					var assignation = (isNullable(f_type))
+						?
+						macro {
+							try {
+								var tmp = new $f_cls(errors, putils, OBJECTTHROW).loadJson(field.value, field.name);
+								if (tmp != null) { $f_a = tmp; }
+								assigned.set($v{field.name}, true);
+							} catch (_:Dynamic) {}
+						}
+						:
+						macro {
+							try {
+								$f_a = new $f_cls(errors, putils, OBJECTTHROW).loadJson(field.value, field.name);
+								assigned.set($v{field.name}, true);
+							} catch (_:Dynamic) {}
+						}
 
 					var caseValue = null;
 					for (m in field.meta.get()) {
