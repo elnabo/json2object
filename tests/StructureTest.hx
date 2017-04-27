@@ -125,11 +125,8 @@ class StructureTest extends haxe.unit.TestCase {
 		{
 			var parser = new json2object.JsonParser<OuterStruct>();
 			var data = parser.fromJson('{"outer": {}}', "");
-			#if (cpp || cs || java || flash || hl)
-			assertEquals(0, data.outer.inner);
-			#else
+			// @:optionnal transform Int into Null<Int>
 			assertEquals(null, data.outer.inner);
-			#end
 		}
 
 		{
