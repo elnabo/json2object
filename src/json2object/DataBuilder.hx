@@ -284,28 +284,22 @@ class DataBuilder {
 
 	public static function makeMapParser(parser:TypeDefinition, key:Type, value:Type, baseParser:BaseType) {
 
+		var k_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(key.toComplexType())]};
 		var keyMacro = switch (key.followWithAbstracts()) {
 			case TInst(_.get()=>t, _):
 				if (t.module == "String") {
-					macro field.name;
+					macro try {
+						new $k_cls(errors, putils, THROW).loadJson({value:JString(field.name), pos:{file:pos.file, min:pos.min, max:pos.max}}, variable);
+					} catch (_:Dynamic) { continue;}
 				}
 				else {
 					Context.fatalError("json2object: Only map with Int or String key are parsable, got"+key.toString(), Context.currentPos());
 				}
 			case TAbstract(_.get()=>t, _):
 				if (t.module == "StdTypes" && t.name == "Int") {
-					macro {
-						if (Std.parseInt(field.name) != null && Std.parseFloat(field.name) == Std.parseInt(field.name)) {
-							Std.parseInt(field.name);
-						}
-						else{
-							try {
-								onIncorrectType(putils.convertPosition(field.namePos), field.name);
-							}
-							catch (_:Dynamic) {}
-							continue;
-						}
-					}
+					macro try {
+						new $k_cls(errors, putils, THROW).loadJson({value:JNumber(field.name), pos:{file:pos.file, min:pos.min, max:pos.max}}, variable);
+					} catch (_:Dynamic) { continue;}
 				}
 				else {
 					Context.fatalError("json2object: Only map with Int or String key are parsable, got"+key.toString(), Context.currentPos());
