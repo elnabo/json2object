@@ -776,17 +776,17 @@ class DataBuilder {
 						case "Int" :
 							makeIntParser(parser, base);
 							if (!isNullable(base)) {
-								//~ value.kind = FVar(TypeUtils.toComplexType(base), macro 0);
+								value.kind = FVar(TypeUtils.toComplexType(base), macro 0);
 							}
 						case "Float", "Single":
 							makeFloatParser(parser, base);
 							if (!isNullable(base)) {
-								//~ value.kind = FVar(TypeUtils.toComplexType(base), macro 0);
+								value.kind = FVar(TypeUtils.toComplexType(base), macro 0);
 							}
 						case "Bool":
 							makeBoolParser(parser, base);
 							if (!isNullable(base)) {
-								//~ value.kind = FVar(TypeUtils.toComplexType(base), macro false);
+								value.kind = FVar(TypeUtils.toComplexType(base), macro false);
 							}
 						default: Context.fatalError("json2object: Parser of "+t.name+" are not generated", Context.currentPos());
 					}
