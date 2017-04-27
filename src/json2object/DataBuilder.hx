@@ -328,7 +328,7 @@ class DataBuilder {
 		var e = macro {
 			value = cast new $cls();
 			for (field in o) {
-				value.set(cast $keyMacro, cast $valueMacro);
+				value.set($keyMacro, $valueMacro);
 			}
 		}
 
@@ -746,7 +746,6 @@ class DataBuilder {
 			pos: Context.currentPos(),
 			meta: null,
 		};
-		parser.fields.push(value);
 
 		var object:Field = {
 			doc: null,
@@ -756,7 +755,6 @@ class DataBuilder {
 			pos: Context.currentPos(),
 			meta: [{name:":deprecated", params:null, pos:Context.currentPos()}],
 		};
-		parser.fields.push(object);
 
 		switch (type) {
 			case TInst(_.get()=>t, p) :
@@ -781,9 +779,21 @@ class DataBuilder {
 			case TAbstract(_.get()=>t, p):
 				if (t.module == "StdTypes") {
 					switch (t.name) {
-						case "Int" : makeIntParser(parser, base);
-						case "Float", "Single": makeFloatParser(parser, base);
-						case "Bool": makeBoolParser(parser, base);
+						case "Int" :
+							makeIntParser(parser, base);
+							if (!isNullable(base)) {
+								//~ value.kind = FVar(TypeUtils.toComplexType(base), macro 0);
+							}
+						case "Float", "Single":
+							makeFloatParser(parser, base);
+							if (!isNullable(base)) {
+								//~ value.kind = FVar(TypeUtils.toComplexType(base), macro 0);
+							}
+						case "Bool":
+							makeBoolParser(parser, base);
+							if (!isNullable(base)) {
+								//~ value.kind = FVar(TypeUtils.toComplexType(base), macro false);
+							}
 						default: Context.fatalError("json2object: Parser of "+t.name+" are not generated", Context.currentPos());
 					}
 				}
@@ -806,6 +816,9 @@ class DataBuilder {
 				return makeParser(c, f());
 			default: Context.fatalError("json2object: Parser of "+type.toString()+" are not generated", Context.currentPos());
 		}
+
+		parser.fields.push(value);
+		parser.fields.push(object);
 
 		haxe.macro.Context.defineType(parser);
 
