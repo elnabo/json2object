@@ -662,10 +662,12 @@ class DataBuilder {
 		var parserName = c.name + "_" + (counter++);
 		var parser = macro class $parserName {
 			public var errors:Array<json2object.Error>;
-			@:deprecated
+			@:deprecated("json2object: Field 'warnings' is replaced by 'errors'")
 			public var warnings(get,never):Array<json2object.Error>;
+			@:deprecated("json2object: Field 'warnings' is replaced by 'errors'")
 			private inline function get_warnings():Array<json2object.Error> { return errors; }
 
+			@:deprecated("json2object: Field 'object' is replaced by 'value'")
 			private inline function get_object() { return value; }
 
 			private var errorType:json2object.ErrorType;
@@ -747,7 +749,7 @@ class DataBuilder {
 			access: [APublic],
 			name: "object",
 			pos: Context.currentPos(),
-			meta: [{name:":deprecated", params:null, pos:Context.currentPos()}],
+			meta: [{name:":deprecated", params:[{expr:EConst(CString("json2object: Field 'object' is replaced by 'value'")), pos:Context.currentPos()}], pos:Context.currentPos()}],
 		};
 
 		switch (type) {

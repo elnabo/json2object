@@ -108,7 +108,7 @@ class StructureTest extends haxe.unit.TestCase {
 		{
 			var parser = new json2object.JsonParser<ReadonlyStruct>();
 			var data = parser.fromJson('{"foo":1.2}', "");
-			assertEquals(parser.warnings.length, 2);
+			assertEquals(parser.errors.length, 2);
 			assertEquals(0, data.foo);
 		}
 

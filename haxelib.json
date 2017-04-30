@@ -4,8 +4,8 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Initialize object directly from json with macro",
-	"version": "2.3.0",
-	"releasenote": "Added @:alias(name) support to field",
+	"version": "2.4.0",
+	"releasenote": "Code rework, increases of top level types",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
 	"dependencies": {

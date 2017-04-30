@@ -4,7 +4,7 @@
 
 This library uses macro and a typed position aware JSON parsing (hxjsonast : <https://github.com/nadako/hxjsonast/>) to create a parser from json to every supportable object.
 
-Incorrect json files or mismatched between the object and the json will yield warnings or exceptions, with information on the position of the problematic parts.
+Incorrect json files or mismatched between the object and the json will yield errors or exceptions, with information on the position of the problematic parts.
 
 Requires at least haxe 3.3.0-rc.1.
 
@@ -21,24 +21,24 @@ haxelib install json2object
 var parser = new json2object.JsonParser<Cls>(); // Creating a parser for Cls class
 parser.fromJson(jsonString, filename); // Parsing a string. A filename is specified for errors management
 var data:Cls = parser.data; // Access the parsed class
-var warnings:Array<json2object.Error> = parser.warnings; // Access the potential warnings
+var errors:Array<json2object.Error> = parser.errors; // Access the potential errors yield during the parsing
 ```
 
-It is also possible to populate an existing Array with the warnings
+It is also possible to populate an existing Array with the errors
 ```haxe
-var warnings = new Array<json2object.Error>();
-var data:Cls = new json2object.JsonParser<Cls>(warnings).fromJson(jsonString, filename);
+var errors = new Array<json2object.Error>();
+var data:Cls = new json2object.JsonParser<Cls>(errors).fromJson(jsonString, filename);
 ```
 
-To print the warnings you can do
+To print the errors, you can do
 ```haxe
-trace(json2object.ErrorUtils.convertErrorArray(parser.warnings));
+trace(json2object.ErrorUtils.convertErrorArray(parser.errors));
 ```
 
 ### Constraints in the parsing
 
 - Variables defined with the `@:jignored` metadata will be ignored by the parser.
-- Variables defined with the `@:optional` metadata wont trigger warnings if missing.
+- Variables defined with the `@:optional` metadata wont trigger errors if missing.
 - Private variables are ignored.
 
 ### Supported types
@@ -54,6 +54,8 @@ trace(json2object.ErrorUtils.convertErrorArray(parser.warnings));
 - Abstract enum of String, Int, Float or Bool
 
 ### Other
+
+- As of version 2.4.0, the parser fields `warnings` and `object` have been replaced by `erros` and `value`. Previous notation is still supported.
 
 - Anonymous structure variables can be defined to be loaded with a default value if none is specified in the json using the `@:default` metadata
 ```haxe
@@ -131,7 +133,7 @@ class Main {
 	static function main() {
 		var parser = new JsonParser<Data>();
 		var data = parser.fromJson('{"a": "a", "b": {"c": "c"}, "e": [ { "c": "1" }, { "c": "2" } ], "f": [], "g": [ true ] }', "file.json");
-		var warnings = parser.warnings;
+		var errors = parser.errors;
 
 		trace(data.a);
 		trace(data.b.c);
@@ -147,8 +149,8 @@ class Main {
 			trace(data.g.length);
 		}
 
-		for (w in warnings) {
-			switch(w) {
+		for (e in errors) {
+			switch(e) {
 				case IncorrectType(variable, expected, pos):
 				case UninitializedVariable(variable, pos):
 				case UnknownVariable(variable, pos):
