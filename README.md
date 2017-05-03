@@ -2,9 +2,9 @@
 
 # json2object - intialized object directly from json
 
-This library uses macro and a typed position aware JSON parsing (hxjsonast : <https://github.com/nadako/hxjsonast/>) to create a parser from json to every supportable object.
+This library uses macro and a typed position aware JSON parsing (hxjsonast : <https://github.com/nadako/hxjsonast/>) to create a parser from json to every supported object.
 
-Incorrect json files or mismatched between the object and the json will yield errors or exceptions, with information on the position of the problematic parts.
+Incorrect json files or mismatch between the object and the json will yield errors or exceptions, with information on the position of the problematic parts.
 
 Requires at least haxe 3.3.0-rc.1.
 
@@ -55,7 +55,7 @@ trace(json2object.ErrorUtils.convertErrorArray(parser.errors));
 
 ### Other
 
-- As of version 2.4.0, the parser fields `warnings` and `object` have been replaced by `erros` and `value`. Previous notation is still supported.
+- As of version 2.4.0, the parser fields `warnings` and `object` have been replaced by `errors` and `value` respectively. Previous notation are still supported.
 
 - Anonymous structure variables can be defined to be loaded with a default value if none is specified in the json using the `@:default` metadata
 ```haxe
@@ -69,8 +69,6 @@ typedef Struct = {
 	var id:Int;
 }
 ```
-
-- No parser will be generated for the types `String`, `Int`, `Float` and `Bool`.
 
 - Variable defined as `(default, null)` may have unexpected behaviour on some `extern` classes.
 
@@ -87,7 +85,7 @@ class Main {
 	}
 }
 ```
-If multiple alias metadata are on the variable only the last one is taken into account.
+If multiple alias metadatas are on the variable only the last one is taken into account.
 
 ## Example
 
