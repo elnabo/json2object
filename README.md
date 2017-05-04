@@ -20,7 +20,7 @@ haxelib install json2object
 ```haxe
 var parser = new json2object.JsonParser<Cls>(); // Creating a parser for Cls class
 parser.fromJson(jsonString, filename); // Parsing a string. A filename is specified for errors management
-var data:Cls = parser.data; // Access the parsed class
+var data:Cls = parser.value; // Access the parsed class
 var errors:Array<json2object.Error> = parser.errors; // Access the potential errors yield during the parsing
 ```
 
