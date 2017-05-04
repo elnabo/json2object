@@ -670,18 +670,18 @@ class DataBuilder {
 			@:deprecated("json2object: Field 'object' is replaced by 'value'")
 			private inline function get_object() { return value; }
 
-			private var errorType:json2object.ErrorType;
+			private var errorType:json2object.Error.ErrorType;
 
-			private var putils:json2object.PosUtils;
+			private var putils:json2object.PositionUtils;
 
-			public function new(?errors:Array<json2object.Error>=null, ?putils:json2object.PosUtils=null, ?errorType:json2object.ErrorType=null) {
+			public function new(?errors:Array<json2object.Error>=null, ?putils:json2object.PositionUtils=null, ?errorType:json2object.Error.ErrorType=null) {
 				this.errors = (errors == null) ? [] : errors;
 				this.putils = putils;
 				this.errorType = (errorType == null) ? NONE : errorType;
 			}
 
 			public function fromJson(jsonString:String, filename:String) {
-				putils = new json2object.PosUtils(jsonString);
+				putils = new json2object.PositionUtils(jsonString);
 				errors = [];
 				try {
 					var json = hxjsonast.Parser.parse(jsonString, filename);

@@ -25,9 +25,9 @@ package json2object;
 /**
  * Transform a hxjsonast.Position into a Position, which provides information on lines.
  */
-class PosUtils {
+class PositionUtils {
 	/** Store line information (number/start/end). */
-	var linesInfo = new Array<Line>();
+	var linesInfo = new Array<Position.Line>();
 
 	public function new(content:String) {
 		var s = 0; // Line start char

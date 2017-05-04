@@ -31,3 +31,12 @@ typedef Position = {
 	min:Int,
 	max:Int
 }
+
+/**
+ * A line inside a JSON file.
+ */
+typedef Line = {
+	number:Int,
+	start:Int,
+	end:Int
+}

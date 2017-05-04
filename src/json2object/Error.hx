@@ -77,3 +77,9 @@ enum Error {
 	 */
 	ParserError(message:String, pos:Position);
 }
+
+enum ErrorType {
+	NONE;
+	OBJECTTHROW;
+	THROW;
+}
