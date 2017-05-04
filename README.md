@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/elnabo/json2object.svg?branch=master)](https://travis-ci.org/elnabo/json2object)
+# json2object - Initialize object directly from json
 
-# json2object - intialized object directly from json
+[![Build Status](https://travis-ci.org/elnabo/json2object.svg?branch=master)](https://travis-ci.org/elnabo/json2object)
 
 This library uses macro and a typed position aware JSON parsing (hxjsonast : <https://github.com/nadako/hxjsonast/>) to create a parser from json to every supported object.
 
@@ -38,7 +38,7 @@ trace(json2object.ErrorUtils.convertErrorArray(parser.errors));
 ### Constraints in the parsing
 
 - Variables defined with the `@:jignored` metadata will be ignored by the parser.
-- Variables defined with the `@:optional` metadata wont trigger errors if missing.
+- Variables defined with the `@:optional` metadata won't trigger errors if missing.
 - Private variables are ignored.
 
 ### Supported types
@@ -55,7 +55,7 @@ trace(json2object.ErrorUtils.convertErrorArray(parser.errors));
 
 ### Other
 
-- As of version 2.4.0, the parser fields `warnings` and `object` have been replaced by `errors` and `value` respectively. Previous notation are still supported.
+- As of version 2.4.0, the parser fields `warnings` and `object` have been replaced by `errors` and `value` respectively. Previous notations are still supported.
 
 - Anonymous structure variables can be defined to be loaded with a default value if none is specified in the json using the `@:default` metadata
 ```haxe
