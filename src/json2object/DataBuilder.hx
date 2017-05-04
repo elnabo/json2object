@@ -28,6 +28,7 @@ class DataBuilder {}
 import haxe.macro.Expr;
 import haxe.macro.Context;
 import haxe.macro.Type;
+import haxe.macro.TypeTools;
 
 using StringTools;
 using haxe.macro.ExprTools;
@@ -736,7 +737,7 @@ class DataBuilder {
 
 		var value:Field = {
 			doc: null,
-			kind: FVar(TypeUtils.toComplexType(base), null),
+			kind: FVar(TypeTools.toComplexType(base), null),
 			access: [APublic],
 			name: "value",
 			pos: Context.currentPos(),
@@ -745,7 +746,7 @@ class DataBuilder {
 
 		var object:Field = {
 			doc: null,
-			kind: FProp("get", "never",TypeUtils.toComplexType(base), null),
+			kind: FProp("get", "never", TypeTools.toComplexType(base), null),
 			access: [APublic],
 			name: "object",
 			pos: Context.currentPos(),
@@ -778,17 +779,17 @@ class DataBuilder {
 						case "Int" :
 							makeIntParser(parser, base);
 							if (!isNullable(base)) {
-								value.kind = FVar(TypeUtils.toComplexType(base), macro 0);
+								value.kind = FVar(TypeTools.toComplexType(base), macro 0);
 							}
 						case "Float", "Single":
 							makeFloatParser(parser, base);
 							if (!isNullable(base)) {
-								value.kind = FVar(TypeUtils.toComplexType(base), macro 0);
+								value.kind = FVar(TypeTools.toComplexType(base), macro 0);
 							}
 						case "Bool":
 							makeBoolParser(parser, base);
 							if (!isNullable(base)) {
-								value.kind = FVar(TypeUtils.toComplexType(base), macro false);
+								value.kind = FVar(TypeTools.toComplexType(base), macro false);
 							}
 						default: Context.fatalError("json2object: Parser of "+t.name+" are not generated", Context.currentPos());
 					}
