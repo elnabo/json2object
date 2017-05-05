@@ -539,7 +539,6 @@ class DataBuilder {
 				var from = (t.from.length == 0) ? [{t:t.type, field:null}] : t.from;
 				var i = 0;
 				for(fromType in from) {
-
 					switch (fromType.t.followWithAbstracts()) {
 						case TInst(_.get()=>st, sp):
 							if (st.module == "String") {
@@ -553,10 +552,11 @@ class DataBuilder {
 											{value:JString(s), pos:{file:pos.file, min:pos.min, max:pos.max}},
 												variable);
 											});
+									changeFunction("loadJsonNull", parser, macro {value = null;});
 								}
 								hasOneFrom = true;
 							}
-							if (st.module == "Array") {
+							else if (st.module == "Array") {
 								var subType = sp[0];
 								for (i in 0...t.params.length) {
 									if (subType.unify(t.params[i].t)) {
@@ -564,24 +564,33 @@ class DataBuilder {
 										break;
 									}
 								}
-								if (isBaseType(subType.followWithAbstracts())) {
-									if (i == 0) {
-										makeArrayParser(parser,subType.followWithAbstracts(), baseParser);
+
+								hasOneFrom = true;
+								if (i == 0) {
+									makeArrayParser(parser,subType.followWithAbstracts(), baseParser);
+								}
+								else if (isBaseType(subType.followWithAbstracts())) {
+									var aParams = switch (fromType.t.followWithAbstracts()) {
+										case TInst(r,_): [TPType(TInst(r,[subType]).toComplexType())];
+										default:[];
 									}
-									else {
-										var aParams = switch (fromType.t.followWithAbstracts()) {
-											case TInst(r,_): [TPType(TInst(r,[subType]).toComplexType())];
-											default:[];
-										}
-										var cls = {name:baseParser.name, pack:baseParser.pack, params:aParams};
-										changeFunction("loadJsonArray",
-											parser,
-											macro {
-												value = new $cls(errors, putils, NONE).loadJson(
-												{value:JArray(a), pos:{file:pos.file, min:pos.min, max:pos.max}},
-													variable);
-												});
-									}
+									var cls = {name:baseParser.name, pack:baseParser.pack, params:aParams};
+									changeFunction("loadJsonArray",
+										parser,
+										macro {
+											value = new $cls(errors, putils, NONE).loadJson(
+											{value:JArray(a), pos:{file:pos.file, min:pos.min, max:pos.max}},
+												variable);
+											});
+									changeFunction("loadJsonNull", parser, macro {value = null;});
+								}
+								else {
+									hasOneFrom = false;
+								}
+							}
+							else {
+								if (i == 0) {
+									makeObjectOrAnonParser(parser,fromType.t.followWithAbstracts(), baseParser);
 									hasOneFrom = true;
 								}
 							}
@@ -635,6 +644,25 @@ class DataBuilder {
 										}
 										hasOneFrom = true;
 								}
+							}
+							else if (i == 0 && t.module == "Map") {
+								var key = sp[0];
+								var value = sp[1];
+								for (i in 0...t.params.length) {
+									if (key.unify(t.params[i].t)) {
+										key = p[i];
+									}
+									if (value.unify(t.params[i].t)) {
+										value = p[i];
+									}
+								}
+								makeMapParser(parser, key, value, baseParser);
+								hasOneFrom = true;
+							}
+						case TAnonymous(_.get()=>st):
+							if (i == 0) {
+								makeObjectOrAnonParser(parser,fromType.t.followWithAbstracts(), baseParser);
+								hasOneFrom = true;
 							}
 						default:
 					}
@@ -794,7 +822,7 @@ class DataBuilder {
 						default: Context.fatalError("json2object: Parser of "+t.name+" are not generated", Context.currentPos());
 					}
 				}
-				else if (t.module == "Map" && t.name == "Map") {
+				else if (t.module == "Map") {
 					makeMapParser(parser, p[0], p[1], c);
 				}
 				else {
