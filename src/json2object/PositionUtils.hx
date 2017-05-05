@@ -67,12 +67,20 @@ class PositionUtils {
 		var min = position.min;
 		var max = position.max;
 
+		var pos = {file: file, min: min+1, max: max+1, lines:[]};
 		// Usually first line/char are refered as 1 instead of 0
 		for (line in linesInfo) {
 			if (line.start <= min && line.end >= max) {
-				return { file: file, line: { number: line.number +1, start: min-line.start +1, end: max-line.start +1 }, min: min+1, max: max+1 };
+				pos.lines.push({ number: line.number +1, start: min-line.start +1, end: max-line.start +1 });
+				return pos;
+			}
+			if (line.start <= min && min <= line.end) {
+				pos.lines.push({ number: line.number +1, start: min-line.start +1, end: line.end +1 });
+			}
+			if (line.start <= max && max <= line.end) {
+				pos.lines.push({ number: line.number +1, start: line.start +1, end: max-line.start +1 });
 			}
 		}
-		return null;
+		return pos;
 	}
 }

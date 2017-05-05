@@ -31,7 +31,15 @@ class ErrorUtils {
 			case IncorrectType(_, _, pos) | IncorrectEnumValue(_, _, pos) | InvalidEnumConstructor(_, _, pos) | UninitializedVariable(_, pos) | UnknownVariable(_, pos) | ParserError(_, pos): pos;
 		}
 
-		var header = pos != null ? '${pos.file}:${pos.line.number}: characters ${pos.line.start}-${pos.line.end} : ' : "";
+		var header = "";
+		if (pos != null) {
+			if (pos.lines.length == 1) {
+				header = '${pos.file}:${pos.lines[0].number}: characters ${pos.lines[0].start}-${pos.lines[0].end} : ';
+			}
+			else {
+				header = '${pos.file}:${pos.lines[0].number}: lines ${pos.lines[0].number}-${pos.lines[pos.lines.length-1].number} : ';
+			}
+		}
 
 		return switch (e)
 		{

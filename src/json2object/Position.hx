@@ -27,7 +27,7 @@ package json2object;
  */
 typedef Position = {
 	file:String,
-	line:Line,
+	lines:Array<Line>,
 	min:Int,
 	max:Int
 }
