@@ -36,7 +36,7 @@ class ErrorUtils {
 			if (pos.lines.length == 1) {
 				header = '${pos.file}:${pos.lines[0].number}: characters ${pos.lines[0].start}-${pos.lines[0].end} : ';
 			}
-			else {
+			else if (pos.lines.length > 1) {
 				header = '${pos.file}:${pos.lines[0].number}: lines ${pos.lines[0].number}-${pos.lines[pos.lines.length-1].number} : ';
 			}
 		}
