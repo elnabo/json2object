@@ -188,7 +188,8 @@ class DataBuilder {
 				case FVar(_,w):
 					if (w == AccNever) { continue; }
 
-					assigned.push(macro { assigned.set($v{field.name}, $v{field.meta.has(":optional")});});
+					var isAlwaysAssigned = field.meta.has(":optional") || (field.expr() != null && field.expr().expr != null);
+					assigned.push(macro { assigned.set($v{field.name}, $v{isAlwaysAssigned});});
 
 					var f_a = { expr: EField(macro value, field.name), pos: Context.currentPos() };
 					var f_type = field.type.applyTypeParameters(tParams, params);
