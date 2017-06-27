@@ -44,6 +44,8 @@ class DataBuilder {
 
 	private static function notNull(type:Type):Type {
 		return switch (type) {
+			case TAbstract(_.get()=>t, p):
+				(t.name == "Null") ? notNull(p[0]) : type;
 			case TType(_.get()=>t, p):
 				(t.name == "Null") ? notNull(type.follow()) : type;
 			default:
@@ -195,7 +197,7 @@ class DataBuilder {
 					var f_type = field.type.applyTypeParameters(tParams, params);
 					var f_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(f_type.toComplexType())]};
 
-					var assignation = (isNullable(f_type))
+					var assignation = (isNullable(f_type) && !isBaseType(f_type))
 						?
 						macro {
 							try {
@@ -803,7 +805,10 @@ class DataBuilder {
 			case TAnonymous(_.get()=>t):
 				makeObjectOrAnonParser(parser, type, c);
 			case TAbstract(_.get()=>t, p):
-				if (t.module == "StdTypes") {
+				if (t.name == "Null") {
+					return makeParser(c, p[0]);
+				}
+				else if (t.module == "StdTypes") {
 					switch (t.name) {
 						case "Int" :
 							makeIntParser(parser, base);
