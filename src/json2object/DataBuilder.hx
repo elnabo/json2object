@@ -197,7 +197,7 @@ class DataBuilder {
 					var f_type = field.type.applyTypeParameters(tParams, params);
 					var f_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(f_type.toComplexType())]};
 
-					var assignation = (isNullable(f_type) && !isBaseType(f_type))
+					var assignation = (isNullable(f_type))
 						?
 						macro {
 							try {
@@ -806,7 +806,7 @@ class DataBuilder {
 				makeObjectOrAnonParser(parser, type, c);
 			case TAbstract(_.get()=>t, p):
 				if (t.name == "Null") {
-					return makeParser(c, p[0]);
+					return makeParser(c, p[0], type);
 				}
 				else if (t.module == "StdTypes") {
 					switch (t.name) {
