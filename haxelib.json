@@ -4,8 +4,8 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Initialize object directly from json with macro",
-	"version": "2.4.2",
-	"releasenote": "Code rework, increases of top level types",
+	"version": "2.4.3",
+	"releasenote": "Support for Haxe 4 move to abstract for Null<T>",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
 	"dependencies": {
