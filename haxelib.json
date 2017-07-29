@@ -4,7 +4,7 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Initialize object directly from json with macro",
-	"version": "2.4.4",
+	"version": "2.5.0",
 	"releasenote": "Automatic default for anonymous structure",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
