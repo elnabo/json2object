@@ -70,6 +70,8 @@ typedef Struct = {
 }
 ```
 
+- `@:default(auto)` will, by default, initialize each field of the anonymous structure / object to its default value. No effect on non Structure/Object variables.
+
 - Variable defined as `(default, null)` may have unexpected behaviour on some `extern` classes.
 
 - You can alias a field from the json into another name, for instance if the field name isn't a valid haxe identifier.

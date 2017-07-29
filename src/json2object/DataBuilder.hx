@@ -180,6 +180,7 @@ class DataBuilder {
 		}
 
 		var anonBaseValues:Array<{field:String, expr:Expr}> = [];
+		var anonAutoValues:Array<{field:String, expr:Expr}> = [];
 		var assigned:Array<Expr> = [];
 		var cases:Array<Case> = [];
 
@@ -238,16 +239,24 @@ class DataBuilder {
 							if (metas.length > 0) {
 								var meta = metas[0];
 								if (meta.params != null && meta.params.length == 1) {
-									if (f_type.followWithAbstracts().unify(Context.typeof(meta.params[0]).followWithAbstracts())) {
-										anonBaseValues.push({field:field.name, expr:meta.params[0]});
+									if (meta.params[0].toString() == "auto") {
+										anonBaseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).getAuto()});
+										anonAutoValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).getAuto()});
 									}
 									else {
-										Context.fatalError("json2object: default value for "+field.name+" is of incorrect type", Context.currentPos());
+										if (f_type.followWithAbstracts().unify(Context.typeof(meta.params[0]).followWithAbstracts())) {
+											anonBaseValues.push({field:field.name, expr:meta.params[0]});
+											anonAutoValues.push({field:field.name, expr:meta.params[0]});
+										}
+										else {
+											Context.fatalError("json2object: default value for "+field.name+" is of incorrect type", Context.currentPos());
+										}
 									}
 								}
 							}
 						}
 						else {
+							anonAutoValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}})});
 							anonBaseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}})});
 						}
 					}
@@ -261,8 +270,12 @@ class DataBuilder {
 
 		if (isAnon) {
 			initializator = { expr: EObjectDecl(anonBaseValues), pos: Context.currentPos() };
+			var initializatorAuto = { expr: EObjectDecl(anonAutoValues), pos: Context.currentPos() };
+			changeFunction("getAuto", parser, macro return $initializatorAuto);
 		}
-
+		else {
+			changeFunction("getAuto", parser, macro return $initializator);
+		}
 
 		var e = macro {
 			var assigned = new Map<String,Bool>();
@@ -783,6 +796,19 @@ class DataBuilder {
 			pos: Context.currentPos(),
 			meta: [{name:":deprecated", params:[{expr:EConst(CString("json2object: Field 'object' is replaced by 'value'")), pos:Context.currentPos()}], pos:Context.currentPos()}],
 		};
+
+
+		var parser_cls = { name: parserName, pack: [], params: null, sub: null };
+		var getAutoExpr = macro return new $parser_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}});
+		var getAuto:Field = {
+			doc: null,
+			kind: FFun({args:[], expr:getAutoExpr, params:null, ret:TypeTools.toComplexType(base)}),
+			access: [APublic],
+			name: "getAuto",
+			pos:Context.currentPos(),
+			meta: null
+		}
+		parser.fields.push(getAuto);
 
 		switch (type) {
 			case TInst(_.get()=>t, p) :

@@ -32,7 +32,8 @@ typedef Struct = {
 
 typedef DefaultStruct = {
 	@:optional
-	@:default({a:true, b:0})
+	//~ @:default({a:true, b:0})
+	@:default(auto)
 	var d : Struct;
 	@:optional
 	@:default(new Map<String,Int>())
@@ -59,6 +60,24 @@ typedef ArrayStruct = {
 
 typedef MapIIStruct = {
 	var map:Map<Int, Int>;
+}
+
+typedef Issue19 = {
+    @:default(auto) var s:Issue19Inner;
+}
+
+typedef Issue19Inner = {
+	@:optional @:default(0) var a:Int;
+	@:optional var b:Int;
+	@:optional @:default(0) var c:Int;
+	var d:Issue19Inner;
+	@:optional @:default(auto) var e:Struct;
+	@:default(auto) var f:StructA;
+}
+
+class StructA {
+	public var a = 1;
+	public function new(){}
 }
 
 class StructureTest extends haxe.unit.TestCase {
@@ -139,6 +158,31 @@ class StructureTest extends haxe.unit.TestCase {
 			assertEquals(2, data.map.get(1));
 			assertEquals(6, data.map.get(5));
 			assertEquals(false, data.map.exists(7));
+		}
+
+		{
+			var parser = new json2object.JsonParser<Issue19>();
+			var data = parser.fromJson('{}', "");
+			assertEquals(1, parser.errors.length);
+			assertEquals(0, data.s.a);
+			assertEquals(null, data.s.b);
+			assertEquals(0, data.s.c);
+			assertEquals(null, data.s.d);
+			assertEquals(true, data.s.e.a);
+			assertEquals(0, data.s.e.b);
+			assertEquals(1, data.s.f.a);
+		}
+		{
+			var parser = new json2object.JsonParser<Issue19>();
+			var data = parser.fromJson('{"s":{"a":1, "b":2, "c":3, "d":null, "e":{"a":false,"b":1}, "f":{"a":2}}}', "");
+			assertEquals(0, parser.errors.length);
+			assertEquals(1, data.s.a);
+			assertEquals(2, data.s.b);
+			assertEquals(3, data.s.c);
+			assertEquals(null, data.s.d);
+			assertEquals(false, data.s.e.a);
+			assertEquals(1, data.s.e.b);
+			assertEquals(2, data.s.f.a);
 		}
 	}
 
