@@ -7,6 +7,8 @@ os:
 haxe:
   - 3.4.2
   - development
+  
+dist: trusty
 
 sudo: false
 
