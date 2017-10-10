@@ -2,3 +2,4 @@
 -main tests.Main
 -x tests
 -lib hxjsonast
+-lib hx3compat

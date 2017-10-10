@@ -1,6 +1,7 @@
 -cp src
 -main tests.Main
 -lib hxjsonast
+-lib hx3compat
 --macro include("json2object")
 --each
 
