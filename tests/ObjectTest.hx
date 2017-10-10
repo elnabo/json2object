@@ -42,18 +42,18 @@ class ObjectTestData<K,V> {
 	#end
 
 	@:optional
-	var objTest:ObjectTestData<K,V>;
+	public var objTest:ObjectTestData<K,V>;
 
-	var base:Bool = true;
-	var map:Map<K, ObjectTestData<K,V>>;
-	var struct:ObjectStruct;
-	var array:Array<V>;
+	public var base:Bool = true;
+	public var map:Map<K, ObjectTestData<K,V>>;
+	public var struct:ObjectStruct;
+	public var array:Array<V>;
 
-	var array_array:Array<Array<Int>>;
-	var array_map:Array<Map<String,Int>>;
-	var array_obj:Array<ObjectTestData<K,V>>;
+	public var array_array:Array<Array<Int>>;
+	public var array_map:Array<Map<String,Int>>;
+	public var array_obj:Array<ObjectTestData<K,V>>;
 
-	var foo(default, null) : Int;
+	public var foo(default, null) : Int;
 
 	public function new () {}
 }
