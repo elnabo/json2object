@@ -53,6 +53,7 @@ install:
   - haxelib install hxjava
   - haxelib install hxcs
   - haxelib install hxjsonast # dep for json2object
+  - haxelib install hx3compat # dep for json2object
   - haxelib list
 
 script:
