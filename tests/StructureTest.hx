@@ -28,9 +28,6 @@ typedef Struct = {
 	@:default(true)
 	var a : Bool;
 	var b : Int;
-	#if (haxe_ver>=4)
-	final c : Int;
-	#end
 }
 
 typedef DefaultStruct = {

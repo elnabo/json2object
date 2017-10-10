@@ -30,7 +30,7 @@ class Main {
 		r.add(new ArrayTest());
 		r.add(new EnumTest());
 		r.add(new MapTest());
-		r.add(new ObjectTest<String,String>());
+		r.add(new ObjectTest());
 		r.add(new StructureTest());
 
 		#if sys

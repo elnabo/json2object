@@ -179,8 +179,8 @@ class DataBuilder {
 			case _: return;
 		}
 
-		var anonBaseValues:Array<{field:String, expr:Expr}> = [];
-		var anonAutoValues:Array<{field:String, expr:Expr}> = [];
+		var anonBaseValues:Array<{field:String, expr:Expr #if (haxe_ver >= 4) , quotes:haxe.macro.Expr.QuoteStatus #end}> = [];
+		var anonAutoValues:Array<{field:String, expr:Expr #if (haxe_ver >= 4) , quotes:haxe.macro.Expr.QuoteStatus #end}> = [];
 		var assigned:Array<Expr> = [];
 		var cases:Array<Case> = [];
 
@@ -240,13 +240,13 @@ class DataBuilder {
 								var meta = metas[0];
 								if (meta.params != null && meta.params.length == 1) {
 									if (meta.params[0].toString() == "auto") {
-										anonBaseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).getAuto()});
-										anonAutoValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).getAuto()});
+										anonBaseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).getAuto() #if (haxe_ver >= 4) , quotes:NoQuotes #end});
+										anonAutoValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).getAuto() #if (haxe_ver >= 4) , quotes:NoQuotes #end});
 									}
 									else {
 										if (f_type.followWithAbstracts().unify(Context.typeof(meta.params[0]).followWithAbstracts())) {
-											anonBaseValues.push({field:field.name, expr:meta.params[0]});
-											anonAutoValues.push({field:field.name, expr:meta.params[0]});
+											anonBaseValues.push({field:field.name, expr:meta.params[0] #if (haxe_ver >= 4) , quotes:NoQuotes #end});
+											anonAutoValues.push({field:field.name, expr:meta.params[0] #if (haxe_ver >= 4) , quotes:NoQuotes #end});
 										}
 										else {
 											Context.fatalError("json2object: default value for "+field.name+" is of incorrect type", Context.currentPos());
@@ -256,8 +256,8 @@ class DataBuilder {
 							}
 						}
 						else {
-							anonAutoValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}})});
-							anonBaseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}})});
+							anonAutoValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}}) #if (haxe_ver >= 4) , quotes:NoQuotes #end});
+							anonBaseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}}) #if (haxe_ver >= 4) , quotes:NoQuotes #end});
 						}
 					}
 
@@ -334,7 +334,7 @@ class DataBuilder {
 			}
 		};
 
-		var cls = {name:"Map", pack:[], params:[TPType(key.toComplexType()), TPType(value.toComplexType())]};
+		var cls = {name:"Map", pack:[#if (haxe_ver >= 4)"haxe", "ds"#end], params:[TPType(key.toComplexType()), TPType(value.toComplexType())]};
 
 		var e = macro {
 			value = cast new $cls();
@@ -661,7 +661,7 @@ class DataBuilder {
 										hasOneFrom = true;
 								}
 							}
-							else if (i == 0 && t.module == "Map") {
+							else if (i == 0 && t.module == #if (haxe_ver >= 4) "haxe.ds.Map" #else "Map" #end) {
 								var key = sp[0];
 								var value = sp[1];
 								for (i in 0...t.params.length) {
@@ -854,7 +854,7 @@ class DataBuilder {
 						default: Context.fatalError("json2object: Parser of "+t.name+" are not generated", Context.currentPos());
 					}
 				}
-				else if (t.module == "Map") {
+				else if (t.module == #if (haxe_ver >= 4) "haxe.ds.Map" #else "Map" #end) {
 					makeMapParser(parser, p[0], p[1], c);
 				}
 				else {
