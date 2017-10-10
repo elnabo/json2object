@@ -4,11 +4,12 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Initialize object directly from json with macro",
-	"version": "2.5.0",
-	"releasenote": "Automatic default for anonymous structure",
+	"version": "2.5.1",
+	"releasenote": "Support for haxe 4",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
 	"dependencies": {
+		"hx3compat": "",
 		"hxjsonast": ""
 	}
 }

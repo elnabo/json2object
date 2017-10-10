@@ -189,7 +189,7 @@ class DataBuilder {
 
 			switch(field.kind) {
 				case FVar(_,w):
-					if (w == AccNever) { continue; }
+					if (w == AccNever #if (haxe_ver >= 4) || w == AccCtor #end) { continue; }
 
 					var isAlwaysAssigned = field.meta.has(":optional") || (field.expr() != null && field.expr().expr != null);
 					assigned.push(macro { assigned.set($v{field.name}, $v{isAlwaysAssigned});});

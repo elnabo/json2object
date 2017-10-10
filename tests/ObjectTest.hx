@@ -37,6 +37,9 @@ class ObjectTest<K,V> extends haxe.unit.TestCase {
 
 	@:jignored
 	var a:A;
+	#if (haxe_ver>=4)
+	final b : Int;
+	#end
 
 	@:optional
 	var objTest:ObjectTest<K,V>;
