@@ -57,6 +57,7 @@ install:
     fi
   - sudo luarocks install luv
   - sudo luarocks install environ
+  - eval $(lua path)
   # Install haxelibs
   - if [ "${TRAVIS_HAXE_VERSION}" = "development" ]; then
       git clone https://github.com/HaxeFoundation/hxcpp.git;
