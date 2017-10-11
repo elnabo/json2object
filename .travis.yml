@@ -56,7 +56,7 @@ install:
       luarocks install --local lrexlib-pcre;
     fi
   - sudo luarocks install luv
-- sudo luarocks install environ
+  - sudo luarocks install environ
   # Install haxelibs
   - if [ "${TRAVIS_HAXE_VERSION}" = "development" ]; then
       git clone https://github.com/HaxeFoundation/hxcpp.git;
