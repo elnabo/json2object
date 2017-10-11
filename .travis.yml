@@ -25,19 +25,19 @@ addons:
       - g++-multilib
       # Python
       - python3
-      # PHP
-      - php5-cli
       # C#
       - mono-devel
       - mono-mcs
 
 install:
   # os-specific config
-  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-      brew uninstall --force brew-cask;
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+      phpenv global 7.0;
+    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       brew update;
       brew install mono;
       brew install python3;
+      brew tap homebrew/homebrew-php && brew install php71;
     fi
   # Install haxelibs
   - if [ "${TRAVIS_HAXE_VERSION}" = "development" ]; then

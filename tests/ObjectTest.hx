@@ -66,15 +66,13 @@ class ObjectTest extends haxe.unit.TestCase {
 			var parser = new JsonParser<ObjectTestData<String, Float>>();
 			var data:ObjectTestData<String, Float> = parser.fromJson('{ "base": true, "array": [0,2], "map":{"key":{"base":false, "array":[1], "map":{"t":null}, "struct":{"i": 9}}}, "struct":{"i":1}, "foo": 25 }', "test");
 			
-			@:privateAccess {
-				assertEquals(true, data.base);
-				assertEquals("[0,2]",data.array.toString());
-				assertEquals(false, data.map.get("key").base);
-				assertEquals("[1]",data.map.get("key").array.toString());
-				assertEquals(null, data.map.get("key").map.get("t"));
-				assertEquals(1, data.struct.i);
-				assertEquals(25, data.foo);
-			}
+			assertEquals(true, data.base);
+			assertEquals("[0,2]",data.array.toString());
+			assertEquals(false, data.map.get("key").base);
+			assertEquals("[1]",data.map.get("key").array.toString());
+			assertEquals(null, data.map.get("key").map.get("t"));
+			assertEquals(1, data.struct.i);
+			assertEquals(25, data.foo);
 
 			assertEquals(7, parser.errors.length);
 		}
@@ -84,16 +82,14 @@ class ObjectTest extends haxe.unit.TestCase {
 			var parser = new JsonParser<ObjectTestData<String, Float>>();
 			var data = parser.fromJson('{ "objTest":{"base":true, "array":[], "map":{}, "struct":{"i":10}, "array_array":null, "array_map":null, "array_obj":null, "foo":45}, "array": null, "map":{"key":null}, "struct":{"i":2}, "array_array":[[0,1], [4, -1]], "array_map":[{"a":1}, null], "array_obj":[{"base":true, "array":[], "map":{}, "struct":{"i":10}, "array_array":null, "array_map":null, "array_obj":null, "foo":46}], "foo": 63 }', "test");
 			
-			@:privateAccess {
-				assertEquals(true, data.base);
-				assertEquals(null, data.array);
-				assertEquals(null, data.map.get("key"));
-				assertEquals(2, data.struct.i);
-				assertEquals(true, data.objTest.base);
-				assertEquals("[]",data.objTest.array.toString());
-				assertEquals("{}", data.objTest.map.toString());
-				assertEquals(63, data.foo);
-			}
+			assertEquals(true, data.base);
+			assertEquals(null, data.array);
+			assertEquals(null, data.map.get("key"));
+			assertEquals(2, data.struct.i);
+			assertEquals(true, data.objTest.base);
+			assertEquals("[]",data.objTest.array.toString());
+			assertEquals("{}", data.objTest.map.toString());
+			assertEquals(63, data.foo);
 
 			assertEquals(0, parser.errors.length);
 		}

@@ -240,13 +240,13 @@ class DataBuilder {
 								var meta = metas[0];
 								if (meta.params != null && meta.params.length == 1) {
 									if (meta.params[0].toString() == "auto") {
-										anonBaseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).getAuto() #if (haxe_ver >= 4) , quotes:NoQuotes #end});
-										anonAutoValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).getAuto() #if (haxe_ver >= 4) , quotes:NoQuotes #end});
+										anonBaseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).getAuto() #if (haxe_ver >= 4) , quotes:Unquoted #end});
+										anonAutoValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).getAuto() #if (haxe_ver >= 4) , quotes:Unquoted #end});
 									}
 									else {
 										if (f_type.followWithAbstracts().unify(Context.typeof(meta.params[0]).followWithAbstracts())) {
-											anonBaseValues.push({field:field.name, expr:meta.params[0] #if (haxe_ver >= 4) , quotes:NoQuotes #end});
-											anonAutoValues.push({field:field.name, expr:meta.params[0] #if (haxe_ver >= 4) , quotes:NoQuotes #end});
+											anonBaseValues.push({field:field.name, expr:meta.params[0] #if (haxe_ver >= 4) , quotes:Unquoted #end});
+											anonAutoValues.push({field:field.name, expr:meta.params[0] #if (haxe_ver >= 4) , quotes:Unquoted #end});
 										}
 										else {
 											Context.fatalError("json2object: default value for "+field.name+" is of incorrect type", Context.currentPos());
@@ -256,8 +256,8 @@ class DataBuilder {
 							}
 						}
 						else {
-							anonAutoValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}}) #if (haxe_ver >= 4) , quotes:NoQuotes #end});
-							anonBaseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}}) #if (haxe_ver >= 4) , quotes:NoQuotes #end});
+							anonAutoValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}}) #if (haxe_ver >= 4) , quotes:Unquoted #end});
+							anonBaseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}}) #if (haxe_ver >= 4) , quotes:Unquoted #end});
 						}
 					}
 

@@ -32,6 +32,7 @@
 # Php
 -cmd echo "---- Php -----"
 -php testout/php
+-D php7
 -cmd php testout/php/index.php
 --next
 
