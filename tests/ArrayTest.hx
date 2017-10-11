@@ -23,26 +23,27 @@ SOFTWARE.
 package tests;
 
 import json2object.JsonParser;
+import utest.Assert;
 
-class ArrayTest extends haxe.unit.TestCase {
+class ArrayTest
+{
+	public function new () {}
 
-	public function test () {
-		{
-			var parser = new json2object.JsonParser<Array<Int>>();
-			var data = parser.fromJson('[0,1,4,3]', "");
-			var oracle = [0,1,4,3];
-			for (i in 0...data.length) {
-				assertEquals(oracle[i],data[i]);
-			}
-			assertEquals(0, parser.errors.length);
+	public function test ()
+	{
+		var parser = new json2object.JsonParser<Array<Int>>();
+		var data = parser.fromJson('[0,1,4,3]', "");
+		var oracle = [0,1,4,3];
+		for (i in 0...data.length) {
+			Assert.equals(oracle[i], data[i]);
+		}
+		Assert.equals(0, parser.errors.length);
 
-			data = parser.fromJson('[0,1,4.4,3]', "");
-			assertEquals(1, parser.errors.length);
-			oracle = [0,1,3];
-			for (i in 0...data.length) {
-				assertEquals(oracle[i],data[i]);
-			}
+		data = parser.fromJson('[0,1,4.4,3]', "");
+		Assert.equals(1, parser.errors.length);
+		oracle = [0,1,3];
+		for (i in 0...data.length) {
+			Assert.equals(oracle[i], data[i]);
 		}
 	}
-
 }

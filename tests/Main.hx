@@ -22,19 +22,30 @@ SOFTWARE.
 
 package tests;
 
-class Main {
-	public static function main() {
-		var r = new haxe.unit.TestRunner();
-		r.add(new AliasTest());
-		r.add(new AbstractTest());
-		r.add(new ArrayTest());
-		r.add(new EnumTest());
-		r.add(new MapTest());
-		r.add(new ObjectTest());
-		r.add(new StructureTest());
+class Main
+{
+	public static function main ()
+	{
+		var allOk = true;
+		var r = new utest.Runner();
+		
+		r.addCase(new AliasTest());
+		r.addCase(new AbstractTest());
+		r.addCase(new ArrayTest());
+		r.addCase(new EnumTest());
+		r.addCase(new MapTest());
+		r.addCase(new ObjectTest());
+		r.addCase(new StructureTest());
+
+		r.onProgress.add(function (result) {
+			allOk = allOk && result.result.allOk();
+		});
+
+		utest.ui.Report.create(r, ShowSuccessResultsWithNoErrors, AlwaysShowHeader);
+		r.run();
 
 		#if sys
-		Sys.exit(r.run() ? 0 : 1);
+		Sys.exit(allOk ? 0 : 1);
 		#end
 	}
 }

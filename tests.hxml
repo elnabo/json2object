@@ -1,7 +1,8 @@
 -cp src
 -main tests.Main
 -lib hxjsonast
--lib hx3compat
+-lib utest
+-D travis # for utest report
 --macro include("json2object")
 --each
 

@@ -23,6 +23,7 @@ SOFTWARE.
 package tests;
 
 import json2object.JsonParser;
+import utest.Assert;
 
 abstract Username (String) from String to String
 {
@@ -108,127 +109,135 @@ abstract MultiFrom (String) from String to String
 
 }
 
-class AbstractTest extends haxe.unit.TestCase {
+class AbstractTest
+{
+	public function new () {}
 
-	public function test () {
-
-		{
-			var parser = new JsonParser<{ username:Username }>();
-			var data = parser.fromJson('{ "username": "Administrator" }', "test");
-			assertEquals("Administrator", data.username);
-			assertEquals("administrator", data.username.get_id());
-		}
-
-		{
-			var parser = new JsonParser<{ rights:Rights }>();
-			var data = parser.fromJson('{ "rights": ["Full", "Write", "Read", "None"] }', "test");
-			assertEquals(4, data.rights.length);
-			assertEquals("Write", data.rights[1]);
-		}
-
-		{
-			var parser = new JsonParser<{ t:Templated<Int> }>();
-			var data = parser.fromJson('{ "t": [2, 1, 0] }', "test");
-			assertEquals(3, data.t.length);
-			assertEquals(0, data.t[2]);
-		}
-
-		{
-			var parser = new JsonParser<B>();
-			var data = parser.fromJson('{ "t": [[0,1], [1,0]] }', "test");
-			assertEquals(2, data.t.length);
-			assertEquals(2, data.t[1].length);
-			assertEquals(1, data.t[0][1]);
-		}
-
-		{
-			var parser = new json2object.JsonParser<AbstractStruct>();
-			var data = parser.fromJson('{}', 'test');
-			assertEquals(0, data.a.length);
-			assertEquals(0, parser.errors.length);
-
-			data = parser.fromJson('{"a":[1,1,2,3]}', 'test');
-			assertEquals("[1,1,2,3]", data.a.toString());
-			assertEquals(0, parser.errors.length);
-		}
-
-		{
-			var parser = new json2object.JsonParser<MultiFrom>();
-			var data = parser.fromJson('"test"', 'test');
-			assertEquals("test", data);
-			assertEquals(0, parser.errors.length);
-
-			var data = parser.fromJson('555', 'test');
-			assertEquals("555", data);
-			assertEquals(0, parser.errors.length);
-		}
-
-		{
-			var parser = new json2object.JsonParser<EnumAbstractIntStruct>();
-			var data = parser.fromJson('{"val":1}','');
-			assertEquals(A, data.val);
-			assertEquals(0, parser.errors.length);
-
-			data = parser.fromJson('{"val":26}','');
-			assertEquals(Z, data.val);
-			assertEquals(0, parser.errors.length);
-
-			data = parser.fromJson('{"val":16}','');
-			assertEquals(A, data.val);
-			assertEquals(2, parser.errors.length);
-
-			data = parser.fromJson('{"val":26.2}','');
-			assertEquals(A, data.val);
-			assertEquals(2, parser.errors.length);
-		}
-
-		{
-			var parser = new json2object.JsonParser<EnumAbstractStringStruct>();
-			var data = parser.fromJson('{"val":"Z"}','');
-			assertEquals(SA, data.val);
-			assertEquals(0, parser.errors.length);
-
-			data = parser.fromJson('{"val":"A"}','');
-			assertEquals(SZ, data.val);
-			assertEquals(0, parser.errors.length);
-
-			data = parser.fromJson('{"val":"B"}','');
-			assertEquals(SA, data.val);
-			assertEquals(2, parser.errors.length);
-
-			data = parser.fromJson('{"val":26.2}','');
-			assertEquals(SA, data.val);
-			assertEquals(2, parser.errors.length);
-		}
-
-		{
-			var parser = new json2object.JsonParser<TernaryStruct>();
-			var data = parser.fromJson('{"val":true}','');
-			assertEquals(BA, data.val);
-			assertEquals(0, parser.errors.length);
-
-			data = parser.fromJson('{"val":null}','');
-			assertEquals(BC, data.val);
-			assertEquals(0, parser.errors.length);
-			data = parser.fromJson('{"val":"B"}','');
-			assertEquals(BA, data.val);
-			assertEquals(2, parser.errors.length);
-		}
-
-		{
-			var parser = new json2object.JsonParser<FloatStruct>();
-			var data = parser.fromJson('{"val":3.14}','');
-			assertEquals(PI, data.val);
-			assertEquals(0, parser.errors.length);
-
-			data = parser.fromJson('{"val":0.0}','');
-			assertEquals(ZERO, data.val);
-			assertEquals(0, parser.errors.length);
-
-			data = parser.fromJson('{"val":1}','');
-			assertEquals(PI, data.val);
-			assertEquals(2, parser.errors.length);
-		}
+	public function test1 ()
+	{
+		var parser = new JsonParser<{ username:Username }>();
+		var data = parser.fromJson('{ "username": "Administrator" }', "test");
+		Assert.equals("Administrator", data.username);
+		Assert.equals("administrator", data.username.get_id());
 	}
 
+	public function test2 ()
+	{
+		var parser = new JsonParser<{ rights:Rights }>();
+		var data = parser.fromJson('{ "rights": ["Full", "Write", "Read", "None"] }', "test");
+		Assert.equals(4, data.rights.length);
+		Assert.equals("Write", data.rights[1]);
+	}
+
+	public function test3 ()
+	{
+		var parser = new JsonParser<{ t:Templated<Int> }>();
+		var data = parser.fromJson('{ "t": [2, 1, 0] }', "test");
+		Assert.equals(3, data.t.length);
+		Assert.equals(0, data.t[2]);
+	}
+
+	public function test4 ()
+	{
+		var parser = new JsonParser<B>();
+		var data = parser.fromJson('{ "t": [[0,1], [1,0]] }', "test");
+		Assert.equals(2, data.t.length);
+		Assert.equals(2, data.t[1].length);
+		Assert.equals(1, data.t[0][1]);
+	}
+
+	public function test5 ()
+	{
+		var parser = new json2object.JsonParser<AbstractStruct>();
+		var data = parser.fromJson('{}', 'test');
+		Assert.equals(0, data.a.length);
+		Assert.equals(0, parser.errors.length);
+
+		data = parser.fromJson('{"a":[1,1,2,3]}', 'test');
+		Assert.same([1,1,2,3], data.a);
+		Assert.equals(0, parser.errors.length);
+	}
+
+	public function test6 ()
+	{
+		var parser = new json2object.JsonParser<MultiFrom>();
+		var data = parser.fromJson('"test"', 'test');
+		Assert.equals("test", data);
+		Assert.equals(0, parser.errors.length);
+
+		var data = parser.fromJson('555', 'test');
+		Assert.equals("555", data);
+		Assert.equals(0, parser.errors.length);
+	}
+
+	public function test7 ()
+	{
+		var parser = new json2object.JsonParser<EnumAbstractIntStruct>();
+		var data = parser.fromJson('{"val":1}','');
+		Assert.equals(A, data.val);
+		Assert.equals(0, parser.errors.length);
+
+		data = parser.fromJson('{"val":26}','');
+		Assert.equals(Z, data.val);
+		Assert.equals(0, parser.errors.length);
+
+		data = parser.fromJson('{"val":16}','');
+		Assert.equals(A, data.val);
+		Assert.equals(2, parser.errors.length);
+
+		data = parser.fromJson('{"val":26.2}','');
+		Assert.equals(A, data.val);
+		Assert.equals(2, parser.errors.length);
+	}
+
+	public function test8 ()
+	{
+		var parser = new json2object.JsonParser<EnumAbstractStringStruct>();
+		var data = parser.fromJson('{"val":"Z"}','');
+		Assert.equals(SA, data.val);
+		Assert.equals(0, parser.errors.length);
+
+		data = parser.fromJson('{"val":"A"}','');
+		Assert.equals(SZ, data.val);
+		Assert.equals(0, parser.errors.length);
+
+		data = parser.fromJson('{"val":"B"}','');
+		Assert.equals(SA, data.val);
+		Assert.equals(2, parser.errors.length);
+
+		data = parser.fromJson('{"val":26.2}','');
+		Assert.equals(SA, data.val);
+		Assert.equals(2, parser.errors.length);
+	}
+
+	public function test9 ()
+	{
+		var parser = new json2object.JsonParser<TernaryStruct>();
+		var data = parser.fromJson('{"val":true}','');
+		Assert.equals(BA, data.val);
+		Assert.equals(0, parser.errors.length);
+
+		data = parser.fromJson('{"val":null}','');
+		Assert.equals(BC, data.val);
+		Assert.equals(0, parser.errors.length);
+		data = parser.fromJson('{"val":"B"}','');
+		Assert.equals(BA, data.val);
+		Assert.equals(2, parser.errors.length);
+	}
+
+	public function test10 ()
+	{
+		var parser = new json2object.JsonParser<FloatStruct>();
+		var data = parser.fromJson('{"val":3.14}','');
+		Assert.equals(PI, data.val);
+		Assert.equals(0, parser.errors.length);
+
+		data = parser.fromJson('{"val":0.0}','');
+		Assert.equals(ZERO, data.val);
+		Assert.equals(0, parser.errors.length);
+
+		data = parser.fromJson('{"val":1}','');
+		Assert.equals(PI, data.val);
+		Assert.equals(2, parser.errors.length);
+	}
 }

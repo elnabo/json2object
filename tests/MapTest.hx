@@ -23,53 +23,52 @@ SOFTWARE.
 package tests;
 
 import json2object.JsonParser;
+import utest.Assert;
 
 typedef MapStruct = {
 	var i : Int;
 }
 
+class MapTest
+{
+	public function new () {}
 
-class MapTest extends haxe.unit.TestCase {
-
-	public function test () {
-		// Str -> Str
-		{
-			var data = new JsonParser<Map<String, String>>().fromJson('{ "key1": "value1", "key2": "value2" }', "test");
-			assertEquals("value1", data.get("key1"));
-			assertEquals("value2", data.get("key2"));
-		}
-
-		// Int -> Str
-		{
-			var data = new JsonParser<Map<Int, String>>().fromJson('{ "1": "value1", "2": "value2" }', "test");
-			assertEquals("value1", data.get(1));
-			assertEquals("value2", data.get(2));
-		}
-
-		// Str -> Object/Struct
-		{
-			var parser = new JsonParser<Map<String, MapStruct>>();
-			var data = parser.fromJson('{ "key1": null, "key2": {"i":9}, "key3":{"i":0} }', "test");
-			assertEquals(null, data.get("key1"));
-			assertEquals(9, data.get("key2").i);
-			assertEquals(0, data.get("key3").i);
-		}
-
-		// Str -> Map<Str,Str>
-		{
-			var data = new JsonParser<Map<String, Map<String,String>>>().fromJson('{ "key1": {}, "key2": {"i":"9"}, "key3":{"a":"0"} }', "test");
-			assertEquals("{}", data.get("key1").toString());
-			assertEquals("9", data.get("key2").get("i"));
-			assertEquals("0", data.get("key3").get("a"));
-		}
-
-		// Str -> Array<Str>
-		{
-			var data = new JsonParser<Map<String, Array<String>>>().fromJson('{ "key1": [], "key2": ["i","9"], "key3":["a"] }', "test");
-			assertEquals("[]", data.get("key1").toString());
-			assertEquals("[i,9]", data.get("key2").toString());
-			assertEquals("[a]", data.get("key3").toString());
-		}
+	public function test1 () // Str -> Str
+	{
+		var data = new JsonParser<Map<String, String>>().fromJson('{ "key1": "value1", "key2": "value2" }', "test");
+		Assert.equals("value1", data.get("key1"));
+		Assert.equals("value2", data.get("key2"));
 	}
 
+	public function test2 () // Int -> Str
+	{
+		var data = new JsonParser<Map<Int, String>>().fromJson('{ "1": "value1", "2": "value2" }', "test");
+		Assert.equals("value1", data.get(1));
+		Assert.equals("value2", data.get(2));
+	}
+
+	public function test3 () // Str -> Object/Struct
+	{
+		var parser = new JsonParser<Map<String, MapStruct>>();
+		var data = parser.fromJson('{ "key1": null, "key2": {"i":9}, "key3":{"i":0} }', "test");
+		Assert.isNull(data.get("key1"));
+		Assert.equals(9, data.get("key2").i);
+		Assert.equals(0, data.get("key3").i);
+	}
+
+	public function test4 () // Str -> Map<Str,Str>
+	{
+		var data = new JsonParser<Map<String, Map<String,String>>>().fromJson('{ "key1": {}, "key2": {"i":"9"}, "key3":{"a":"0"} }', "test");
+		Assert.same(new Map<String, String>(), data.get("key1"));
+		Assert.equals("9", data.get("key2").get("i"));
+		Assert.equals("0", data.get("key3").get("a"));
+	}
+
+	public function test5 () // Str -> Array<Str>
+	{
+		var data = new JsonParser<Map<String, Array<String>>>().fromJson('{ "key1": [], "key2": ["i","9"], "key3":["a"] }', "test");
+		Assert.same([], data.get("key1"));
+		Assert.same(["i","9"], data.get("key2"));
+		Assert.same(["a"], data.get("key3"));
+	}
 }

@@ -23,6 +23,7 @@ SOFTWARE.
 package tests;
 
 import json2object.JsonParser;
+import utest.Assert;
 
 typedef Aliased = {
 	@:alias("public") var isPublic : Bool;
@@ -42,34 +43,35 @@ class MultiAliasedClass {
 	public function new () {}
 }
 
-class AliasTest extends haxe.unit.TestCase {
+class AliasTest
+{
+	public function new () {}
 
-	public function test () {
-
-		{
-			var parser = new JsonParser<Aliased>();
-			var data = parser.fromJson('{ "public": true }', "test");
-			assertEquals(true, data.isPublic);
-		}
-
-		{
-			var parser = new JsonParser<MultiAliased>();
-			var data = parser.fromJson('{ "public": true }', "test");
-			assertEquals(true, data.isPublic);
-		}
-
-		{
-			var parser = new JsonParser<AliasedClass>();
-			var data = parser.fromJson('{ "public": true }', "test");
-			assertEquals(true, data.isPublic);
-		}
-
-		{
-			var parser = new JsonParser<MultiAliasedClass>();
-			var data = parser.fromJson('{ "public": true }', "test");
-			assertEquals(true, data.isPublic);
-		}
-
+	public function test1 ()
+	{
+		var parser = new JsonParser<Aliased>();
+		var data = parser.fromJson('{ "public": true }', "test");
+		Assert.isTrue(data.isPublic);
 	}
 
+	public function test2 ()
+	{
+		var parser = new JsonParser<MultiAliased>();
+		var data = parser.fromJson('{ "public": true }', "test");
+		Assert.isTrue(data.isPublic);
+	}
+
+	public function test3 ()
+	{
+		var parser = new JsonParser<AliasedClass>();
+		var data = parser.fromJson('{ "public": true }', "test");
+		Assert.isTrue(data.isPublic);
+	}
+
+	public function test4 ()
+	{
+		var parser = new JsonParser<MultiAliasedClass>();
+		var data = parser.fromJson('{ "public": true }', "test");
+		Assert.isTrue(data.isPublic);
+	}
 }
