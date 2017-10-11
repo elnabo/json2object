@@ -15,7 +15,7 @@
 # Lua
 -cmd echo "---- Lua -----"
 -lua testout/test.lua
-#-cmd lua testout/test.lua
+-cmd lua testout/test.lua
 --next
 
 # Flash
@@ -58,7 +58,7 @@
 # Java
 -cmd echo "---- Java -----"
 -java testout/java/
-#-cmd java -jar testout/java/Main.jar
+-cmd java -jar testout/java/Main.jar
 --next
 
 # Python

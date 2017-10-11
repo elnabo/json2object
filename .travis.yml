@@ -28,6 +28,13 @@ addons:
       # C#
       - mono-devel
       - mono-mcs
+      # Lua
+      - luajit
+      - luarocks
+      - lua-sec
+      - lua-bitop
+      - lua-socket
+      - libpcre3-dev
 
 install:
   # os-specific config
@@ -39,6 +46,17 @@ install:
       brew install python3;
       brew tap homebrew/homebrew-php && brew install php71;
     fi
+  # Haxe Lua dependencies
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+      luarocks install --local lrexlib-pcre PCRE_LIBDIR=/lib/x86_64-linux-gnu;
+    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+      brew install lua pcre python;
+      luarocks install --local luabitop;
+      luarocks install --local luasocket;
+      luarocks install --local lrexlib-pcre;
+    fi
+  - sudo luarocks install luv
+- sudo luarocks install environ
   # Install haxelibs
   - if [ "${TRAVIS_HAXE_VERSION}" = "development" ]; then
       git clone https://github.com/HaxeFoundation/hxcpp.git;
