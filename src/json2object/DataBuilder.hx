@@ -162,7 +162,14 @@ class DataBuilder {
 				params = [];
 
 			case TInst(_.get()=>t, p):
-				fields = t.fields.get();
+				fields = [];
+				var s = t;
+				while (s != null)
+				{
+					fields = fields.concat(s.fields.get());
+					s = s.superClass != null ? s.superClass.t.get() : null;
+				}
+
 				tParams = t.params;
 				params = p;
 

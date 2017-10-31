@@ -33,6 +33,7 @@ class Main
 		r.addCase(new AbstractTest());
 		r.addCase(new ArrayTest());
 		r.addCase(new EnumTest());
+		r.addCase(new InheritanceTest());
 		r.addCase(new MapTest());
 		r.addCase(new ObjectTest());
 		r.addCase(new StructureTest());
