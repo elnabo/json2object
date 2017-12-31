@@ -39,7 +39,9 @@ class ObjectTestData<K,V> {
 	@:jignored
 	var a:A;
 	#if (haxe_ver>=4)
-	final b : Int = 0;
+	@:default(0)final b : Int = 0;
+	#else
+	var b(default, never):Int = 0;
 	#end
 
 	@:optional
@@ -73,14 +75,30 @@ class ObjectTest
 		Assert.isNull(data.map.get("key").map.get("t"));
 		Assert.equals(1, data.struct.i);
 		Assert.equals(25, data.foo);
-		Assert.equals(7, parser.errors.length);
+
+		for (error in parser.errors) {
+			switch (error) {
+				case UninitializedVariable(v, pos):
+					Assert.same({file:"test", lines:[{start:pos.min, end:pos.min, number:1}], min:pos.min, max:pos.min}, pos);
+					switch (pos.min) {
+						case 110:
+							Assert.isTrue(["array_array", "array_map", "array_obj", "b", "foo"].lastIndexOf(v) != -1);
+						case 142:
+							Assert.isTrue(["array_array", "array_map", "array_obj", "b"].lastIndexOf(v) != -1);
+						default:
+							Assert.isTrue(false);
+					}
+				default:
+					Assert.isTrue(false);
+			}
+		}
+		Assert.equals(9, parser.errors.length);
 	}
 
 	public function test2 () // Optional
 	{
 		var parser = new JsonParser<ObjectTestData<String, Float>>();
-		var data = parser.fromJson('{ "objTest":{"base":true, "array":[], "map":{}, "struct":{"i":10}, "array_array":null, "array_map":null, "array_obj":null, "foo":45}, "array": null, "map":{"key":null}, "struct":{"i":2}, "array_array":[[0,1], [4, -1]], "array_map":[{"a":1}, null], "array_obj":[{"base":true, "array":[], "map":{}, "struct":{"i":10}, "array_array":null, "array_map":null, "array_obj":null, "foo":46}], "foo": 63 }', "test");
-		
+		var data = parser.fromJson('{ "objTest":{"b": 2, "base":true, "array":[], "map":{}, "struct":{"i":10}, "array_array":null, "array_map":null, "array_obj":null, "foo":45}, "array": null, "map":{"key":null}, "struct":{"i":2}, "array_array":[[0,1], [4, -1]], "array_map":[{"a":1}, null], "array_obj":[{"base":true, "array":[], "map":{}, "struct":{"i":10}, "array_array":null, "array_map":null, "array_obj":null, "foo":46}], "foo": 63 }', "test");
 		Assert.isTrue(data.base);
 		Assert.isNull(data.array);
 		Assert.isNull(data.map.get("key"));
@@ -89,6 +107,29 @@ class ObjectTest
 		Assert.same([],data.objTest.array);
 		Assert.same(new Map<String, ObjectTestData<String, Float>>(), data.objTest.map);
 		Assert.equals(63, data.foo);
-		Assert.equals(0, parser.errors.length);
+		#if (haxe_ver>=4)
+		@:privateAccess {
+			Assert.equals(2, data.objTest.b);
+		}
+		#end
+
+		for (error in parser.errors) {
+			switch (error) {
+				case UninitializedVariable(v, pos):
+					Assert.same({file:"test", lines:[{start:pos.min, end:pos.min, number:1}], min:pos.min, max:pos.min}, pos);
+					switch (pos.min) {
+						case 390:
+							Assert.equals("b", v);
+						case 404:
+							Assert.isTrue(v == "b" || v == "base");
+						default:
+							Assert.isTrue(false);
+					}
+				default:
+					Assert.isTrue(false);
+			}
+		}
+
+		Assert.equals(3, parser.errors.length);
 	}
 }

@@ -194,38 +194,40 @@ class DataBuilder {
 			case _: return;
 		}
 
-		var anonBaseValues:Array<{field:String, expr:Expr #if (haxe_ver >= 4) , quotes:haxe.macro.Expr.QuoteStatus #end}> = [];
-		var anonAutoValues:Array<{field:String, expr:Expr #if (haxe_ver >= 4) , quotes:haxe.macro.Expr.QuoteStatus #end}> = [];
+		var baseValues:Array<{field:String, expr:Expr #if (haxe_ver >= 4) , quotes:haxe.macro.Expr.QuoteStatus #end}> = [];
+		var autoExprs:Array<Expr> = [];
 		var assigned:Array<Expr> = [];
 		var cases:Array<Case> = [];
 
 		for (field in fields) {
-			if (!field.isPublic || field.meta.has(":jignored")) { continue; }
+			if (field.meta.has(":jignored")) { continue; }
 
 			switch(field.kind) {
 				case FVar(_,w):
-					if (w == AccNever #if (haxe_ver >= 4) || w == AccCtor #end) { continue; }
+					var needReflect = w == AccNever #if (haxe_ver >= 4) || w == AccCtor #end;
 
-					var isAlwaysAssigned = field.meta.has(":optional") || (field.expr() != null && field.expr().expr != null);
+					var isAlwaysAssigned = field.meta.has(":optional");
 					assigned.push(macro { assigned.set($v{field.name}, $v{isAlwaysAssigned});});
 
 					var f_a = { expr: EField(macro value, field.name), pos: Context.currentPos() };
 					var f_type = field.type.applyTypeParameters(tParams, params);
 					var f_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(f_type.toComplexType())]};
 
+					var assignationExpr = (needReflect) ? macro Reflect.setField(value, $v{field.name}, tmp) : macro $f_a = tmp;
 					var assignation = (isNullable(f_type))
 						?
 						macro {
 							try {
 								var tmp = new $f_cls(errors, putils, OBJECTTHROW).loadJson(field.value, field.name);
-								if (tmp != null) { $f_a = tmp; }
+								if (tmp != null) { $assignationExpr; }
 								assigned.set($v{field.name}, true);
 							} catch (_:Dynamic) {}
 						}
 						:
 						macro {
 							try {
-								$f_a = new $f_cls(errors, putils, OBJECTTHROW).loadJson(field.value, field.name);
+								var tmp = new $f_cls(errors, putils, OBJECTTHROW).loadJson(field.value, field.name);
+								$assignationExpr;
 								assigned.set($v{field.name}, true);
 							} catch (_:Dynamic) {}
 						}
@@ -247,33 +249,34 @@ class DataBuilder {
 
 					cases.push({ expr: assignation, guard: null, values: [caseValue] });
 
-					if (isAnon) {
-
-						if (field.meta.has(":default")) {
-							var metas = field.meta.extract(":default");
-							if (metas.length > 0) {
-								var meta = metas[0];
-								if (meta.params != null && meta.params.length == 1) {
-									if (meta.params[0].toString() == "auto") {
-										anonBaseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).getAuto() #if (haxe_ver >= 4) , quotes:Unquoted #end});
-										anonAutoValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).getAuto() #if (haxe_ver >= 4) , quotes:Unquoted #end});
+					if (field.meta.has(":default")) {
+						var metas = field.meta.extract(":default");
+						if (metas.length > 0) {
+							var meta = metas[0];
+							if (meta.params != null && meta.params.length == 1) {
+								if (meta.params[0].toString() == "auto") {
+									baseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).getAuto() #if (haxe_ver >= 4) , quotes:Unquoted #end});
+								}
+								else {
+									if (f_type.followWithAbstracts().unify(Context.typeof(meta.params[0]).followWithAbstracts())) {
+										baseValues.push({field:field.name, expr:meta.params[0] #if (haxe_ver >= 4) , quotes:Unquoted #end});
 									}
 									else {
-										if (f_type.followWithAbstracts().unify(Context.typeof(meta.params[0]).followWithAbstracts())) {
-											anonBaseValues.push({field:field.name, expr:meta.params[0] #if (haxe_ver >= 4) , quotes:Unquoted #end});
-											anonAutoValues.push({field:field.name, expr:meta.params[0] #if (haxe_ver >= 4) , quotes:Unquoted #end});
-										}
-										else {
-											Context.fatalError("json2object: default value for "+field.name+" is of incorrect type", Context.currentPos());
-										}
+										Context.fatalError("json2object: default value for "+field.name+" is of incorrect type", Context.currentPos());
 									}
 								}
 							}
 						}
-						else {
-							anonAutoValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}}) #if (haxe_ver >= 4) , quotes:Unquoted #end});
-							anonBaseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}}) #if (haxe_ver >= 4) , quotes:Unquoted #end});
-						}
+					}
+					else {
+						baseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}}) #if (haxe_ver >= 4) , quotes:Unquoted #end});
+					}
+
+					if (needReflect) {
+						autoExprs.push(macro Reflect.setField(value, $v{field.name}, $e{baseValues[baseValues.length - 1].expr}));
+					}
+					else {
+						autoExprs.push(macro $f_a = ${baseValues[baseValues.length - 1].expr});
 					}
 
 				default:
@@ -284,19 +287,25 @@ class DataBuilder {
 		var loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
 
 		if (isAnon) {
-			initializator = { expr: EObjectDecl(anonBaseValues), pos: Context.currentPos() };
-			var initializatorAuto = { expr: EObjectDecl(anonAutoValues), pos: Context.currentPos() };
-			changeFunction("getAuto", parser, macro return $initializatorAuto);
+			initializator = { expr: EObjectDecl(baseValues), pos: Context.currentPos() };
+			changeFunction("getAuto", parser, macro return $initializator);
 		}
 		else {
-			changeFunction("getAuto", parser, macro return $initializator);
+			var autoExpr = macro {
+				var value = $initializator;
+				@:privateAccess {
+					$b{autoExprs};
+				}
+				return value;
+			}
+			changeFunction("getAuto", parser, macro return $autoExpr);
 		}
 
 		var e = macro {
 			var assigned = new Map<String,Bool>();
 			$b{assigned}
 			@:privateAccess {
-				value = $initializator;
+				value = getAuto();
 				for (field in o) {
 					$loop;
 				}
