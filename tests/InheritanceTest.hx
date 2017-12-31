@@ -6,8 +6,6 @@ import utest.Assert;
 class Parent
 {
 	public var a : Int;
-
-	public function new () {}
 }
 
 class Child extends Parent

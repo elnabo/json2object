@@ -35,12 +35,10 @@ typedef MultiAliased = {
 
 class AliasedClass {
 	@:alias("public") public var isPublic : Bool;
-	public function new () {}
 }
 
 class MultiAliasedClass {
 	@:alias("first") @:alias("public") public var isPublic : Bool;
-	public function new () {}
 }
 
 class AliasTest

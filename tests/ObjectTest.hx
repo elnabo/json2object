@@ -45,7 +45,7 @@ class ObjectTestData<K,V> {
 	@:optional
 	public var objTest:ObjectTestData<K,V>;
 
-	public var base:Bool = true;
+	@:default(true) public var base:Bool;
 	public var map:Map<K, ObjectTestData<K,V>>;
 	public var struct:ObjectStruct;
 	public var array:Array<V>;
@@ -55,8 +55,6 @@ class ObjectTestData<K,V> {
 	public var array_obj:Array<ObjectTestData<K,V>>;
 
 	public var foo(default, null) : Int;
-
-	public function new () {}
 }
 
 class ObjectTest

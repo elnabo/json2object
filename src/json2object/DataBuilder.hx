@@ -173,15 +173,23 @@ class DataBuilder {
 				tParams = t.params;
 				params = p;
 
-				var pack = t.pack;
-				var module = null;
-				if (t.module != t.pack.join(".") + "." + t.name)
+				var pack = t.module.split(".");
+				pack.push(t.name);
+
+				var e = {
+					expr: EConst(CIdent(pack.shift())),
+					pos: Context.currentPos()
+				};
+
+				while (pack.length > 0)
 				{
-					pack = t.module.split(".");
-					module = pack.pop();
+					e = {
+						expr: EField(e, pack.shift()),
+						pos: Context.currentPos()
+					};
 				}
-				var t_cls = { name: module != null ? module : t.name, pack: pack, params: [for (i in p) TPType(i.toComplexType())], sub: module != null ? t.name : null };
-				initializator = macro new $t_cls();
+
+				initializator = macro Type.createEmptyInstance($e{e});
 
 			case _: return;
 		}

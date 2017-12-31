@@ -77,8 +77,7 @@ typedef Issue19Inner = {
 }
 
 class StructA {
-	public var a = 1;
-	public function new(){}
+	@:default(1) public var a:Int;
 }
 
 class StructureTest
