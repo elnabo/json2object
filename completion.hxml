@@ -3,3 +3,4 @@
 -x tests
 -lib hxjsonast
 -lib hx3compat
+-lib utest

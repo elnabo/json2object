@@ -117,16 +117,10 @@ class Data {
 	public var g:Array<Bool>;
 	@:jignored
 	public var h:Math;
-
-	public function new() {
-	}
 }
 
 class SubData {
 	public var c:String;
-
-	public function new() {
-	}
 }
 
 class Main {

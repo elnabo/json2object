@@ -4,8 +4,8 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Initialize object directly from json with macro",
-	"version": "2.5.1",
-	"releasenote": "Support for haxe 4",
+	"version": "3.0.0",
+	"releasenote": "Remove constructor requirement",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
 	"dependencies": {

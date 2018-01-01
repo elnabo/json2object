@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2017 Guillaume Desquesnes, Valentin Lemière
+Copyright (c) 2017-2018 Guillaume Desquesnes, Valentin Lemière
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -201,10 +201,13 @@ class DataBuilder {
 
 		for (field in fields) {
 			if (field.meta.has(":jignored")) { continue; }
-
 			switch(field.kind) {
-				case FVar(_,w):
-					var needReflect = w == AccNever #if (haxe_ver >= 4) || w == AccCtor #end;
+				case FVar(r,w):
+					if (r == AccCall && w == AccCall && !field.meta.has(":isVar")) {
+						continue;
+					}
+
+					var needReflect = w == AccNever || w == AccCall #if (haxe_ver >= 4) || w == AccCtor #end;
 
 					var isAlwaysAssigned = field.meta.has(":optional");
 					assigned.push(macro { assigned.set($v{field.name}, $v{isAlwaysAssigned});});

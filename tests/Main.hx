@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2017 Guillaume Desquesnes, Valentin Lemière
+Copyright (c) 2017-2018 Guillaume Desquesnes, Valentin Lemière
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,7 @@ class Main
 		r.addCase(new AbstractTest());
 		r.addCase(new ArrayTest());
 		r.addCase(new EnumTest());
+		r.addCase(new GetSetTest());
 		r.addCase(new InheritanceTest());
 		r.addCase(new MapTest());
 		r.addCase(new ObjectTest());
