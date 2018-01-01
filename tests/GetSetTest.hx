@@ -85,10 +85,11 @@ class GetSetTest {
 		Reflect.setField(gst, "u", 2);
 		gst.v = 9;
 
-		var json = JsonPrinter.print(gst);
+		var json = '{"h":1,"j":3.14159265358979,"l":1,"m":2,"n":3,"o":4,"p":4,"q":5,"r":6,"s":7,"t":8,"u":2,"v":9}';
 
 		var parser = new JsonParser<GetSetTest>();
 		var value = parser.fromJson(json, "test");
+		trace(parser.errors);
 		Assert.same(gst, value);
 		Assert.equals(0, parser.errors.length);
 	}
