@@ -20,6 +20,7 @@ addons:
   # http://docs.travis-ci.com/user/apt/#Adding-APT-Packages
   apt:
     packages:
+      - cmake
       # C++ (for rebuilding hxcpp)
       - gcc-multilib
       - g++-multilib
