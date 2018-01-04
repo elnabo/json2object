@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2017 Guillaume Desquesnes, Valentin Lemière
+Copyright (c) 2017-2018 Guillaume Desquesnes, Valentin Lemière
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@ SOFTWARE.
 package tests;
 
 import json2object.JsonParser;
+import json2object.JsonWriter;
 import utest.Assert;
 
 class ArrayTest
@@ -31,13 +32,15 @@ class ArrayTest
 
 	public function test ()
 	{
-		var parser = new json2object.JsonParser<Array<Int>>();
+		var parser = new JsonParser<Array<Int>>();
+		var writer = new JsonWriter<Array<Int>>();
 		var data = parser.fromJson('[0,1,4,3]', "");
 		var oracle = [0,1,4,3];
 		for (i in 0...data.length) {
 			Assert.equals(oracle[i], data[i]);
 		}
 		Assert.equals(0, parser.errors.length);
+		Assert.same(data, parser.fromJson(writer.write(data),"test"));
 
 		data = parser.fromJson('[0,1,4.4,3]', "");
 		Assert.equals(1, parser.errors.length);
@@ -45,5 +48,6 @@ class ArrayTest
 		for (i in 0...data.length) {
 			Assert.equals(oracle[i], data[i]);
 		}
+		Assert.same(data, parser.fromJson(writer.write(data),"test"));
 	}
 }

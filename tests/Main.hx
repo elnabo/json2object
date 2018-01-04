@@ -28,9 +28,9 @@ class Main
 	{
 		var allOk = true;
 		var r = new utest.Runner();
-		
-		r.addCase(new AliasTest());
+
 		r.addCase(new AbstractTest());
+		r.addCase(new AliasTest());
 		r.addCase(new ArrayTest());
 		r.addCase(new EnumTest());
 		r.addCase(new GetSetTest());

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2017 Guillaume Desquesnes, Valentin Lemière
+Copyright (c) 2017-2018 Guillaume Desquesnes, Valentin Lemière
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@ SOFTWARE.
 package tests;
 
 import json2object.JsonParser;
+import json2object.JsonWriter;
 import utest.Assert;
 
 typedef MapStruct = {
@@ -35,40 +36,54 @@ class MapTest
 
 	public function test1 () // Str -> Str
 	{
-		var data = new JsonParser<Map<String, String>>().fromJson('{ "key1": "value1", "key2": "value2" }', "test");
+		var parser = new JsonParser<Map<String, String>>();
+		var writer = new JsonWriter<Map<String, String>>();
+		var data = parser.fromJson('{ "key1": "value1", "key2": "value2" }', "test");
 		Assert.equals("value1", data.get("key1"));
 		Assert.equals("value2", data.get("key2"));
+		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
 	public function test2 () // Int -> Str
 	{
-		var data = new JsonParser<Map<Int, String>>().fromJson('{ "1": "value1", "2": "value2" }', "test");
+		var parser = new JsonParser<Map<Int, String>>();
+		var writer = new JsonWriter<Map<Int, String>>();
+		var data = parser.fromJson('{ "1": "value1", "2": "value2" }', "test");
 		Assert.equals("value1", data.get(1));
 		Assert.equals("value2", data.get(2));
+		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
 	public function test3 () // Str -> Object/Struct
 	{
 		var parser = new JsonParser<Map<String, MapStruct>>();
+		var writer = new JsonWriter<Map<String, MapStruct>>();
 		var data = parser.fromJson('{ "key1": null, "key2": {"i":9}, "key3":{"i":0} }', "test");
 		Assert.isNull(data.get("key1"));
 		Assert.equals(9, data.get("key2").i);
 		Assert.equals(0, data.get("key3").i);
+		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
 	public function test4 () // Str -> Map<Str,Str>
 	{
-		var data = new JsonParser<Map<String, Map<String,String>>>().fromJson('{ "key1": {}, "key2": {"i":"9"}, "key3":{"a":"0"} }', "test");
+		var parser = new JsonParser<Map<String, Map<String, String>>>();
+		var writer = new JsonWriter<Map<String, Map<String, String>>>();
+		var data = parser.fromJson('{ "key1": {}, "key2": {"i":"9"}, "key3":{"a":"0"} }', "test");
 		Assert.same(new Map<String, String>(), data.get("key1"));
 		Assert.equals("9", data.get("key2").get("i"));
 		Assert.equals("0", data.get("key3").get("a"));
+		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
 	public function test5 () // Str -> Array<Str>
 	{
-		var data = new JsonParser<Map<String, Array<String>>>().fromJson('{ "key1": [], "key2": ["i","9"], "key3":["a"] }', "test");
+		var parser = new JsonParser<Map<String, Array<String>>>();
+		var writer = new JsonWriter<Map<String, Array<String>>>();
+		var data = parser.fromJson('{ "key1": [], "key2": ["i","9"], "key3":["a"] }', "test");
 		Assert.same([], data.get("key1"));
 		Assert.same(["i","9"], data.get("key2"));
 		Assert.same(["a"], data.get("key3"));
+		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 }

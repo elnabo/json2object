@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2017 Guillaume Desquesnes, Valentin Lemière
+Copyright (c) 2017-2018 Guillaume Desquesnes, Valentin Lemière
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@ SOFTWARE.
 package tests;
 
 import json2object.JsonParser;
+import json2object.JsonWriter;
 import utest.Assert;
 
 typedef Aliased = {
@@ -48,28 +49,36 @@ class AliasTest
 	public function test1 ()
 	{
 		var parser = new JsonParser<Aliased>();
+		var writer = new JsonWriter<Aliased>();
 		var data = parser.fromJson('{ "public": true }', "test");
 		Assert.isTrue(data.isPublic);
+		Assert.same(data, parser.fromJson(writer.write(data),"test"));
 	}
 
 	public function test2 ()
 	{
 		var parser = new JsonParser<MultiAliased>();
+		var writer = new JsonWriter<MultiAliased>();
 		var data = parser.fromJson('{ "public": true }', "test");
 		Assert.isTrue(data.isPublic);
+		Assert.same(data, parser.fromJson(writer.write(data),"test"));
 	}
 
 	public function test3 ()
 	{
 		var parser = new JsonParser<AliasedClass>();
+		var writer = new JsonWriter<AliasedClass>();
 		var data = parser.fromJson('{ "public": true }', "test");
 		Assert.isTrue(data.isPublic);
+		Assert.same(data, parser.fromJson(writer.write(data),"test"));
 	}
 
 	public function test4 ()
 	{
 		var parser = new JsonParser<MultiAliasedClass>();
+		var writer = new JsonWriter<MultiAliasedClass>();
 		var data = parser.fromJson('{ "public": true }', "test");
 		Assert.isTrue(data.isPublic);
+		Assert.same(data, parser.fromJson(writer.write(data),"test"));
 	}
 }

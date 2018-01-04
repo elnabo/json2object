@@ -19,7 +19,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-package json2object;
+package json2object.writer;
 
 import StringTools;
 
@@ -49,7 +49,7 @@ class StringUtils {
 			case 12: buffer.add('\\f');
 			default:
 				#if flash
-				if( c >= 128 ) buffer.add(String.fromCharCode(c)) else addChar(c);
+				if( c >= 128 ) buffer.add(String.fromCharCode(c)) else buffer.addChar(c);
 				#else
 				buffer.addChar(c);
 				#end

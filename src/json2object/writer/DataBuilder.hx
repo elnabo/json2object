@@ -32,14 +32,13 @@ import haxe.macro.TypeTools;
 using StringTools;
 using haxe.macro.ExprTools;
 using haxe.macro.TypeTools;
-using json2object.StringUtils;
 
 class DataBuilder {
 
 	private static var counter = 0;
 	private static var writers = new Map<String, Type>();
 
-	private static function notNull(type:Type):Type {
+	private static function notNull (type:Type) : Type {
 		return switch (type) {
 			case TAbstract(_.get()=>t, p):
 				(t.name == "Null") ? notNull(p[0]) : type;
@@ -50,7 +49,7 @@ class DataBuilder {
 		}
 	}
 
-	private static function isNullable(type:Type) {
+	private static function isNullable (type:Type) : Bool {
 		if (notNull(type) != type) { return true; }
 		return switch (type.followWithAbstracts()) {
 			case TAbstract(_.get()=>t,_):
@@ -61,13 +60,13 @@ class DataBuilder {
 	}
 
 	private static function makeStringWriter () : Expr {
-		return macro return (o == null) ? "null" : json2object.StringUtils.quote(o);
+		return macro return (o == null) ? "null" : json2object.writer.StringUtils.quote(cast o);
 	}
 
 	private static function makeBasicWriter (type:Type) : Expr {
-		return isNullable(type) 
-			? macro return (o == null) ? "null" : o
-			: macro return o;
+		return isNullable(type)
+			? macro return (o == null) ? "null" : o+""
+			: macro return o+"";
 	}
 
 	private static function makeArrayWriter (subType:Type, baseParser:BaseType) : Expr {
@@ -89,7 +88,7 @@ class DataBuilder {
 		var keyMacro = switch (keyType.followWithAbstracts()) {
 			case TInst(_.get()=>t, _):
 				if (t.module == "String") {
-					macro json2object.StringUtils.quote(key);
+					macro json2object.writer.StringUtils.quote(key);
 				}
 				else {
 					Context.fatalError("json2object: Only map with Int or String key are writable, got"+keyType.toString(), Context.currentPos());
@@ -111,7 +110,7 @@ class DataBuilder {
 			var json = "{";
 			var values =  [for (key in o.keys()) '"'+key+'": '+valueWriter.write(o.get(key))];
 			json += values.join(",");
-			json += "]";
+			json += "}";
 			return json;
 		};
 	}
@@ -138,7 +137,7 @@ class DataBuilder {
 					fields = fields.concat(s.fields.get());
 					s = s.superClass != null ? s.superClass.t.get() : null;
 				}
-		
+
 				tParams = t.params;
 				params = p;
 
@@ -157,7 +156,7 @@ class DataBuilder {
 						continue;
 					}
 
-					var f_a = { expr: EField(macro o, field.name), pos: Context.currentPos() };
+					var f_a = (r == AccCall || r == AccNever || r == AccNo) ? macro Reflect.field(o, $v{field.name}) : { expr: EField(macro o, field.name), pos: Context.currentPos() };
 					var f_type = field.type.applyTypeParameters(tParams, params);
 					var f_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(f_type.toComplexType())]};
 
@@ -172,7 +171,8 @@ class DataBuilder {
 						}
 					}
 					name = '"' + name + '": ';
-					assignations.push(macro $v{name} + new $f_cls().write($f_a));
+					assignations.push(macro $v{name} + new $f_cls().write(cast $f_a));
+
 				default:
 			}
 		}
@@ -189,10 +189,79 @@ class DataBuilder {
 		};
 	}
 
-	public static function makeWriter(c:BaseType, type:Type, base:Type) {
+	private static function makeEnumWriter (type:Type, baseParser:BaseType) : Expr {
+		var tParams:Array<TypeParameter>;
+		var params:Array<Type>;
+
+		var cases = [];
+		switch (type) {
+			case TEnum(_.get()=>t, p):
+				tParams = t.params;
+				params = p;
+				for (n in t.names) {
+					switch (t.constructs.get(n).type) {
+						case TEnum(_,_):
+							var value = '"'+n+'"';
+							cases.push({expr: macro $v{value}, guard: null, values: [macro $i{n}]});
+						case TFun(args, _):
+							var constructor = [];
+							var assignations:Array<Expr> = [];
+							for (a in args) {
+								constructor.push(macro $i{a.name});
+
+								var a_type = a.t.applyTypeParameters(tParams, params);
+								var a_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(a_type.toComplexType())]};
+
+								assignations.push(macro '"'+$v{a.name} +'": '+ new $a_cls().write($i{a.name}));
+							}
+
+
+							var call = {expr:ECall(macro $i{n}, constructor), pos:Context.currentPos()};
+							var array = {expr:EArrayDecl(assignations), pos:Context.currentPos()};
+							var jsonExpr = macro {
+								var json = '{"'+$v{n}+'": {';
+								json += ${array}.join(", ");
+								json += '}}';
+							}
+							cases.push({expr: jsonExpr, guard: null, values: [call]});
+
+						default:
+					}
+				}
+			default:
+		}
+		var switchExpr = {expr:ESwitch(macro o, cases, null), pos:Context.currentPos()};
+		return macro {
+			if (o == null) { return null; }
+			return $switchExpr;
+		};
+	}
+
+	private static function makeAbstractEnumWriter (type:Type) : Expr {
+		switch (type.followWithAbstracts()) {
+			case TInst(_.get()=>t, _):
+				if (t.module != "String") {
+					Context.fatalError("json2object: Unsupported abstract enum type:"+type.toString(), Context.currentPos());
+				}
+				else {
+					return makeStringWriter();
+				}
+			case TAbstract(_.get()=>t, _):
+				if (t.module != "StdTypes" && (t.name != "Int" && t.name != "Bool" && t.name != "Float")) {
+					Context.fatalError("json2object: Unsupported abstract enum type:"+type.toString(), Context.currentPos());
+				}
+				else {
+					return makeBasicWriter(type);
+				}
+			default: Context.fatalError("json2object: Unsupported abstract enum type:"+type.toString(), Context.currentPos());
+		}
+		return null;
+	}
+
+	public static function makeWriter (c:BaseType, type:Type, base:Type) {
 
 		if (base == null) { base = type; }
-		
+
 		var writerMapName = base.toString();
 		if (writers.exists(writerMapName)) {
 			return writers.get(writerMapName);
@@ -241,17 +310,17 @@ class DataBuilder {
 				else if (t.module == #if (haxe_ver >= 4) "haxe.ds.Map" #else "Map" #end) {
 					makeMapWriter(p[0], p[1], c);
 				}
-			// 	else {
-			// 		if (t.meta.has(":enum")) {
-			// 			makeAbstractEnumParser(parser, type.applyTypeParameters(t.params, p), c);
-			// 		}
-			// 		else {
-			// 			makeAbstractParser(parser, type.applyTypeParameters(t.params, p), c);
-			// 		}
-			// 	}
-				else { macro return "TODO"; }
-			// case TEnum(_.get()=>t, p):
-			// 	makeEnumParser(parser, type.applyTypeParameters(t.params, p), c);
+				else {
+					if (t.meta.has(":enum")) {
+						makeAbstractEnumWriter(type.applyTypeParameters(t.params, p));
+					}
+					else {
+						var ap = t.type.applyTypeParameters(t.params, p);
+						return makeWriter(c, ap, ap);
+					}
+				}
+			case TEnum(_.get()=>t, p):
+				makeEnumWriter(type.applyTypeParameters(t.params, p), c);
 			case TType(_.get()=>t, p) :
 				return makeWriter(c, t.type.applyTypeParameters(t.params, p), type);
 			case TLazy(f):
@@ -259,10 +328,9 @@ class DataBuilder {
 			default: Context.fatalError("json2object: Writer for "+type.toString()+" are not generated", Context.currentPos());
 		}
 
-		var returnType = null;
 		var write:Field = {
 			doc: null,
-			kind: FFun({args:[{name:"o", meta:null, opt:false, type:type.toComplexType(),value:null}], expr:writeExpr, params:null, ret:returnType}),
+			kind: FFun({args:[{name:"o", meta:null, opt:false, type:base.toComplexType(),value:null}], expr:writeExpr, params:null, ret:null}),
 			access: [APublic],
 			name: "write",
 			pos:Context.currentPos(),

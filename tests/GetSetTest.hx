@@ -22,9 +22,9 @@ SOFTWARE.
 
 package tests;
 
-import haxe.format.JsonPrinter;
 import json2object.Error;
 import json2object.JsonParser;
+import json2object.JsonWriter;
 import utest.Assert;
 
 class GetSetTest {
@@ -88,10 +88,11 @@ class GetSetTest {
 		var json = '{"h":1,"j":3.14159265358979,"l":1,"m":2,"n":3,"o":4,"p":4,"q":5,"r":6,"s":7,"t":8,"u":2,"v":9}';
 
 		var parser = new JsonParser<GetSetTest>();
-		var value = parser.fromJson(json, "test");
-		trace(parser.errors);
-		Assert.same(gst, value);
+		var writer = new JsonWriter<GetSetTest>();
+		var data = parser.fromJson(json, "test");
+		Assert.same(gst, data);
 		Assert.equals(0, parser.errors.length);
+		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
 	public function test2 () {
@@ -107,9 +108,11 @@ class GetSetTest {
 		var json = '{"j":4.0, "h":1, "k":3, "l":3, "m":4, "n":5, "o":4, "p":4, "q":5, "r":6, "s":7, "t":8, "u":23, "v":9}';
 
 		var parser = new JsonParser<GetSetTest>();
-		var value = parser.fromJson(json, "test");
-		Assert.same(gst, value);
+		var writer = new JsonWriter<GetSetTest>();
+		var data = parser.fromJson(json, "test");
+		Assert.same(gst, data);
 		Assert.same(UnknownVariable("k", {file:"test", lines:[{number:1, start:18, end:21}], min:18, max:21}), parser.errors[0]);
 		Assert.equals(1, parser.errors.length);
+		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 }
