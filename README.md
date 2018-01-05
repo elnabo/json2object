@@ -1,8 +1,8 @@
-# json2object - Initialize object directly from json
+# json2object - Type safe Haxe/JSON (de)serializer
 
 [![Build Status](https://travis-ci.org/elnabo/json2object.svg?branch=master)](https://travis-ci.org/elnabo/json2object)
 
-This library uses macro and a typed position aware JSON parsing (hxjsonast : <https://github.com/nadako/hxjsonast/>) to create a parser from json to every supported object.
+This library uses macro and a typed position aware JSON parsing (hxjsonast : <https://github.com/nadako/hxjsonast/>) to create json parser and writer from and to every supported type.
 
 Incorrect json files or mismatch between the object and the json will yield errors or exceptions, with information on the position of the problematic parts.
 
@@ -33,6 +33,13 @@ var data:Cls = new json2object.JsonParser<Cls>(errors).fromJson(jsonString, file
 To print the errors, you can do
 ```haxe
 trace(json2object.ErrorUtils.convertErrorArray(parser.errors));
+```
+
+### Using the writer
+```haxe
+var value:Cls;
+var writer = new json2object.JsonWriter<Cls>(); // Creating a writer for Cls class
+var json = writer.write(value);
 ```
 
 ### Constraints in the parsing
