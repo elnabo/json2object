@@ -46,7 +46,6 @@ var json = writer.write(value);
 
 - Variables defined with the `@:jignored` metadata will be ignored by the parser.
 - Variables defined with the `@:optional` metadata won't trigger errors if missing.
-- Private variables are ignored.
 
 ### Supported types
 
