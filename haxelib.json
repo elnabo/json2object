@@ -9,7 +9,6 @@
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
 	"dependencies": {
-		"hx3compat": "",
 		"hxjsonast": ""
 	}
 }
