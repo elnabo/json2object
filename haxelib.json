@@ -4,8 +4,8 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Type safe Haxe/JSON (de)serializer",
-	"version": "3.0.0",
-	"releasenote": "Remove constructor requirement and add writer",
+	"version": "3.1.0",
+	"releasenote": "Don't throw on malformed json",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
 	"dependencies": {

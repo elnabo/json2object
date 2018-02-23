@@ -749,11 +749,11 @@ class DataBuilder {
 				try {
 					var json = hxjsonast.Parser.parse(jsonString, filename);
 					loadJson(json);
-					return value;
 				}
 				catch (e:hxjsonast.Error) {
-					throw json2object.Error.ParserError(e.message, putils.convertPosition(e.pos));
+					errors.push(json2object.Error.ParserError(e.message, putils.convertPosition(e.pos)));
 				}
+				return value;
 			}
 
 			public function loadJson(json:hxjsonast.Json, ?variable:String="") {
