@@ -33,11 +33,21 @@ enum Color {
 	None(r:{a:Int});
 }
 
+enum WithParam<T1, T2> {
+	First(a:T1);
+	Second(a:T2);
+	Both(a:T1, b:T2);
+}
+
 typedef EnumStruct = {
 	var value : Color;
 }
 typedef ArrayEnumStruct = {
 	var value : Array<Color>;
+}
+
+typedef WithParamStruct = {
+	var value : WithParam<String, Int>;
 }
 
 class EnumTest
@@ -116,6 +126,41 @@ class EnumTest
 		var data = parser.fromJson('{"value":["Red", "Green", "Yellow", {"Red":{}}, {"RGBA":{"r":1, "g":1, "b":0}}, {"RGBA":{"r":1, "g":1, "b":0, "a":0.2}}]}', "");
 		Assert.equals(4, data.value.length);
 		Assert.equals(-1, data.value.indexOf(null));
+		Assert.same(data, parser.fromJson(writer.write(data),"test"));
+	}
+
+	public function test7 ()
+	{
+		var parser = new JsonParser<WithParamStruct>();
+		var writer = new JsonWriter<WithParamStruct>();
+		var data = parser.fromJson('{"value":{"First":{"a":"a"}}}', "test.json");
+		Assert.equals(0, parser.errors.length);
+		Assert.isTrue(Type.enumEq(First("a"),data.value));
+		Assert.same(data, parser.fromJson(writer.write(data),"test"));
+
+		data = parser.fromJson('{"value":{"Second":{"b":1}}}', "test.json");
+		Assert.equals(0, parser.errors.length);
+		Assert.isTrue(Type.enumEq(Second(1),data.value));
+		Assert.same(data, parser.fromJson(writer.write(data),"test"));
+
+		data = parser.fromJson('{"value":{"Both":{"a":"a","b":1}}}', "test.json");
+		Assert.equals(0, parser.errors.length);
+		Assert.isTrue(Type.enumEq(Both("a",1),data.value));
+		Assert.same(data, parser.fromJson(writer.write(data),"test"));
+	}
+
+	public function test8 ()
+	{
+		var parser = new JsonParser<WithParamStruct>();
+		var writer = new JsonWriter<WithParamStruct>();
+		var data = parser.fromJson('{"value":{"First":{"a":1}}}', "test.json");
+		Assert.equals(2, parser.errors.length);
+		Assert.isNull(data.value);
+		Assert.same(data, parser.fromJson(writer.write(data),"test"));
+
+		data = parser.fromJson('{"value":{"Second":{"b":"1"}}}', "test.json");
+		Assert.equals(2, parser.errors.length);
+		Assert.isNull(data.value);
 		Assert.same(data, parser.fromJson(writer.write(data),"test"));
 	}
 }
