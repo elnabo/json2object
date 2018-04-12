@@ -45,7 +45,7 @@ install:
       brew update;
       brew install mono;
       brew upgrade python;
-      brew install php@7.1;
+      brew install php@7.0;
     fi
   # Haxe Lua dependencies
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
