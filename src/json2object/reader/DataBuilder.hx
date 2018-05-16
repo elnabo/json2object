@@ -415,12 +415,13 @@ class DataBuilder {
 							];
 							var argCount = 0;
 							for (a in args) {
+								var arg_name = '__${a.name}';
 								var at = a.t.applyTypeParameters(t.params, p);
-								enumParams.push(macro $i{a.name});
-								blockExpr.push({expr: EVars([{name:a.name, type:at.toComplexType(), expr:null}]), pos:Context.currentPos()});
+								enumParams.push(macro $i{arg_name});
+								blockExpr.push({expr: EVars([{name: arg_name, type:at.toComplexType(), expr:null}]), pos:Context.currentPos()});
 
 								var a_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(at.toComplexType())]};
-								var v = macro $i{a.name} = new $a_cls(errors, putils, THROW).loadJson(s0[$v{argCount}].value, field.name+"."+$v{a.name});
+								var v = macro $i{arg_name} = new $a_cls(errors, putils, THROW).loadJson(s0[$v{argCount}].value, field.name+"."+$v{a.name});
 								blockExpr.push(v);
 								argCount++;
 							}
