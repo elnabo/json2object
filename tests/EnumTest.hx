@@ -50,6 +50,12 @@ typedef WithParamStruct = {
 	var value : WithParam<String, Int>;
 }
 
+enum Enum1 {
+	EnumValue1(value:String);
+	EnumValue2(errors:String);
+	EnumValue3(putils:String);
+}
+
 class EnumTest
 {
 	public function new () {}
@@ -162,5 +168,28 @@ class EnumTest
 		Assert.equals(2, parser.errors.length);
 		Assert.isNull(data.value);
 		Assert.same(data, parser.fromJson(writer.write(data),"test"));
+	}
+
+	/** Issue 32 */
+	public function test9 ()
+	{
+		var writer = new JsonWriter<Enum1>();
+		var json:String = writer.write(EnumValue1("test"));
+		Assert.equals(json,'{"EnumValue1": {"value": "test"}}');
+
+		var parser = new JsonParser<Enum1>();
+		parser.fromJson(json, '');
+		Assert.same(parser.errors, []);
+		Assert.same(parser.value, EnumValue1("test"));
+
+		var parser = new JsonParser<Enum1>();
+		parser.fromJson('{"EnumValue2": {"errors": "test"}}', '');
+		Assert.same(parser.errors, []);
+		Assert.same(parser.value, EnumValue2("test"));
+
+		var parser = new JsonParser<Enum1>();
+		parser.fromJson('{"EnumValue3": {"putils": "test"}}', '');
+		Assert.same(parser.errors, []);
+		Assert.same(parser.value, EnumValue3("test"));
 	}
 }

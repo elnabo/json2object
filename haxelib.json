@@ -4,8 +4,8 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Type safe Haxe/JSON (de)serializer",
-	"version": "3.2.0",
-	"releasenote": "Support enum with type parameters",
+	"version": "3.2.1",
+	"releasenote": "Fix enum constructor hijacking reseverd variables",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
 	"dependencies": {
