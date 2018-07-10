@@ -42,6 +42,7 @@ enum WithParam<T1, T2> {
 typedef EnumStruct = {
 	var value : Color;
 }
+
 typedef ArrayEnumStruct = {
 	var value : Array<Color>;
 }
@@ -54,6 +55,14 @@ enum Enum1 {
 	EnumValue1(value:String);
 	EnumValue2(errors:String);
 	EnumValue3(putils:String);
+}
+
+typedef WithDefault = {
+	@:default(Green) @:optional var value : Color;
+}
+
+typedef WithDefaultOther = {
+	@:default(VAL1) @:optional var value : tests.OtherEnum.TestEnum;
 }
 
 class EnumTest
@@ -191,5 +200,23 @@ class EnumTest
 		parser.fromJson('{"EnumValue3": {"putils": "test"}}', '');
 		Assert.same(parser.errors, []);
 		Assert.same(parser.value, EnumValue3("test"));
+	}
+
+	/** Issue 34 **/
+	public function test10 ()
+	{
+		var parser = new JsonParser<WithDefault>();
+		var writer = new JsonWriter<WithDefault>();
+		var data = parser.fromJson('{}', "test.json");
+		Assert.equals(0, parser.errors.length);
+		Assert.same(data.value, Color.Green);
+		Assert.same(data, parser.fromJson(writer.write(data), "test"));
+
+		var parser = new JsonParser<WithDefaultOther>();
+		var writer = new JsonWriter<WithDefaultOther>();
+		var data = parser.fromJson('{}', "test.json");
+		Assert.equals(0, parser.errors.length);
+		Assert.same(data.value, tests.OtherEnum.TestEnum.VAL1);
+		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 }

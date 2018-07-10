@@ -252,12 +252,7 @@ class DataBuilder {
 									baseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).getAuto() #if (haxe_ver >= 4) , quotes:Unquoted #end});
 								}
 								else {
-									if (f_type.followWithAbstracts().unify(Context.typeof(meta.params[0]).followWithAbstracts())) {
-										baseValues.push({field:field.name, expr:meta.params[0] #if (haxe_ver >= 4) , quotes:Unquoted #end});
-									}
-									else {
-										Context.fatalError("json2object: default value for "+field.name+" is of incorrect type", Context.currentPos());
-									}
+									baseValues.push({field:field.name, expr:{expr:ECheckType(meta.params[0], f_type.toComplexType()), pos:Context.currentPos()} #if (haxe_ver >= 4) , quotes:Unquoted #end});
 								}
 							}
 						}
