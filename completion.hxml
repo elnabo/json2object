@@ -1,6 +1,6 @@
 -cp src
 -main tests.Main
--x tests
 -lib hxjsonast
--lib hx3compat
 -lib utest
+-D travis # for utest report
+-js testout/test.js

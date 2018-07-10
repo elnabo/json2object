@@ -5,9 +5,10 @@ os:
   - osx
 
 haxe:
+  - 3.3.0-rc.1
   - 3.4.2
   - development
-  
+
 dist: trusty
 
 sudo: false
