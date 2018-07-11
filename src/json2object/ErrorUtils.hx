@@ -59,7 +59,7 @@ class ErrorUtils {
 				header + 'Variable \'${variable}\' should be in the json';
 
 			case ParserError(message, _):
-				header + 'Parser eror: ${message}';
+				header + 'Parser error: ${message}';
 		}
 	}
 
