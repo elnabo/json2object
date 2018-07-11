@@ -252,7 +252,7 @@ class DataBuilder {
 									baseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).getAuto() #if (haxe_ver >= 4) , quotes:Unquoted #end});
 								}
 								else {
-									baseValues.push({field:field.name, expr:{expr:ECheckType(meta.params[0], f_type.toComplexType()), pos:Context.currentPos()} #if (haxe_ver >= 4) , quotes:Unquoted #end});
+									baseValues.push({ field: field.name, expr: { expr: ECheckType(meta.params[0], f_type.toComplexType()), pos: meta.params[0].pos } #if (haxe_ver >= 4) , quotes: Unquoted #end });
 								}
 							}
 						}
