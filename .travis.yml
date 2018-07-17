@@ -57,8 +57,8 @@ install:
       luarocks install --local luasocket;
       luarocks install --local lrexlib-pcre;
     fi
-  - sudo luarocks install luv
-  - sudo luarocks install environ
+  - luarocks install --local luv
+  - luarocks install --local environ
   - eval $(luarocks path)
   # Install haxelibs
   - if [ "${TRAVIS_HAXE_VERSION}" = "development" ]; then
