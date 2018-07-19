@@ -285,5 +285,6 @@ class AbstractTest
 	{
 		var parser = new json2object.JsonParser<OnClass>();
 		parser.fromJson("{}", "");
+		Assert.isTrue(true); // Just check that it compiles
 	}
 }
