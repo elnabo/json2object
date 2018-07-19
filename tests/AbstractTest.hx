@@ -110,6 +110,14 @@ abstract MultiFrom (String) from String to String
 
 }
 
+abstract OnClass (OnClassData)
+{
+}
+
+class OnClassData
+{
+}
+
 class AbstractTest
 {
 	public function new () {}
@@ -271,5 +279,11 @@ class AbstractTest
 		Assert.equals(PI, data.val);
 		Assert.equals(2, parser.errors.length);
 		Assert.same(data, parser.fromJson(writer.write(data),"test"));
+	}
+
+	public function test11 ()
+	{
+		var parser = new json2object.JsonParser<OnClass>();
+		parser.fromJson("{}", "");
 	}
 }

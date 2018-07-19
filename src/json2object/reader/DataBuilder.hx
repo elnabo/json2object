@@ -285,7 +285,7 @@ class DataBuilder {
 				@:privateAccess {
 					$b{autoExprs};
 				}
-				return value;
+				return cast value;
 			}
 			changeFunction("getAuto", parser, macro return $autoExpr);
 		}
