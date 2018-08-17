@@ -36,6 +36,7 @@ addons:
       - lua-sec
       - lua-bitop
       - lua-socket
+      - lua-compat53
       - libpcre3-dev
 
 install:
