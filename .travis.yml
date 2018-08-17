@@ -36,7 +36,6 @@ addons:
       - lua-sec
       - lua-bitop
       - lua-socket
-      - lua-compat53
       - libpcre3-dev
 
 install:
@@ -58,6 +57,7 @@ install:
       luarocks install --local luasocket;
       luarocks install --local lrexlib-pcre;
     fi
+  - luarocks install --local compat53
   - luarocks install --local luv
   - luarocks install --local environ
   - eval $(luarocks path)
