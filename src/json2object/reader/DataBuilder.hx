@@ -499,15 +499,15 @@ class DataBuilder {
 					if (field.expr() == null) { continue; }
 					caseValues.push(
 						switch (field.expr().expr) {
-							case TConst(_): Context.getTypedExpr(field.expr());
+							case TConst(_): Context.storeTypedExpr(field.expr());
 							case TCast(caste, _):
 								switch (caste.expr) {
 									case TConst(tc):
 										switch (tc) {
 											case TNull: continue;
-											default: Context.getTypedExpr(caste);
+											default: Context.storeTypedExpr(caste);
 										}
-									default: Context.getTypedExpr(caste);
+									default: Context.storeTypedExpr(caste);
 								}
 							default: continue;
 						}
