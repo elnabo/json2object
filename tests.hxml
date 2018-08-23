@@ -13,10 +13,10 @@
 --next
 
 # Lua
--cmd echo "---- Lua -----"
--lua testout/test.lua
--cmd lua testout/test.lua
---next
+#-cmd echo "---- Lua -----"
+#-lua testout/test.lua
+#-cmd lua testout/test.lua
+#--next
 
 # Flash
 -cmd echo "---- Flash -----"
