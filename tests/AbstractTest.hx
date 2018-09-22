@@ -289,7 +289,7 @@ class AbstractTest
 		Assert.isTrue(true); // Just check that it compiles
 	}
 
-	#if (!cs && !java)
+	#if !(cs || java || hl)
 	public function test12 ()
 	{
 		var parser = new json2object.JsonParser<OtherAbstract>();

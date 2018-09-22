@@ -22,6 +22,7 @@ addons:
   apt:
     packages:
       - cmake
+      - ninja-build
       # C++ (for rebuilding hxcpp)
       - gcc-multilib
       - g++-multilib
@@ -32,6 +33,12 @@ addons:
       - mono-mcs
       # Lua
       - libpcre3-dev
+      # HL
+      - libpng-dev
+      - libjpeg-turbo8-dev
+      - libturbojpeg
+      - zlib1g-dev
+      - libvorbis-dev
 
 install:
   # os-specific config
@@ -58,6 +65,28 @@ install:
   - luarocks install luv 1.22.0-1 $LUA_SERVER
   - luarocks install luasocket 3.0rc1-2 $LUA_SERVER
   - luarocks install luautf8 0.1.1-1 $LUA_SERVER
+  # HL
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+      brew install ninja;
+    fi
+  - if [ "${TRAVIS_HAXE_VERSION}" = "development" ]; then
+      export HL_DIR=$HOME/hashlink;
+      git clone https://github.com/HaxeFoundation/hashlink.git $HL_DIR;
+      export HL_BUILD=$HOME/hashlink_build;
+      mkdir $HL_BUILD;
+    fi
+  - if [ "${TRAVIS_OS_NAME}" = "osx" ] && [ "${TRAVIS_HAXE_VERSION}" = "development" ]; then
+      brew bundle --file=$HL_DIR/Brewfile;
+    fi
+  - if [ "${TRAVIS_HAXE_VERSION}" = "development" ]; then
+      cmake -GNinja -DBUILD_TESTING=OFF -DWITH_BULLET=OFF -DWITH_DIRECTX=OFF -DWITH_FMT=ON -DWITH_OPENAL=OFF -DWITH_SDL=OFF -DWITH_SQLITE=OFF -DWITH_SSL=OFF -DWITH_UI=OFF -DWITH_UV=OFF -DWITH_VIDEO=OFF -B$HL_BUILD -H$HL_DIR;
+      cmake --build $HL_BUILD;
+      export PATH=$PATH:$HL_BUILD/bin/;
+      hl --version;
+    else
+      export PATH=$PATH:$HOME;
+      ln -s /bin/echo $HOME/hl;
+    fi
   # Install haxelibs
   - if [ "${TRAVIS_HAXE_VERSION}" = "development" ]; then
       git clone https://github.com/HaxeFoundation/hxcpp.git;

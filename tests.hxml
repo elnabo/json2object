@@ -69,5 +69,6 @@
 # Hl
 -cmd echo "---- Hl -----"
 -hl testout/test.hl
+-cmd hl ./testout/test.hl
 
 -cmd echo "done"

@@ -656,7 +656,7 @@ class DataBuilder {
 												cast ((cpp.Pointer.addressOf(__tmp__new).reinterpret() : cpp.Pointer<$abstractType>).value);
 											}
 										}
-										else if (st.isPrivate && (Context.defined("cs") || Context.defined("java")))
+										else if (st.isPrivate && (Context.defined("cs") || Context.defined("java") || Context.defined("hl")))
 										{
 											Context.fatalError("json2object: Abstract of private are not supported on this target", Context.currentPos());
 										}
