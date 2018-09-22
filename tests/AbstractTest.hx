@@ -116,6 +116,7 @@ abstract OnClass (OnClassData)
 
 class OnClassData
 {
+	public var x:Int;
 }
 
 class AbstractTest
@@ -284,7 +285,19 @@ class AbstractTest
 	public function test11 ()
 	{
 		var parser = new json2object.JsonParser<OnClass>();
-		parser.fromJson("{}", "");
+		parser.fromJson('{"x":1}', "");
 		Assert.isTrue(true); // Just check that it compiles
 	}
+
+	#if (!cs && !java)
+	public function test12 ()
+	{
+		var parser = new json2object.JsonParser<OtherAbstract>();
+		var data = parser.fromJson('{"hello":"world"}', "");
+		Assert.same(data.hello, "world");
+
+		//var writer = new json2object.JsonWriter<OtherAbstract>();
+		//Assert.same(data, parser.fromJson(writer.write(data), ""));
+	}
+	#end
 }

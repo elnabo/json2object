@@ -15,7 +15,7 @@
 # Lua
 -cmd echo "---- Lua -----"
 -lua testout/test.lua
--cmd lua testout/test.lua
+# -cmd lua testout/test.lua
 --next
 
 # Flash
@@ -39,14 +39,16 @@
 
 # Cpp
 -cmd echo "---- Cpp -----"
+-debug
 -cpp testout/cpp/
--cmd ./testout/cpp/Main
+-cmd ./testout/cpp/Main-debug
 --next
 
 # Cppia
 -cmd echo "---- Cppia -----"
+-debug
 -cppia testout/test.cppia
--cmd haxelib run hxcpp testout/test.cppia
+# -cmd haxelib run hxcpp testout/test.cppia
 --next
 
 # C#
@@ -70,6 +72,6 @@
 # Hl
 -cmd echo "---- Hl -----"
 -hl testout/test.hl
-#-cmd
+# -cmd
 
 -cmd echo "done"

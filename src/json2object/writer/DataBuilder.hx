@@ -130,6 +130,12 @@ class DataBuilder {
 				params = [];
 
 			case TInst(_.get()=>t, p):
+				if (t.isPrivate)
+				{
+					t = TypeUtils.copyType(t);
+					trace(t);
+				}
+
 				fields = [];
 				var s = t;
 				while (s != null)

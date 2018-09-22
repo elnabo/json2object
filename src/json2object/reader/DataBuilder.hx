@@ -143,12 +143,12 @@ class DataBuilder {
 		changeFunction("loadJsonNull", parser, macro {value = null;});
 	}
 
-	public static function makeObjectOrAnonParser(parser:TypeDefinition, type:Type, baseParser:BaseType) {
+	public static function makeObjectOrAnonParser(parser:TypeDefinition, type:Type, superType:Type, baseParser:BaseType) {
 		var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(type.toComplexType())]};
-
 
 		var initializator:Expr;
 		var isAnon = false;
+		var isPrivate = null;
 		var fields:Array<ClassField>;
 
 		var tParams:Array<TypeParameter>;
@@ -162,6 +162,12 @@ class DataBuilder {
 				params = [];
 
 			case TInst(_.get()=>t, p):
+				if (t.isPrivate)
+				{
+					t = TypeUtils.copyType(t);
+					isPrivate = t;
+				}
+
 				fields = [];
 				var s = t;
 				while (s != null)
@@ -280,12 +286,24 @@ class DataBuilder {
 			changeFunction("getAuto", parser, macro return $initializator);
 		}
 		else {
+			var casting =
+				if (isPrivate != null && Context.defined("cpp") && !Context.defined("cppia"))
+				{
+					// hxcpp can't directly use the cast
+					var abstractType = superType.toComplexType();
+					macro cast ((cpp.Pointer.addressOf(value).reinterpret() : cpp.Pointer<$abstractType>).value);
+				}
+				else
+				{
+					macro cast value;
+				}
+
 			var autoExpr = macro {
 				var value = $initializator;
 				@:privateAccess {
 					$b{autoExprs};
 				}
-				return cast value;
+				return $casting;
 			}
 			changeFunction("getAuto", parser, macro return $autoExpr);
 		}
@@ -518,8 +536,6 @@ class DataBuilder {
 					Context.fatalError("json2object: Abstract enum of type "+ type.toString() +"can't be parsed if empty", Context.currentPos());
 				}
 
-
-
 				var v = switch (name) {
 					case "String": macro s;
 					case "Int", "Float":
@@ -621,7 +637,39 @@ class DataBuilder {
 							}
 							else {
 								if (i == 0) {
-									makeObjectOrAnonParser(parser,fromType.t.followWithAbstracts(), baseParser);
+									var t = fromType.t;
+									if (st.isPrivate) {
+										var privateType = TypeUtils.copyType(st);
+										t = Context.getType(privateType.name);
+									}
+
+									var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(t.toComplexType())]};
+									var casting =
+										if (st.isPrivate && Context.defined("cpp") && !Context.defined("cppia"))
+										{
+											// hxcpp can't directly use the cast
+											var abstractType = type.toComplexType();
+											macro {
+												var __tmp__new = new $cls(errors, putils, NONE).loadJson(
+													{value:JObject(o), pos:{file:pos.file, min:pos.min, max:pos.max}},
+													variable);
+												cast ((cpp.Pointer.addressOf(__tmp__new).reinterpret() : cpp.Pointer<$abstractType>).value);
+											}
+										}
+										else if (st.isPrivate && (Context.defined("cs") || Context.defined("java")))
+										{
+											Context.fatalError("json2object: Abstract of private are not supported on this target", Context.currentPos());
+										}
+										else
+										{
+											macro cast new $cls(errors, putils, NONE).loadJson(
+											{value:JObject(o), pos:{file:pos.file, min:pos.min, max:pos.max}},
+											variable);
+										}
+									changeFunction("loadJsonObject", parser, macro {
+										value = $casting;
+									});
+									changeFunction("loadJsonNull", parser, macro {value = null;});
 									hasOneFrom = true;
 								}
 							}
@@ -692,7 +740,13 @@ class DataBuilder {
 							}
 						case TAnonymous(_.get()=>st):
 							if (i == 0) {
-								makeObjectOrAnonParser(parser,fromType.t.followWithAbstracts(), baseParser);
+								var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(fromType.t.toComplexType())]};
+									changeFunction("loadJsonObject", parser, macro {
+										value = cast new $cls(errors, putils, NONE).loadJson(
+											{value:JObject(o), pos:{file:pos.file, min:pos.min, max:pos.max}},
+											variable);
+									});
+									changeFunction("loadJsonNull", parser, macro {value = null;});
 								hasOneFrom = true;
 							}
 						default:
@@ -841,10 +895,10 @@ class DataBuilder {
 
 							default:
 						}
-						makeObjectOrAnonParser(parser, type, c);
+						makeObjectOrAnonParser(parser, type, null, c);
 				}
 			case TAnonymous(_.get()=>t):
-				makeObjectOrAnonParser(parser, type, c);
+				makeObjectOrAnonParser(parser, type, null, c);
 			case TAbstract(_.get()=>t, p):
 				if (t.name == "Null") {
 					return makeParser(c, p[0], type);

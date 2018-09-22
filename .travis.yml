@@ -31,12 +31,12 @@ addons:
       - mono-devel
       - mono-mcs
       # Lua
-      - luajit
-      - luarocks
-      - lua-sec
-      - lua-bitop
-      - lua-socket
-      - libpcre3-dev
+      # - luajit
+      # - luarocks
+      # - lua-sec
+      # - lua-bitop
+      # - lua-socket
+      # - libpcre3-dev
 
 install:
   # os-specific config
@@ -49,17 +49,17 @@ install:
       brew install php@7.2;
     fi
   # Haxe Lua dependencies
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-      luarocks install --local lrexlib-pcre PCRE_LIBDIR=/lib/x86_64-linux-gnu;
-    elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-      brew install lua pcre python;
-      luarocks install --local luabitop;
-      luarocks install --local luasocket;
-      luarocks install --local lrexlib-pcre;
-    fi
-  - luarocks install --local luv
-  - luarocks install --local environ
-  - eval $(luarocks path)
+  # - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+  #     luarocks install --local lrexlib-pcre PCRE_LIBDIR=/lib/x86_64-linux-gnu;
+  #   elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+  #     brew install lua pcre python;
+  #     luarocks install --local luabitop;
+  #     luarocks install --local luasocket;
+  #     luarocks install --local lrexlib-pcre;
+  #   fi
+  # - luarocks install --local luv
+  # - luarocks install --local environ
+  # - eval $(luarocks path)
   # Install haxelibs
   - if [ "${TRAVIS_HAXE_VERSION}" = "development" ]; then
       git clone https://github.com/HaxeFoundation/hxcpp.git;
