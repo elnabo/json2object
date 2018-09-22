@@ -15,13 +15,12 @@
 # Lua
 -cmd echo "---- Lua -----"
 -lua testout/test.lua
-# -cmd lua testout/test.lua
+-cmd lua testout/test.lua
 --next
 
 # Flash
 -cmd echo "---- Flash -----"
 -swf testout/test.swf
-#-cmd
 --next
 
 # Neko
@@ -72,6 +71,5 @@
 # Hl
 -cmd echo "---- Hl -----"
 -hl testout/test.hl
-# -cmd
 
 -cmd echo "done"
