@@ -67,7 +67,7 @@ install:
         pushd project; neko build.n; haxe compile-cppia.hxml; popd;
       popd;
     else
-      haxelib install hxcpp;
+      haxelib install hxcpp 3.4.188;
     fi
   - haxelib install hxjava
   - haxelib install hxcs

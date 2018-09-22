@@ -38,16 +38,14 @@
 
 # Cpp
 -cmd echo "---- Cpp -----"
--debug
 -cpp testout/cpp/
--cmd ./testout/cpp/Main-debug
+-cmd ./testout/cpp/Main
 --next
 
 # Cppia
 -cmd echo "---- Cppia -----"
--debug
 -cppia testout/test.cppia
-# -cmd haxelib run hxcpp testout/test.cppia
+-cmd haxelib run hxcpp testout/test.cppia
 --next
 
 # C#
