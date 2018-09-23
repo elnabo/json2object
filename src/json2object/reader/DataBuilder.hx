@@ -713,7 +713,7 @@ class DataBuilder {
 											makeBoolParser(parser, fromType.t);
 										}
 										else {
-											changeFunction("loadJsonNumber",
+											changeFunction("loadJsonBool",
 												parser,
 												macro {
 													value = new $cls(errors, putils, NONE).loadJson(
