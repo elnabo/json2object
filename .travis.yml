@@ -101,7 +101,7 @@ install:
   - haxelib install hxjava
   - haxelib install hxcs
   - haxelib install hxjsonast # dep for json2object
-  - haxelib install utest     # dep for json2object
+  - haxelib install utest 1.8.4 # utest 1.9.0 is broken on python with haxe 3
   - haxelib list
 
 script:
