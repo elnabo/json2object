@@ -95,6 +95,8 @@ class Main {
 ```
 If multiple alias metadatas are on the variable only the last one is taken into account.
 
+- As of version 3.4.0, private classes can be parsed except on the CS, Java and HL targets.
+
 ## Example
 
 With an anonymous structure:
