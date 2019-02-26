@@ -544,13 +544,21 @@ class DataBuilder {
 					case "Bool": macro b;
 					default: macro null;
 				}
-				var case_e = [{expr:macro value = cast $v, guard:null, values:caseValues}];
-				var default_e = macro {value = cast ${caseValues[0]}; onIncorrectType(pos, variable);};
 
-				e = {expr: ESwitch(macro cast $v, case_e, default_e), pos: Context.currentPos() };
+				if (caseValues.length > 0) {
+					var case_e = [{expr:macro value = cast $v, guard:null, values:caseValues}];
+					var default_e = macro {value = cast ${caseValues[0]}; onIncorrectType(pos, variable);};
+
+					e = {expr: ESwitch(macro cast $v, case_e, default_e), pos: Context.currentPos() };
+				}
+				else {
+					e = macro null;
+				}
+
+				var defaultValue = (caseValues.length == 0) ? macro null : macro cast ${caseValues[0]};
 
 				changeFunction("onIncorrectType", parser, macro {
-					value = cast ${caseValues[0]};
+					value = ${defaultValue};
 					errors.push(IncorrectType(variable, $v{type.toString()}, pos));
 					switch (errorType) {
 						case THROW: throw "json2object: parsing throw";
