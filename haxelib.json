@@ -4,7 +4,7 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Type safe Haxe/JSON (de)serializer",
-	"version": "3.4.0",
+	"version": "3.4.1",
 	"releasenote": "Improved abstract support (partial private class support)",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
