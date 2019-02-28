@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2016 Guillaume Desquesnes, Valentin Lemière
+Copyright (c) 2016-2019 Guillaume Desquesnes, Valentin Lemière
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -68,11 +68,34 @@ class PositionUtils {
 		var max = position.max;
 
 		var pos = {file: file, min: min+1, max: max+1, lines:[]};
+		var lastLine = linesInfo.length - 1;
+
+		var bounds = {min:0, max:lastLine};
+		if (min <= linesInfo[0].end) {
+			// if (max <= linesInfo[lastLine].end) {
+
+			// }
+		}
+		else {
+			while (bounds.max > bounds.min) {
+				var i = Std.int((bounds.min + bounds.max) / 2);
+				var line = linesInfo[i];
+				if (line.end < min) {
+					bounds.min = i+1;
+				}
+				if (line.start > min || (line.end >= min && line.start < min)) {
+					bounds.max = i;
+				}
+			}
+
+		}
+
 		// Usually first line/char are refered as 1 instead of 0
-		for (line in linesInfo) {
+		for (i in bounds.min...linesInfo.length) {
+			var line = linesInfo[i];
 			if (line.start <= min && line.end >= max) {
 				pos.lines.push({ number: line.number +1, start: min-line.start +1, end: max-line.start +1 });
-				return pos;
+				break;
 			}
 			if (line.start <= min && min <= line.end) {
 				pos.lines.push({ number: line.number +1, start: min-line.start +1, end: line.end +1 });
@@ -80,7 +103,15 @@ class PositionUtils {
 			if (line.start <= max && max <= line.end) {
 				pos.lines.push({ number: line.number +1, start: line.start +1, end: max-line.start +1 });
 			}
+			if (line.start >= max || line.end >= max) {
+				break;
+			}
 		}
+
 		return pos;
+	}
+
+	public inline function revert(position:Position) : hxjsonast.Position {
+		return {file:position.file, min:position.min - 1, max:position.max - 1};
 	}
 }

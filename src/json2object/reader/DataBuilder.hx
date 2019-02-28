@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2017-2018 Guillaume Desquesnes, Valentin Lemière
+Copyright (c) 2017-2019 Guillaume Desquesnes, Valentin Lemière
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -318,9 +318,12 @@ class DataBuilder {
 				}
 			}
 
-			var lastPos = putils.convertPosition(new hxjsonast.Position(pos.file, pos.max-1, pos.max-1));
+			var lastPos:Null<json2object.Position> = null;
 			for (s in assigned.keys()) {
 				if (!assigned[s]) {
+					if (lastPos == null) {
+						lastPos = putils.convertPosition({file:pos.file, min:pos.max-1, max:pos.max-1});
+					}
 					errors.push(UninitializedVariable(s, lastPos));
 				}
 			}
@@ -337,7 +340,7 @@ class DataBuilder {
 			case TInst(_.get()=>t, _):
 				if (t.module == "String") {
 					macro try {
-						new $k_cls(errors, putils, THROW).loadJson({value:JString(field.name), pos:{file:pos.file, min:pos.min, max:pos.max}}, variable);
+						new $k_cls(errors, putils, THROW).loadJson({value:JString(field.name), pos:putils.revert(pos)}, variable);
 					} catch (_:Dynamic) { continue;}
 				}
 				else {
@@ -346,7 +349,7 @@ class DataBuilder {
 			case TAbstract(_.get()=>t, _):
 				if (t.module == "StdTypes" && t.name == "Int") {
 					macro try {
-						new $k_cls(errors, putils, THROW).loadJson({value:JNumber(field.name), pos:{file:pos.file, min:pos.min, max:pos.max}}, variable);
+						new $k_cls(errors, putils, THROW).loadJson({value:JNumber(field.name), pos:putils.revert(pos)}, variable);
 					} catch (_:Dynamic) { continue;}
 				}
 				else {
@@ -540,7 +543,7 @@ class DataBuilder {
 					case "String": macro s;
 					case "Int", "Float":
 						var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(Context.getType(name).toComplexType())]} ;
-						macro new $cls([], putils, NONE).loadJson({value:JNumber(f), pos:{file:pos.file, min:pos.min, max:pos.max}}, variable);
+						macro new $cls([], putils, NONE).loadJson({value:JNumber(f), pos:putils.revert(pos)}, variable);
 					case "Bool": macro b;
 					default: macro null;
 				}
@@ -604,7 +607,7 @@ class DataBuilder {
 										parser,
 										macro {
 											value = new $cls(errors, putils, NONE).loadJson(
-											{value:JString(s), pos:{file:pos.file, min:pos.min, max:pos.max}},
+											{value:JString(s), pos:putils.revert(pos)},
 												variable);
 											});
 									changeFunction("loadJsonNull", parser, macro {value = null;});
@@ -634,7 +637,7 @@ class DataBuilder {
 										parser,
 										macro {
 											value = new $cls(errors, putils, NONE).loadJson(
-											{value:JArray(a), pos:{file:pos.file, min:pos.min, max:pos.max}},
+											{value:JArray(a), pos:putils.revert(pos)},
 												variable);
 											});
 									changeFunction("loadJsonNull", parser, macro {value = null;});
@@ -659,7 +662,7 @@ class DataBuilder {
 											var abstractType = type.toComplexType();
 											macro {
 												var __tmp__new = new $cls(errors, putils, NONE).loadJson(
-													{value:JObject(o), pos:{file:pos.file, min:pos.min, max:pos.max}},
+													{value:JObject(o), pos:putils.revert(pos)},
 													variable);
 												cast ((cpp.Pointer.addressOf(__tmp__new).reinterpret() : cpp.Pointer<$abstractType>).value);
 											}
@@ -671,7 +674,7 @@ class DataBuilder {
 										else
 										{
 											macro cast new $cls(errors, putils, NONE).loadJson(
-											{value:JObject(o), pos:{file:pos.file, min:pos.min, max:pos.max}},
+											{value:JObject(o), pos:putils.revert(pos)},
 											variable);
 										}
 									changeFunction("loadJsonObject", parser, macro {
@@ -695,7 +698,7 @@ class DataBuilder {
 													parser,
 													macro {
 														value = new $cls(errors, putils, NONE).loadJson(
-														{value:JNumber(f), pos:{file:pos.file, min:pos.min, max:pos.max}},
+														{value:JNumber(f), pos:putils.revert(pos)},
 															variable);
 														});
 											}
@@ -710,7 +713,7 @@ class DataBuilder {
 												parser,
 												macro {
 													value = new $cls(errors, putils, NONE).loadJson(
-													{value:JNumber(f), pos:{file:pos.file, min:pos.min, max:pos.max}},
+													{value:JNumber(f), pos:putils.revert(pos)},
 														variable);
 													});
 										}
@@ -725,7 +728,7 @@ class DataBuilder {
 												parser,
 												macro {
 													value = new $cls(errors, putils, NONE).loadJson(
-													{value:JBool(b), pos:{file:pos.file, min:pos.min, max:pos.max}},
+													{value:JBool(b), pos:putils.revert(pos)},
 														variable);
 													});
 										}
@@ -751,7 +754,7 @@ class DataBuilder {
 								var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(fromType.t.toComplexType())]};
 									changeFunction("loadJsonObject", parser, macro {
 										value = cast new $cls(errors, putils, NONE).loadJson(
-											{value:JObject(o), pos:{file:pos.file, min:pos.min, max:pos.max}},
+											{value:JObject(o), pos:putils.revert(pos)},
 											variable);
 									});
 									changeFunction("loadJsonNull", parser, macro {value = null;});
