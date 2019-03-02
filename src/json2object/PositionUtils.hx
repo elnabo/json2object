@@ -71,15 +71,14 @@ class PositionUtils {
 		var lastLine = linesInfo.length - 1;
 
 		var bounds = {min:0, max:lastLine};
-		if (min <= linesInfo[0].end) {
-			// if (max <= linesInfo[lastLine].end) {
-
-			// }
-		}
-		else {
+		if (min > linesInfo[0].end) {
 			while (bounds.max > bounds.min) {
 				var i = Std.int((bounds.min + bounds.max) / 2);
 				var line = linesInfo[i];
+				if (line.start == min) {
+					bounds.min = i;
+					bounds.max = i;
+				}
 				if (line.end < min) {
 					bounds.min = i+1;
 				}

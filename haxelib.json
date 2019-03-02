@@ -4,8 +4,8 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Type safe Haxe/JSON (de)serializer",
-	"version": "3.4.2",
-	"releasenote": "Improved performances",
+	"version": "3.4.3",
+	"releasenote": "Fix infinite looping on json with empty line",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
 	"dependencies": {
