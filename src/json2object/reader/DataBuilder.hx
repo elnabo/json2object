@@ -895,10 +895,8 @@ class DataBuilder {
 				switch(t.module) {
 					case "String":
 						makeStringParser(parser);
-					case "Array":
-						if (p.length == 1 && p[0] != null) {
-							makeArrayParser(parser, p[0], c);
-						}
+					case "Array" if (p.length == 1 && p[0] != null):
+						makeArrayParser(parser, p[0], c);
 					case _:
 						switch (t.kind) {
 							case KTypeParameter(_):
@@ -908,7 +906,7 @@ class DataBuilder {
 						}
 						makeObjectOrAnonParser(parser, type, null, c);
 				}
-			case TAnonymous(_.get()=>t):
+			case TAnonymous(_):
 				makeObjectOrAnonParser(parser, type, null, c);
 			case TAbstract(_.get()=>t, p):
 				if (t.name == "Null") {

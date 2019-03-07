@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2017-2018 Guillaume Desquesnes, Valentin Lemière
+Copyright (c) 2017-2019 Guillaume Desquesnes, Valentin Lemière
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -116,7 +116,6 @@ class DataBuilder {
 	}
 
 	private static function makeObjectOrAnonWriter (type:Type, baseParser:BaseType) : Expr {
-		var isAnon = false;
 		var fields:Array<ClassField>;
 
 		var tParams:Array<TypeParameter>;
@@ -124,7 +123,6 @@ class DataBuilder {
 
 		switch (type) {
 			case TAnonymous(_.get()=>t):
-				isAnon = true;
 				fields = t.fields;
 				tParams = [];
 				params = [];
@@ -146,9 +144,6 @@ class DataBuilder {
 
 				tParams = t.params;
 				params = p;
-
-				var pack = t.module.split(".");
-				pack.push(t.name);
 
 			case _: return macro return null;
 		}
@@ -308,7 +303,7 @@ class DataBuilder {
 				}
 				else if (t.module == "StdTypes") {
 					switch (t.name) {
-						case "Int", "Float", "Singe", "Bool":
+						case "Int", "Float", "Single", "Bool":
 							makeBasicWriter(base);
 						default: Context.fatalError("json2object: Parser of "+t.name+" are not generated", Context.currentPos());
 					}
