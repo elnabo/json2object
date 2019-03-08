@@ -103,12 +103,94 @@ class DataBuilder {
 				throw "Unexpected type "+name;
 		}
 	}
-	static function makeAbstractEnumSchema(type:Type):JsonType { throw "TODO"; }
+	static function makeAbstractEnumSchema(type:Type):JsonType {
+		var name = type.toString();
+		var addnull = isNullable(type);
+		switch (type.followWithAbstracts()) {
+			case TInst(_.get()=>t, _):
+				if (t.module != "String") {
+					throw "json2object: Unsupported abstract enum type:"+ name + " " + Context.currentPos();
+				}
+				name = "String";
+			case TAbstract(_.get()=>t, _):
+				if (t.module != "StdTypes" && (t.name != "Int" && t.name != "Bool" && t.name != "Float")) {
+					throw "json2object: Unsupported abstract enum type:"+ name + " " + Context.currentPos();
+				}
+				name = t.name;
+			default: throw "json2object: Unsupported abstract enum type:"+ name + " " + Context.currentPos();
+		}
+		var strValues = new Array<String>();
+		var otherValues = new Array<Dynamic>();
+		switch (type) {
+			case TAbstract(_.get()=>t, p) :
+				for (field in t.impl.get().statics.get()) {
+					if (!field.meta.has(":enum") || !field.meta.has(":impl")) {
+						continue;
+					}
+					if (field.expr() == null) { continue; }
+					switch (field.expr().expr) {
+						case TConst(TString(s)): strValues.push(s);
+						case TConst(TNull): otherValues.push(null); addnull = false;
+						case TConst(TBool(b)): otherValues.push(b);
+						case TConst(TFloat(f)): otherValues.push(f);
+						case TConst(TInt(i)): otherValues.push(i);
+						default:
+					}
+				}
+			default:
+		}
+
+		if (strValues.length == 0 && otherValues.length == 0) {
+			throw 'json2object: Abstract enum ${name} has no supported value';
+		}
+
+		strValues = strValues.map(function (s) { return '"' + json2object.writer.StringUtils.quote(s) + '"'; });
+		var jt = JTEnum(otherValues.concat(strValues));
+		if (addnull) {
+			jt = anyOf(JTNull, jt);
+		}
+		definitions.set(name, jt);
+		return JTRef(name);
+	}
 	static function makeEnumSchema(type:Type):JsonType {
 		var name = type.toString();
 
-		//definitions.set(name, );
-		throw "TODO";
+		var simple = [];
+		var complex = [];
+		switch (type) {
+			case TEnum(_.get()=>t, p):
+				for (n in t.names) {
+					var valuename = name+".$enumvalue$"+n;
+					switch (t.constructs.get(n).type) {
+						case TEnum(_,_):
+							simple.push(n);
+						case TFun(args,_):
+							var properties = new Map<String, JsonType>();
+							var required = [];
+							for (a in args) {
+								properties.set(a.name, makeSchema(a.t));
+								if (!a.opt) {
+									required.push(a.name);
+								}
+							}
+							complex.push(JTObject(properties, required));
+						default:
+					}
+				}
+			default:
+		}
+
+		var jt = JTNull;
+
+		while (complex.length > 0) {
+			jt = anyOf(jt, complex.pop());
+		}
+
+		if (simple.length > 0) {
+			jt = anyOf(jt, JTPatternObject([for (s in simple) s]));
+			jt = anyOf(jt, JTEnum(simple.map(function (s) { return '"' + json2object.writer.StringUtils.quote(s) + '"'; })));
+		}
+		definitions.set(name, jt);
 		return JTRef(name);
 	}
 
@@ -251,7 +333,24 @@ class DataBuilder {
 	}
 
 	static function format(schema:JsonType) : String {
-		return schema.toString();
+		var buf = new StringBuf();
+		buf.add('{\n');
+		buf.add('"$$schema": "http://json-schema.org/draft-07/schema#",\n');
+		var hasDef = definitions.keys().hasNext();
+		if (hasDef) {
+			buf.add('"definitions":{');
+			var comma = false;
+			for (defName in definitions.keys()) {
+				if (comma) { buf.add(", "); }
+				buf.add('"$defName": ${definitions.get(defName).toString()}');
+				comma = true;
+			}
+			buf.add('},\n');
+		}
+		var s = schema.toString();
+		buf.add(s.substring(1, s.length - 1));
+		buf.add('\n}');
+		return buf.toString();
 	}
 
 	static function makeSchemaWriter(c:BaseType, type:Type, base:Type=null) {

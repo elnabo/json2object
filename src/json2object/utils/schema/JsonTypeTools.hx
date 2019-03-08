@@ -29,17 +29,21 @@ class JsonTypeTools {
 		return switch (jt) {
 			case JTNull: '{"type":"null"}';
 			case JTSimple(t): '{"type":"${t}"}';
-			case JTObject(properties, required):
+			case JTObject(properties, rq):
 				var str = new StringBuf();
 				str.add('{"type":"object", "properties":{');
 				var comma = false;
+				var required = (rq.length > 0) ? '"required":[${rq.join(", ")}]': "";
 				for (key in properties.keys()) {
 					if(comma) { str.add(", "); }
 					str.add('"${key}": ${properties.get(key).toString()}');
 					comma = true;
 				}
-				str.add('}, additionalProperties": false, "required":[${required.join(", ")}]}');
+				str.add('}, additionalProperties": false, ${required}}');
 				str.toString();
+			case JTPatternObject(patterns):
+				var p = "^" + patterns.join('|') + "$";
+				'{"type":"object", "propertyNames":{"pattern":"${p}"}}';
 			case JTArray(type): '{"type":"array", "items": [${type.toString()}]}';
 			case JTMap(onlyInt, type):
 				if (onlyInt) {

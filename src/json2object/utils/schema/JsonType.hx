@@ -26,6 +26,7 @@ enum JsonType {
 	JTNull;
 	JTSimple(t:String);
 	JTObject(properties:Map<String, JsonType>, required:Array<String>);
+	JTPatternObject(patterns:Array<String>);
 	JTArray(type:JsonType);
 	JTMap(onlyInt:Bool, type:JsonType);
 	JTRef(name:String);
