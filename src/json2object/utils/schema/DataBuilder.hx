@@ -64,6 +64,7 @@ class DataBuilder {
 
 	static function anyOf(t1:JsonType, t2:JsonType) {
 		return switch [t1, t2] {
+			case [JTNull, JTAnyOf(v)], [JTAnyOf(v), JTNull] if (v.indexOf(JTNull) != -1): t2;
 			case [JTAnyOf(v1), JTAnyOf(v2)]: JTAnyOf(v1.concat(v2));
 			case [JTAnyOf(val), t], [t, JTAnyOf(val)]: JTAnyOf(val.concat([t]));
 			default: JTAnyOf([t1, t2]);
@@ -80,16 +81,19 @@ class DataBuilder {
 				var i = 0;
 				for(fromType in from) {
 					try {
-						var ft = fromType.t.followWithAbstracts();
+						var ft = fromType.t.applyTypeParameters(t.params, p);
+						trace(ft.toString());
+						var ft = ft.followWithAbstracts();
+						trace(ft.toString());
 						possiblesJT.push(makeSchema(ft));
 						if (isNullable(ft)) {
 							jt = JTNull;
 						}
 					}
-					catch (_:#if (haxe_ver >= 4) Any #else Dynamic #end) {}
+					catch (e:#if (haxe_ver >= 4) Any #else Dynamic #end) { trace(e);}
 				}
 				if (possiblesJT.length == 0) {
-					throw "Abstract "+name+ " has no Json representation "+ Context.currentPos();
+					throw "Abstract "+name+ " has no json representation "+ Context.currentPos();
 				}
 				if (jt == null) {
 					jt = possiblesJT.pop();
@@ -111,16 +115,26 @@ class DataBuilder {
 				if (t.module != "String") {
 					throw "json2object: Unsupported abstract enum type:"+ name + " " + Context.currentPos();
 				}
-				name = "String";
 			case TAbstract(_.get()=>t, _):
 				if (t.module != "StdTypes" && (t.name != "Int" && t.name != "Bool" && t.name != "Float")) {
 					throw "json2object: Unsupported abstract enum type:"+ name + " " + Context.currentPos();
 				}
-				name = t.name;
 			default: throw "json2object: Unsupported abstract enum type:"+ name + " " + Context.currentPos();
 		}
 		var strValues = new Array<String>();
 		var otherValues = new Array<Dynamic>();
+
+		function handleExpr(expr:TypedExprDef, ?rec:Bool=true) {
+			switch (expr) {
+				case TConst(TString(s)): trace(s); strValues.push(s);
+				case TConst(TNull): otherValues.push(null); addnull = false;
+				case TConst(TBool(b)): otherValues.push(b);
+				case TConst(TFloat(f)): otherValues.push(f);
+				case TConst(TInt(i)): otherValues.push(i);
+				case TCast(c, _) if (rec): handleExpr(c.expr, false);
+				default:
+			}
+		}
 		switch (type) {
 			case TAbstract(_.get()=>t, p) :
 				for (field in t.impl.get().statics.get()) {
@@ -128,14 +142,7 @@ class DataBuilder {
 						continue;
 					}
 					if (field.expr() == null) { continue; }
-					switch (field.expr().expr) {
-						case TConst(TString(s)): strValues.push(s);
-						case TConst(TNull): otherValues.push(null); addnull = false;
-						case TConst(TBool(b)): otherValues.push(b);
-						case TConst(TFloat(f)): otherValues.push(f);
-						case TConst(TInt(i)): otherValues.push(i);
-						default:
-					}
+					handleExpr(field.expr().expr);
 				}
 			default:
 		}
@@ -144,7 +151,7 @@ class DataBuilder {
 			throw 'json2object: Abstract enum ${name} has no supported value';
 		}
 
-		strValues = strValues.map(function (s) { return '"' + json2object.writer.StringUtils.quote(s) + '"'; });
+		strValues = strValues.map(function (s) { return json2object.writer.StringUtils.quote(s); });
 		var jt = JTEnum(otherValues.concat(strValues));
 		if (addnull) {
 			jt = anyOf(JTNull, jt);
@@ -188,7 +195,7 @@ class DataBuilder {
 
 		if (simple.length > 0) {
 			jt = anyOf(jt, JTPatternObject([for (s in simple) s]));
-			jt = anyOf(jt, JTEnum(simple.map(function (s) { return '"' + json2object.writer.StringUtils.quote(s) + '"'; })));
+			jt = anyOf(jt, JTEnum(simple.map(function (s) { return json2object.writer.StringUtils.quote(s); })));
 		}
 		definitions.set(name, jt);
 		return JTRef(name);
@@ -315,8 +322,7 @@ class DataBuilder {
 						makeAbstractEnumSchema(type.applyTypeParameters(t.params, p));
 					}
 					else {
-						var ap = t.type.applyTypeParameters(t.params, p);
-						makeAbstractSchema(ap);
+						makeAbstractSchema(type.applyTypeParameters(t.params, p));
 					}
 				}
 			case TEnum(_.get()=>t,p):
@@ -338,10 +344,10 @@ class DataBuilder {
 		buf.add('"$$schema": "http://json-schema.org/draft-07/schema#",\n');
 		var hasDef = definitions.keys().hasNext();
 		if (hasDef) {
-			buf.add('"definitions":{');
+			buf.add('"definitions":{\n');
 			var comma = false;
 			for (defName in definitions.keys()) {
-				if (comma) { buf.add(", "); }
+				if (comma) { buf.add(",\n "); }
 				buf.add('"$defName": ${definitions.get(defName).toString()}');
 				comma = true;
 			}
