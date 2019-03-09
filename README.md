@@ -42,6 +42,11 @@ var writer = new json2object.JsonWriter<Cls>(); // Creating a writer for Cls cla
 var json = writer.write(value);
 ```
 
+### Using the experimental JsonSchema writer
+```haxe
+var schema = new json2object.utils.JsonSchemaWriter<Cls>().schema;
+```
+
 ### Constraints in the parsing
 
 - Variables defined with the `@:jignored` metadata will be ignored by the parser.

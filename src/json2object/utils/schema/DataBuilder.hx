@@ -362,10 +362,8 @@ class DataBuilder {
 		var swriterName = c.name + "_" + (counter++);
 		var schema = format(makeSchema(type));
 		var schemaWriter = macro class $swriterName {
-			public function new() {}
-			public function generate () {
-				return $v{schema};
-			}
+			public function new () {}
+			public #if (haxe_ver >= 4) final #else var #end schema#if (haxe_ver >= 4) #else (default,never) #end:String = $v{schema};
 		}
 		haxe.macro.Context.defineType(schemaWriter);
 		return haxe.macro.Context.getType(swriterName);
