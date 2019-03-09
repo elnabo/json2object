@@ -419,9 +419,11 @@ class DataBuilder {
 							internObjectCases.push({expr: objSubExpr, guard: null, values: [macro $v{n}]});
 
 						case TFun(args, _):
+							var names = [for (a in args) a.name];
+
 							var enumParams:Array<Expr> = [];
 							var blockExpr = [
-								macro if (s0.length != $v{args.length}) {
+								macro if (s0.length != $v{args.length} || s0.filter(function (_v) { return $v{names}.indexOf(_v.name) != -1;}).length != s0.length) {
 									errors.push(InvalidEnumConstructor(field.name, $v{t.name}, pos));
 									switch (errorType) {
 										case OBJECTTHROW, THROW : throw "json2object: parsing throw";

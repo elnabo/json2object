@@ -167,7 +167,6 @@ class DataBuilder {
 		switch (type) {
 			case TEnum(_.get()=>t, p):
 				for (n in t.names) {
-					var valuename = name+".$enumvalue$"+n;
 					switch (t.constructs.get(n).type) {
 						case TEnum(_,_):
 							simple.push(n);
@@ -175,12 +174,12 @@ class DataBuilder {
 							var properties = new Map<String, JsonType>();
 							var required = [];
 							for (a in args) {
-								properties.set(a.name, makeSchema(a.t));
+								properties.set(a.name, makeSchema(a.t.applyTypeParameters(t.params, p)));
 								if (!a.opt) {
 									required.push(a.name);
 								}
 							}
-							complex.push(JTObject(properties, required));
+							complex.push(JTObject([n => JTObject(properties, required)], [n]));
 						default:
 					}
 				}
