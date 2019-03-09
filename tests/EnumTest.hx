@@ -164,6 +164,11 @@ class EnumTest
 		Assert.isTrue(Type.enumEq(Both("a",1),data.value));
 		Assert.same(data, parser.fromJson(writer.write(data),"test"));
 
+		data = parser.fromJson('{"value":{"Both":{"b":1,"a":"a"}}}', "test.json");
+		Assert.equals(0, parser.errors.length);
+		Assert.isTrue(Type.enumEq(Both("a",1),data.value));
+		Assert.same(data, parser.fromJson(writer.write(data),"test"));
+
 		data = parser.fromJson('{"value":{"Second":{"b":1}}}', "test.json");
 		Assert.same(InvalidEnumConstructor("Second", "WithParam", {file:"test.json", lines:[{number:1, start:10, end:28}], min:10, max:28}), parser.errors[0]);
 		Assert.same(UninitializedVariable("value", {file:"test.json", lines:[{number:1, start:29, end:29}], min:29, max:29}), parser.errors[1]);

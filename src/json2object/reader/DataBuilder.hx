@@ -422,15 +422,16 @@ class DataBuilder {
 							var names = [for (a in args) a.name];
 
 							var enumParams:Array<Expr> = [];
-							var blockExpr = [
-								macro if (s0.length != $v{args.length} || s0.filter(function (_v) { return $v{names}.indexOf(_v.name) != -1;}).length != s0.length) {
+							var blockExpr = [ macro var _names = $v{names} ];
+							blockExpr.push(
+								macro if (s0.length != $v{args.length} || s0.filter(function (_v) { return _names.indexOf(_v.name) != -1;}).length != s0.length) {
 									errors.push(InvalidEnumConstructor(field.name, $v{t.name}, pos));
 									switch (errorType) {
 										case OBJECTTHROW, THROW : throw "json2object: parsing throw";
 										case _:
 									}
 								}
-							];
+							);
 							var argCount = 0;
 							for (a in args) {
 								var arg_name = '__${a.name}';
@@ -439,7 +440,7 @@ class DataBuilder {
 								blockExpr.push({expr: EVars([{name: arg_name, type:at.toComplexType(), expr:null}]), pos:Context.currentPos()});
 
 								var a_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(at.toComplexType())]};
-								var v = macro $i{arg_name} = new $a_cls(errors, putils, THROW).loadJson(s0[$v{argCount}].value, field.name+"."+$v{a.name});
+								var v = macro $i{arg_name} = new $a_cls(errors, putils, THROW).loadJson(s0.filter(function (o) { return o.name == _names[$v{argCount}];})[0].value, field.name+"."+$v{a.name});
 								blockExpr.push(v);
 								argCount++;
 							}
