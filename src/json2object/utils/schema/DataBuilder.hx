@@ -240,12 +240,22 @@ class DataBuilder {
 							continue;
 						}
 
-						if (!field.meta.has(":optional")) {
-							required.push(field.name);
+						var f_type = field.type.applyTypeParameters(tParams, params);
+						var f_name = field.name;
+						for (m in field.meta.extract(":alias")) {
+							if (m.params != null && m.params.length == 1) {
+								switch (m.params[0].expr) {
+									case EConst(CString(s)): f_name = s;
+									default:
+								}
+							}
 						}
 
-						var f_type = field.type.applyTypeParameters(tParams, params);
-						properties.set(field.name, describe(makeSchema(f_type), field.doc));
+						if (!field.meta.has(":optional")) {
+							required.push(f_name);
+						}
+
+						properties.set(f_name, describe(makeSchema(f_type), field.doc));
 					default:
 				}
 			}
