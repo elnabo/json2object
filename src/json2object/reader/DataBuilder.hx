@@ -960,9 +960,6 @@ class DataBuilder {
 
 		haxe.macro.Context.defineType(parser);
 
-		//~ var p = new haxe.macro.Printer();
-		//~ trace(p.printTypeDefinition(parser));
-
 		var constructedType = haxe.macro.Context.getType(parserName);
 		parsers.set(parserMapName, constructedType);
 		return constructedType;

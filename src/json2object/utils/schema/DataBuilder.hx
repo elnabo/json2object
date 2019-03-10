@@ -82,9 +82,7 @@ class DataBuilder {
 				for(fromType in from) {
 					try {
 						var ft = fromType.t.applyTypeParameters(t.params, p);
-						trace(ft.toString());
 						var ft = ft.followWithAbstracts();
-						trace(ft.toString());
 						possiblesJT.push(makeSchema(ft));
 						if (isNullable(ft)) {
 							jt = JTNull;
@@ -126,7 +124,7 @@ class DataBuilder {
 
 		function handleExpr(expr:TypedExprDef, ?rec:Bool=true) {
 			switch (expr) {
-				case TConst(TString(s)): trace(s); strValues.push(s);
+				case TConst(TString(s)): strValues.push(s);
 				case TConst(TNull): otherValues.push(null); addnull = false;
 				case TConst(TBool(b)): otherValues.push(b);
 				case TConst(TFloat(f)): otherValues.push(f);

@@ -131,7 +131,6 @@ class DataBuilder {
 				if (t.isPrivate)
 				{
 					t = TypeUtils.copyType(t);
-					trace(t);
 				}
 
 				fields = [];
