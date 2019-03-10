@@ -49,7 +49,7 @@ class JsonTypeTools {
 				}
 				str.add('}, "additionalProperties": false${required}${end}');
 				str.toString();
-			case JTArray(type): '{"type":"array", "items": [${type.toString()}]${end}';
+			case JTArray(type): '{"type":"array", "items": ${type.toString()}${end}';
 			case JTMap(onlyInt, type):
 				if (onlyInt) {
 					'{"type":"object", "patternProperties": {"/^[-+]?\\d+([Ee][+-]?\\d+)?$/"} : ${type.toString()}${end}';

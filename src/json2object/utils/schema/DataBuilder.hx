@@ -357,7 +357,7 @@ class DataBuilder {
 
 	static function makeSchemaWriter(c:BaseType, type:Type, base:Type=null) {
 		var swriterName = c.name + "_" + (counter++);
-		var schema = format(makeSchema(type));
+		var schema = Context.defined("display") ? "Schema generation not available in display mode." : format(makeSchema(type));
 		var schemaWriter = macro class $swriterName {
 			public function new () {}
 			public #if (haxe_ver >= 4) final #else var #end schema#if (haxe_ver >= 4) #else (default,never) #end:String = $v{schema};
