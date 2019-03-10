@@ -88,7 +88,7 @@ class DataBuilder {
 							jt = JTNull;
 						}
 					}
-					catch (e:#if (haxe_ver >= 4) Any #else Dynamic #end) { trace(e);}
+					catch (e:#if (haxe_ver >= 4) Any #else Dynamic #end) {}
 				}
 				if (possiblesJT.length == 0) {
 					throw "Abstract "+name+ " has no json representation "+ Context.currentPos();

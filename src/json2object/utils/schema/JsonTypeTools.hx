@@ -33,13 +33,13 @@ class JsonTypeTools {
 				var str = new StringBuf();
 				str.add('{"type":"object", "properties":{');
 				var comma = false;
-				var required = (rq.length > 0) ? '"required":["${rq.join('", "')}"]': "";
+				var required = (rq.length > 0) ? ', "required":["${rq.join('", "')}"]': "";
 				for (key in properties.keys()) {
 					if(comma) { str.add(", "); }
 					str.add('"${key}": ${properties.get(key).toString()}');
 					comma = true;
 				}
-				str.add('}, "additionalProperties": false, ${required}}');
+				str.add('}, "additionalProperties": false${required}}');
 				str.toString();
 			case JTPatternObject(patterns):
 				var p = "^" + patterns.join('|') + "$";
