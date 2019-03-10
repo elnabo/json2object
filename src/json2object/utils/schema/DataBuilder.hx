@@ -42,27 +42,6 @@ class DataBuilder {
 	static var counter:Int = 0;
 	static final definitions = new Map<String, JsonType>();
 
-	private static function notNull(type:Type):Type {
-		return switch (type) {
-			case TAbstract(_.get()=>t, p):
-				(t.name == "Null") ? notNull(p[0]) : type;
-			case TType(_.get()=>t, p):
-				(t.name == "Null") ? notNull(type.follow()) : type;
-			default:
-				type;
-		}
-	}
-
-	private static function isNullable(type:Type) {
-		if (notNull(type) != type) { return true; }
-		return switch (type.followWithAbstracts()) {
-			case TAbstract(_.get()=>t,_):
-				!t.meta.has(":notNull");
-			default:
-				true;
-		}
-	}
-
 	private inline static function describe (type:JsonType, descr:Null<String>) {
 		return (descr == null) ? type : JTWithDescr(type, descr);
 	}
@@ -88,27 +67,17 @@ class DataBuilder {
 			case TAbstract(_.get()=>t, p):
 				var jt:Null<JsonType> = null;
 				var from = (t.from.length == 0) ? [{t:t.type, field:null}] : t.from;
-				var possiblesJT:Array<JsonType> = [];
 				var i = 0;
 				for(fromType in from) {
 					try {
 						var ft = fromType.t.applyTypeParameters(t.params, p);
 						var ft = ft.followWithAbstracts();
-						possiblesJT.push(makeSchema(ft));
-						if (isNullable(ft)) {
-							jt = JTNull;
-						}
+						jt = anyOf(jt, makeSchema(ft));
 					}
 					catch (_:#if (haxe_ver >= 4) Any #else Dynamic #end) {}
 				}
-				if (possiblesJT.length == 0) {
-					throw "Abstract "+name+ " has no json representation "+ Context.currentPos();
-				}
 				if (jt == null) {
-					jt = possiblesJT.pop();
-				}
-				while (possiblesJT.length > 0) {
-					jt = anyOf(jt, possiblesJT.pop());
+					throw "Abstract "+name+ " has no json representation "+ Context.currentPos();
 				}
 				define(name, jt, doc);
 				return JTRef(name);
@@ -119,7 +88,6 @@ class DataBuilder {
 	static function makeAbstractEnumSchema(type:Type):JsonType {
 		var name = type.toString();
 		var doc:Null<String> = null;
-		var addnull = isNullable(type);
 		switch (type.followWithAbstracts()) {
 			case TInst(_.get()=>t, _):
 				if (t.module != "String") {
@@ -138,7 +106,7 @@ class DataBuilder {
 		function handleExpr(expr:TypedExprDef, ?rec:Bool=true) : Dynamic {
 			return switch (expr) {
 				case TConst(TString(s)): StringUtils.quote(s);
-				case TConst(TNull): addnull = false; null;
+				case TConst(TNull): null;
 				case TConst(TBool(b)): b;
 				case TConst(TFloat(f)): f;
 				case TConst(TInt(i)): i;
@@ -165,10 +133,6 @@ class DataBuilder {
 		if (jt == null) {
 			throw 'json2object: Abstract enum ${name} has no supported value';
 		}
-
-		if (addnull) {
-			jt = anyOf(JTNull, jt);
-		}
 		define(name, jt, doc);
 		return JTRef(name);
 	}
@@ -177,7 +141,7 @@ class DataBuilder {
 		var doc:Null<String> = null;
 
 		var complexProperties = new Map<String, JsonType>();
-		var jt = JTNull;
+		var jt = null;
 		switch (type) {
 			case TEnum(_.get()=>t, p):
 				for (n in t.names) {
@@ -229,7 +193,7 @@ class DataBuilder {
 			default:
 				throw "json2object: Only map with Int or String key can be transformed to json, got"+keyType.toString() + " " + Context.currentPos();
 		}
-		define(name, anyOf(JTNull, JTMap(onlyInt, makeSchema(valueType))));
+		define(name, JTMap(onlyInt, makeSchema(valueType)));
 		return JTRef(name);
 	}
 	static function makeObjectSchema(type:Type, name:String):JsonType {
@@ -286,7 +250,7 @@ class DataBuilder {
 				}
 			}
 
-			define(name, anyOf(JTNull, JTObject(properties, required)), doc);
+			define(name, JTObject(properties, required), doc);
 			return JTRef(name);
 		}
 		catch (e:#if (haxe_ver >= 4) Any #else Dynamic #end) {
@@ -311,9 +275,9 @@ class DataBuilder {
 			case TInst(_.get()=>t, p):
 				switch (t.module) {
 					case "String":
-						return anyOf(JTNull, JTSimple("string"));
+						return JTSimple("string");
 					case "Array" if (p.length == 1 && p[0] != null):
-						return anyOf(JTNull, JTArray(makeSchema(p[0])));
+						return JTArray(makeSchema(p[0]));
 					default:
 						makeObjectSchema(type, name);
 				}
@@ -346,10 +310,10 @@ class DataBuilder {
 				makeEnumSchema(type.applyTypeParameters(t.params, p));
 			case TType(_.get()=>t, p):
 				var _tmp = makeSchema(t.type.applyTypeParameters(t.params, p), name);
-				if (t.doc != null) {
+				if (t.doc != null && t.name != "Null") {
 					define(name, describe(definitions.get(name), t.doc));
 				}
-				_tmp;
+				(t.name == "Null") ? anyOf(JTNull, _tmp) : _tmp;
 			case TLazy(f):
 				makeSchema(f());
 			default:
