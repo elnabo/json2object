@@ -251,11 +251,12 @@ class DataBuilder {
 							}
 						}
 
-						if (!field.meta.has(":optional")) {
+						var optional = field.meta.has(":optional");
+						if (!optional) {
 							required.push(f_name);
 						}
 
-						properties.set(f_name, describe(makeSchema(f_type), field.doc));
+						properties.set(f_name, describe(makeSchema(f_type, optional), field.doc));
 					default:
 				}
 			}
@@ -271,7 +272,7 @@ class DataBuilder {
 		}
 	}
 
-	static function makeSchema(type:Type, ?name:String=null) : JsonType {
+	static function makeSchema(type:Type, ?name:String=null, ?optional:Bool=false) : JsonType {
 
 		if (name == null) {
 			name = type.toString();
@@ -295,7 +296,8 @@ class DataBuilder {
 				makeObjectSchema(type, name);
 			case TAbstract(_.get()=>t, p):
 				if (t.name == "Null") {
-					return anyOf(JTNull, makeSchema(p[0]));
+					var jt = makeSchema(p[0]);
+					return (optional) ? jt : anyOf(JTNull, jt);
 				}
 				else if (t.module == "StdTypes") {
 					switch (t.name) {
@@ -323,7 +325,7 @@ class DataBuilder {
 				if (t.doc != null && t.name != "Null") {
 					define(name, describe(definitions.get(name), t.doc));
 				}
-				(t.name == "Null") ? anyOf(JTNull, _tmp) : _tmp;
+				(t.name == "Null" && !optional) ? anyOf(JTNull, _tmp) : _tmp;
 			case TLazy(f):
 				makeSchema(f());
 			default:
