@@ -28,26 +28,26 @@ using StringTools;
 
 class JsonTypeTools {
 	public static function toString(jt:JsonType) : String {
-		return _toString(jt, null);
+		return _toString(jt);
 	}
 
-	static function _toString(jt:JsonType, ?descr:Null<String>=null) : String {
-		var end = (descr==null) ? "}" : ', "description": ${descr.trim().quote()}}';
+	static function _toString(jt:JsonType, descr:String="}") : String {
+		var end = descr;
 		return switch (jt) {
 			case JTNull: '{"type":"null"${end}';
 			case JTSimple(t): '{"type":"${t}"${end}';
-			case JTObject(properties, rq, size):
+			case JTConst(v): '{"const":${v}$end';
+			case JTObject(properties, rq):
 				var str = new StringBuf();
 				str.add('{"type":"object", "properties":{');
 				var comma = false;
 				var required = (rq.length > 0) ? ', "required":["${rq.join('", "')}"]': "";
-				var size = (size != null) ? ', "minProperties":1, "maxProperties":1' : "";
 				for (key in properties.keys()) {
 					if(comma) { str.add(", "); }
 					str.add('"${key}": ${properties.get(key).toString()}');
 					comma = true;
 				}
-				str.add('}, "additionalProperties": false${required}${size}${end}');
+				str.add('}, "additionalProperties": false${required}${end}');
 				str.toString();
 			case JTArray(type): '{"type":"array", "items": [${type.toString()}]${end}';
 			case JTMap(onlyInt, type):
@@ -58,20 +58,8 @@ class JsonTypeTools {
 					'{"type": "object", "additionalProperties":${type._toString()}${end}';
 				}
 			case JTRef(name): '{"$$ref": "#/definitions/${name}"${end}';
-			case JTAnyOf(values): '{"anyOf": [${values.map(toString).join(', ')}]${end}';
-			case JTEnum(values, docs):
-				var str = new StringBuf();
-				var comma = false;
-				str.add('{"oneOf": [');
-				for (i in 0...values.length) {
-					if(comma) { str.add(", "); }
-					var doc = (docs[i] != null) ? ', "description":${docs[i].trim().quote()}' : "";
-					str.add('{"const":${values[i]}${doc}}');
-					comma = true;
-				}
-				str.add(']$end');
-				str.toString();
-			case JTWithDescr(type, descr): _toString(type, descr);
+			case JTAnyOf(types): '{"anyOf": [${types.map(toString).join(', ')}]${end}';
+			case JTWithDescr(type, descr): _toString(type, ', "description": ${descr.trim().quote()}}');
 		}
 	}
 }

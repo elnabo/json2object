@@ -63,17 +63,17 @@ class DataBuilder {
 		}
 	}
 
+	private inline static function describe (type:JsonType, descr:Null<String>) {
+		return (descr == null) ? type : JTWithDescr(type, descr);
+	}
+
 	private static function define(name:String, type:JsonType, ?doc:Null<String>=null) {
-		if (doc != null) {
-			definitions.set(name, JTWithDescr(type, doc));
-		}
-		else {
-			definitions.set(name, type);
-		}
+		definitions.set(name, describe(type, doc));
 	}
 
 	static function anyOf(t1:JsonType, t2:JsonType) {
 		return switch [t1, t2] {
+			case [null, t], [t, null]: t;
 			case [JTNull, JTAnyOf(v)], [JTAnyOf(v), JTNull] if (v.indexOf(JTNull) != -1): t2;
 			case [JTAnyOf(v1), JTAnyOf(v2)]: JTAnyOf(v1.concat(v2));
 			case [JTAnyOf(val), t], [t, JTAnyOf(val)]: JTAnyOf(val.concat([t]));
@@ -133,16 +133,17 @@ class DataBuilder {
 		}
 		var values = new Array<Dynamic>();
 		var docs = [];
+		var jt = null;
 
-		function handleExpr(expr:TypedExprDef, ?rec:Bool=true) {
-			switch (expr) {
-				case TConst(TString(s)): values.push(StringUtils.quote(s));
-				case TConst(TNull): values.push(null); addnull = false;
-				case TConst(TBool(b)): values.push(b);
-				case TConst(TFloat(f)): values.push(f);
-				case TConst(TInt(i)): values.push(i);
+		function handleExpr(expr:TypedExprDef, ?rec:Bool=true) : Dynamic {
+			return switch (expr) {
+				case TConst(TString(s)): StringUtils.quote(s);
+				case TConst(TNull): addnull = false; null;
+				case TConst(TBool(b)): b;
+				case TConst(TFloat(f)): f;
+				case TConst(TInt(i)): i;
 				case TCast(c, _) if (rec): handleExpr(c.expr, false);
-				default:
+				default: throw false;
 			}
 		}
 		switch (type) {
@@ -153,17 +154,18 @@ class DataBuilder {
 						continue;
 					}
 					if (field.expr() == null) { continue; }
-					docs.push(field.doc);
-					handleExpr(field.expr().expr);
+					try {
+						jt = anyOf(jt, describe(JTConst(handleExpr(field.expr().expr)), field.doc));
+					}
+					catch (_:#if (haxe_ver >= 4) Any #else Dynamic #end) {}
 				}
 			default:
 		}
 
-		if (values.length == 0) {
+		if (jt == null) {
 			throw 'json2object: Abstract enum ${name} has no supported value';
 		}
 
-		var jt = JTEnum(values, docs);
 		if (addnull) {
 			jt = anyOf(JTNull, jt);
 		}
@@ -174,9 +176,8 @@ class DataBuilder {
 		var name = type.toString();
 		var doc:Null<String> = null;
 
-		var simple = [];
-		var simpleDoc = [];
 		var complexProperties = new Map<String, JsonType>();
+		var jt = JTNull;
 		switch (type) {
 			case TEnum(_.get()=>t, p):
 				for (n in t.names) {
@@ -185,8 +186,7 @@ class DataBuilder {
 					var required = [];
 					switch (construct.type) {
 						case TEnum(_,_):
-							simple.push(n);
-							simpleDoc.push(construct.doc);
+							jt = anyOf(jt, describe(JTConst(StringUtils.quote(n)), construct.doc));
 						case TFun(args,_):
 							for (a in args) {
 								properties.set(a.name, makeSchema(a.t.applyTypeParameters(t.params, p)));
@@ -197,20 +197,10 @@ class DataBuilder {
 						default:
 							continue;
 					}
-					var jt = JTObject(properties, required);
-					complexProperties.set(n, construct.doc != null ? JTWithDescr(jt, construct.doc): jt);
+					jt = anyOf(jt, JTObject([n=>describe(JTObject(properties, required), construct.doc)], [n]));
 				}
 				doc = t.doc;
 			default:
-		}
-
-		var jt = JTNull;
-		if (complexProperties.keys().hasNext()) {
-			jt = anyOf(jt, JTObject(complexProperties, [], 1));
-		}
-
-		if (simple.length > 0) {
-			jt = anyOf(jt, JTEnum(simple.map(StringUtils.quote), simpleDoc));
 		}
 		define(name, jt, doc);
 		return JTRef(name);
@@ -291,7 +281,7 @@ class DataBuilder {
 						}
 
 						var f_type = field.type.applyTypeParameters(tParams, params);
-						properties.set(field.name, JTWithDescr(makeSchema(f_type), field.doc));
+						properties.set(field.name, describe(makeSchema(f_type), field.doc));
 					default:
 				}
 			}
@@ -357,7 +347,7 @@ class DataBuilder {
 			case TType(_.get()=>t, p):
 				var _tmp = makeSchema(t.type.applyTypeParameters(t.params, p), name);
 				if (t.doc != null) {
-					define(name, JTWithDescr(definitions.get(name), t.doc));
+					define(name, describe(definitions.get(name), t.doc));
 				}
 				_tmp;
 			case TLazy(f):
