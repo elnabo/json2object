@@ -36,21 +36,19 @@ class JsonTypeTools {
 		return switch (jt) {
 			case JTNull: '{"type":"null"${end}';
 			case JTSimple(t): '{"type":"${t}"${end}';
-			case JTObject(properties, rq):
+			case JTObject(properties, rq, size):
 				var str = new StringBuf();
 				str.add('{"type":"object", "properties":{');
 				var comma = false;
 				var required = (rq.length > 0) ? ', "required":["${rq.join('", "')}"]': "";
+				var size = (size != null) ? ', "minProperties":1, "maxProperties":1' : "";
 				for (key in properties.keys()) {
 					if(comma) { str.add(", "); }
 					str.add('"${key}": ${properties.get(key).toString()}');
 					comma = true;
 				}
-				str.add('}, "additionalProperties": false${required}${end}');
+				str.add('}, "additionalProperties": false${required}${size}${end}');
 				str.toString();
-			case JTPatternObject(patterns):
-				var p = "^" + patterns.join('|') + "$";
-				'{"type":"object", "propertyNames":{"pattern":"${p}"}, "minProperties":1, "maxProperties":2${end}';
 			case JTArray(type): '{"type":"array", "items": [${type.toString()}]${end}';
 			case JTMap(onlyInt, type):
 				if (onlyInt) {
@@ -61,7 +59,18 @@ class JsonTypeTools {
 				}
 			case JTRef(name): '{"$$ref": "#/definitions/${name}"${end}';
 			case JTAnyOf(values): '{"anyOf": [${values.map(toString).join(', ')}]${end}';
-			case JTEnum(values): '{"enum": [${values.join(',')}]${end}';
+			case JTEnum(values, docs):
+				var str = new StringBuf();
+				var comma = false;
+				str.add('{"oneOf": [');
+				for (i in 0...values.length) {
+					if(comma) { str.add(", "); }
+					var doc = (docs[i] != null) ? ', "description":${docs[i].trim().quote()}' : "";
+					str.add('{"const":${values[i]}${doc}}');
+					comma = true;
+				}
+				str.add(']$end');
+				str.toString();
 			case JTWithDescr(type, descr): _toString(type, descr);
 		}
 	}

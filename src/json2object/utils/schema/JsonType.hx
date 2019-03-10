@@ -25,12 +25,11 @@ package json2object.utils.schema;
 enum JsonType {
 	JTNull;
 	JTSimple(t:String);
-	JTObject(properties:Map<String, JsonType>, required:Array<String>);
-	JTPatternObject(patterns:Array<String>);
+	JTObject(properties:Map<String, JsonType>, required:Array<String>, ?size:Null<Int>);
 	JTArray(type:JsonType);
 	JTMap(onlyInt:Bool, type:JsonType);
 	JTRef(name:String);
 	JTAnyOf(values:Array<JsonType>);
-	JTEnum(values:Array<Dynamic>);
+	JTEnum(values:Array<Dynamic>, docs:Array<Null<String>>);
 	JTWithDescr(type:JsonType, descr:String);
 }
