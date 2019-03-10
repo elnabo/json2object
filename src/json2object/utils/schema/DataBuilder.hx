@@ -62,6 +62,15 @@ class DataBuilder {
 		}
 	}
 
+	private static function define(name:String, type:JsonType, ?doc:Null<String>=null) {
+		if (doc != null) {
+			definitions.set(name, JTWithDescr(type, doc));
+		}
+		else {
+			definitions.set(name, type);
+		}
+	}
+
 	static function anyOf(t1:JsonType, t2:JsonType) {
 		return switch [t1, t2] {
 			case [JTNull, JTAnyOf(v)], [JTAnyOf(v), JTNull] if (v.indexOf(JTNull) != -1): t2;
@@ -73,6 +82,7 @@ class DataBuilder {
 
 	static function makeAbstractSchema(type:Type):JsonType {
 		var name = type.toString();
+		var doc:Null<String> = null;
 		switch (type) {
 			case TAbstract(_.get()=>t, p):
 				var jt:Null<JsonType> = null;
@@ -88,7 +98,7 @@ class DataBuilder {
 							jt = JTNull;
 						}
 					}
-					catch (e:#if (haxe_ver >= 4) Any #else Dynamic #end) {}
+					catch (_:#if (haxe_ver >= 4) Any #else Dynamic #end) {}
 				}
 				if (possiblesJT.length == 0) {
 					throw "Abstract "+name+ " has no json representation "+ Context.currentPos();
@@ -99,7 +109,7 @@ class DataBuilder {
 				while (possiblesJT.length > 0) {
 					jt = anyOf(jt, possiblesJT.pop());
 				}
-				definitions.set(name, jt);
+				define(name, jt, doc);
 				return JTRef(name);
 			default:
 				throw "Unexpected type "+name;
@@ -107,6 +117,7 @@ class DataBuilder {
 	}
 	static function makeAbstractEnumSchema(type:Type):JsonType {
 		var name = type.toString();
+		var doc:Null<String> = null;
 		var addnull = isNullable(type);
 		switch (type.followWithAbstracts()) {
 			case TInst(_.get()=>t, _):
@@ -135,6 +146,7 @@ class DataBuilder {
 		}
 		switch (type) {
 			case TAbstract(_.get()=>t, p) :
+				doc = t.doc;
 				for (field in t.impl.get().statics.get()) {
 					if (!field.meta.has(":enum") || !field.meta.has(":impl")) {
 						continue;
@@ -154,18 +166,20 @@ class DataBuilder {
 		if (addnull) {
 			jt = anyOf(JTNull, jt);
 		}
-		definitions.set(name, jt);
+		define(name, jt, doc);
 		return JTRef(name);
 	}
 	static function makeEnumSchema(type:Type):JsonType {
 		var name = type.toString();
+		var doc:Null<String> = null;
 
 		var simple = [];
 		var complex = [];
 		switch (type) {
 			case TEnum(_.get()=>t, p):
 				for (n in t.names) {
-					switch (t.constructs.get(n).type) {
+					var construct = t.constructs.get(n);
+					switch (construct.type) {
 						case TEnum(_,_):
 							simple.push(n);
 						case TFun(args,_):
@@ -177,10 +191,12 @@ class DataBuilder {
 									required.push(a.name);
 								}
 							}
-							complex.push(JTObject([n => JTObject(properties, required)], [n]));
+							var jt = JTObject([n => JTObject(properties, required)], [n]);
+							complex.push(construct.doc != null ? JTWithDescr(jt, doc): jt);
 						default:
 					}
 				}
+				doc = t.doc;
 			default:
 		}
 
@@ -194,7 +210,7 @@ class DataBuilder {
 			jt = anyOf(jt, JTPatternObject([for (s in simple) s]));
 			jt = anyOf(jt, JTEnum(simple.map(function (s) { return json2object.writer.StringUtils.quote(s); })));
 		}
-		definitions.set(name, jt);
+		define(name, jt, doc);
 		return JTRef(name);
 	}
 
@@ -221,7 +237,7 @@ class DataBuilder {
 			default:
 				throw "json2object: Only map with Int or String key can be transformed to json, got"+keyType.toString() + " " + Context.currentPos();
 		}
-		definitions.set(name, anyOf(JTNull, JTMap(onlyInt, makeSchema(valueType))));
+		define(name, anyOf(JTNull, JTMap(onlyInt, makeSchema(valueType))));
 		return JTRef(name);
 	}
 	static function makeObjectSchema(type:Type, name:String):JsonType {
@@ -232,6 +248,8 @@ class DataBuilder {
 
 		var tParams:Array<TypeParameter>;
 		var params:Array<Type>;
+
+		var doc:Null<String> = null;
 
 		switch (type) {
 			case TAnonymous(_.get()=>t):
@@ -250,31 +268,41 @@ class DataBuilder {
 
 				tParams = t.params;
 				params = p;
+				doc = t.doc;
 
 			case _: throw "Unexpected type "+name;
 		}
 
-		for (field in fields) {
-			if (field.meta.has(":jignored")) { continue; }
-			switch(field.kind) {
-				case FVar(r,w):
-					if (r == AccCall && w == AccCall && !field.meta.has(":isVar")) {
-						continue;
-					}
 
-					if (!field.meta.has(":optional")) {
-						required.push(field.name);
-					}
+		try {
+			define(name, null); // Protection against recursive types
+			for (field in fields) {
+				if (field.meta.has(":jignored")) { continue; }
+				switch(field.kind) {
+					case FVar(r,w):
+						if (r == AccCall && w == AccCall && !field.meta.has(":isVar")) {
+							continue;
+						}
 
-					var f_type = field.type.applyTypeParameters(tParams, params);
-					properties.set(field.name, makeSchema(f_type));
-				default:
+						if (!field.meta.has(":optional")) {
+							required.push(field.name);
+						}
+
+						var f_type = field.type.applyTypeParameters(tParams, params);
+						properties.set(field.name, JTWithDescr(makeSchema(f_type), field.doc));
+					default:
+				}
 			}
+
+			define(name, anyOf(JTNull, JTObject(properties, required)), doc);
+			return JTRef(name);
 		}
-
-		definitions.set(name, anyOf(JTNull, JTObject(properties, required)));
-
-		return JTRef(name);
+		catch (e:#if (haxe_ver >= 4) Any #else Dynamic #end) {
+			if (definitions.get(name) == null) {
+				definitions.remove(name);
+			}
+			throw e;
+		}
 	}
 
 	static function makeSchema(type:Type, ?name:String=null) : JsonType {
@@ -325,8 +353,11 @@ class DataBuilder {
 			case TEnum(_.get()=>t,p):
 				makeEnumSchema(type.applyTypeParameters(t.params, p));
 			case TType(_.get()=>t, p):
-				makeSchema(t.type.applyTypeParameters(t.params, p), name);
-				// makeSchema(c, t.type.applyTypeParameters(t.params, p), t.module.split(".").concat([t.name]).join("."));
+				var _tmp = makeSchema(t.type.applyTypeParameters(t.params, p), name);
+				if (t.doc != null) {
+					define(name, JTWithDescr(definitions.get(name), t.doc));
+				}
+				_tmp;
 			case TLazy(f):
 				makeSchema(f());
 			default:

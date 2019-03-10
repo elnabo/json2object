@@ -32,4 +32,5 @@ enum JsonType {
 	JTRef(name:String);
 	JTAnyOf(values:Array<JsonType>);
 	JTEnum(values:Array<Dynamic>);
+	JTWithDescr(type:JsonType, descr:String);
 }

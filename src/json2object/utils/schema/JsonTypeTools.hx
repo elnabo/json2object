@@ -23,12 +23,19 @@ SOFTWARE.
 package json2object.utils.schema;
 
 using json2object.utils.schema.JsonTypeTools;
+using json2object.writer.StringUtils;
+using StringTools;
 
 class JsonTypeTools {
 	public static function toString(jt:JsonType) : String {
+		return _toString(jt, null);
+	}
+
+	static function _toString(jt:JsonType, ?descr:Null<String>=null) : String {
+		var end = (descr==null) ? "}" : ', "description": ${descr.trim().quote()}}';
 		return switch (jt) {
-			case JTNull: '{"type":"null"}';
-			case JTSimple(t): '{"type":"${t}"}';
+			case JTNull: '{"type":"null"${end}';
+			case JTSimple(t): '{"type":"${t}"${end}';
 			case JTObject(properties, rq):
 				var str = new StringBuf();
 				str.add('{"type":"object", "properties":{');
@@ -39,22 +46,23 @@ class JsonTypeTools {
 					str.add('"${key}": ${properties.get(key).toString()}');
 					comma = true;
 				}
-				str.add('}, "additionalProperties": false${required}}');
+				str.add('}, "additionalProperties": false${required}${end}');
 				str.toString();
 			case JTPatternObject(patterns):
 				var p = "^" + patterns.join('|') + "$";
-				'{"type":"object", "propertyNames":{"pattern":"${p}"}}';
-			case JTArray(type): '{"type":"array", "items": [${type.toString()}]}';
+				'{"type":"object", "propertyNames":{"pattern":"${p}"}, "minProperties":1, "maxProperties":2${end}';
+			case JTArray(type): '{"type":"array", "items": [${type.toString()}]${end}';
 			case JTMap(onlyInt, type):
 				if (onlyInt) {
-					'{"type":"object", "patternProperties": {"/^[-+]?\\d+([Ee][+-]?\\d+)?$/"} : ${type.toString()}}}';
+					'{"type":"object", "patternProperties": {"/^[-+]?\\d+([Ee][+-]?\\d+)?$/"} : ${type.toString()}${end}';
 				}
 				else {
-					'{"type": "object", "additionalProperties":${type.toString()}}';
+					'{"type": "object", "additionalProperties":${type._toString()}${end}';
 				}
-			case JTRef(name): '{"$$ref": "#/definitions/${name}"}';
-			case JTAnyOf(values): '{"anyOf": [${values.map(toString).join(',')}]}';
-			case JTEnum(values): '{"enum": [${values.join(',')}]}';
+			case JTRef(name): '{"$$ref": "#/definitions/${name}"${end}';
+			case JTAnyOf(values): '{"anyOf": [${values.map(toString).join(', ')}]${end}';
+			case JTEnum(values): '{"enum": [${values.join(',')}]${end}';
+			case JTWithDescr(type, descr): _toString(type, descr);
 		}
 	}
 }
