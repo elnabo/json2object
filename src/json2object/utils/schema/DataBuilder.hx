@@ -40,7 +40,7 @@ using StringTools;
 class DataBuilder {
 
 	static var counter:Int = 0;
-	static final definitions = new Map<String, JsonType>();
+	static var definitions = new Map<String, JsonType>();
 
 	private inline static function describe (type:JsonType, descr:Null<String>) {
 		return (descr == null) ? type : JTWithDescr(type, descr);
