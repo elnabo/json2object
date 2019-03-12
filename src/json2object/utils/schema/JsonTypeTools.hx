@@ -59,7 +59,73 @@ class JsonTypeTools {
 				}
 			case JTRef(name): '{"$$ref": "#/definitions/${name}"${end}';
 			case JTAnyOf(types): '{"anyOf": [${types.map(toString).join(', ')}]${end}';
-			case JTWithDescr(type, descr): _toString(type, ', "description": ${descr.trim().quote()}}');
+			case JTWithDescr(type, descr): _toString(type, ', "description": ${clean(descr).quote()}}');
 		}
+	}
+
+	/**
+	 * Clean the doc
+	 * 2 new line => 1 new line
+	 * 1 new line => 0 new line
+	 * all line first non whitespace char is * then remove all first *
+	 */
+	static function clean (doc:String) : String {
+		var lines = [];
+		var hasStar = true;
+		var start = 0;
+		var cursor = 0;
+		while (cursor < doc.length) {
+			switch (doc.charAt(cursor)) {
+				case "\r":
+					if (doc.charAt(cursor+1) == "\n") {
+						cursor++;
+					}
+					var line = doc.substring(start, cursor).trim();
+					lines.push(line);
+					start = cursor + 1;
+					if (line.length > 0) {
+						hasStar = hasStar && (line.charAt(0) == '*');
+					}
+				case "\n":
+					var line = doc.substring(start, cursor).trim();
+					lines.push(line);
+					start = cursor + 1;
+					if (line.length > 0) {
+						hasStar = hasStar && (line.charAt(0) == '*');
+					}
+				default:
+			}
+			cursor++;
+		}
+
+		var consecutiveNewLine = 0;
+		var result = [""];
+		var i = -1;
+		for (line in lines) {
+			if (line.length == 0) {
+				if (i == -1) {
+					continue;
+				}
+				consecutiveNewLine++;
+			}
+			else {
+				var next = (hasStar) ? line.substr(1) : line;
+				if (i == -1) { i = 0; }
+				else {
+					var curr = result[i];
+					if (curr != "" && curr.charAt(curr.length - 1) != " " && next.charAt(0) != " ") {
+						next = " " + next;
+					}
+				}
+				result[i] += next;
+				consecutiveNewLine++;
+			}
+			if (consecutiveNewLine > 1) {
+				result.push('');
+				i++;
+				consecutiveNewLine = 0;
+			}
+		}
+		return result.join("\n");
 	}
 }

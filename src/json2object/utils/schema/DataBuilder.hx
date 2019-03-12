@@ -322,8 +322,13 @@ class DataBuilder {
 				makeEnumSchema(type.applyTypeParameters(t.params, p));
 			case TType(_.get()=>t, p):
 				var _tmp = makeSchema(t.type.applyTypeParameters(t.params, p), name);
-				if (t.doc != null && t.name != "Null") {
-					define(name, describe(definitions.get(name), t.doc));
+				if (t.name != "Null") {
+					if (t.doc != null) {
+						define(name, describe(definitions.get(name), t.doc));
+					}
+					else {
+						define(name, definitions.get(name));
+					}
 				}
 				(t.name == "Null" && !optional) ? anyOf(JTNull, _tmp) : _tmp;
 			case TLazy(f):
