@@ -775,7 +775,6 @@ class DataBuilder {
 			default:
 		}
 		if (!hasOneFrom) {
-			trace(callPosition);
 			Context.fatalError("json2object: No parser can be generated for "+type.toString()+ " as it has no supported @:from", callPosition);
 		}
 	}
