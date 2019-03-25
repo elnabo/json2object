@@ -181,17 +181,17 @@ class DataBuilder {
 					false;
 				}
 				else {
-					throw "json2object: Only map with Int or String key can be transformed to json, got"+keyType.toString() + " " + Context.currentPos();
+					throw "json2object: Only maps with Int or String keys can be transformed to json, got "+keyType.toString() + " " + Context.currentPos();
 				}
 			case TAbstract(_.get()=>t, _):
 				if (t.module == "StdTypes" && t.name == "Int") {
 					true;
 				}
 				else {
-					throw "json2object: Only map with Int or String key can be transformed to json, got"+keyType.toString() + " " + Context.currentPos();
+					throw "json2object: Only maps with Int or String keys can be transformed to json, got "+keyType.toString() + " " + Context.currentPos();
 				}
 			default:
-				throw "json2object: Only map with Int or String key can be transformed to json, got"+keyType.toString() + " " + Context.currentPos();
+				throw "json2object: Only maps with Int or String keys can be transformed to json, got "+keyType.toString() + " " + Context.currentPos();
 		}
 		define(name, JTMap(onlyInt, makeSchema(valueType)));
 		return JTRef(name);
