@@ -344,7 +344,7 @@ class DataBuilder {
 					} catch (_:Dynamic) { continue;}
 				}
 				else {
-					Context.fatalError("json2object: Only map with Int or String key are parsable, got"+key.toString(), Context.currentPos());
+					Context.fatalError("json2object: Only maps with Int or String keys are parsable, got "+key.toString(), Context.currentPos());
 				}
 			case TAbstract(_.get()=>t, _):
 				if (t.module == "StdTypes" && t.name == "Int") {
@@ -353,9 +353,9 @@ class DataBuilder {
 					} catch (_:Dynamic) { continue;}
 				}
 				else {
-					Context.fatalError("json2object: Only map with Int or String key are parsable, got"+key.toString(), Context.currentPos());
+					Context.fatalError("json2object: Only maps with Int or String keys are parsable, got "+key.toString(), Context.currentPos());
 				}
-			default: Context.fatalError("json2object: Only map with Int or String key are parsable, got"+key.toString(), Context.currentPos());
+			default: Context.fatalError("json2object: Only maps with Int or String keys are parsable, got "+key.toString(), Context.currentPos());
 		}
 
 		var v_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(value.toComplexType())]};

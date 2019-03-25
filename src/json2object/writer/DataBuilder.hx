@@ -91,16 +91,16 @@ class DataBuilder {
 					macro json2object.writer.StringUtils.quote(key);
 				}
 				else {
-					Context.fatalError("json2object: Only map with Int or String key are writable, got"+keyType.toString(), Context.currentPos());
+					Context.fatalError("json2object: Only maps with Int or String keys are writable, got "+keyType.toString(), Context.currentPos());
 				}
 			case TAbstract(_.get()=>t, _):
 				if (t.module == "StdTypes" && t.name == "Int") {
 					macro key;
 				}
 				else {
-					Context.fatalError("json2object: Only map with Int or String key are writable, got"+keyType.toString(), Context.currentPos());
+					Context.fatalError("json2object: Only maps with Int or String keys are writable, got "+keyType.toString(), Context.currentPos());
 				}
-			default: Context.fatalError("json2object: Only map with Int or String key are writable, got"+keyType.toString(), Context.currentPos());
+			default: Context.fatalError("json2object: Only maps with Int or String keys are writable, got "+keyType.toString(), Context.currentPos());
 		}
 
 		return macro {
