@@ -41,6 +41,7 @@ class DataBuilder {
 
 	private static var counter = 0;
 	private static var parsers = new Map<String, Type>();
+	private static var callPosition:Null<haxe.macro.Position> = null;
 
 	private static function notNull(type:Type):Type {
 		return switch (type) {
@@ -344,7 +345,7 @@ class DataBuilder {
 					} catch (_:Dynamic) { continue;}
 				}
 				else {
-					Context.fatalError("json2object: Only maps with Int or String keys are parsable, got "+key.toString(), Context.currentPos());
+					Context.fatalError("json2object: Only maps with Int or String keys are parsable, got "+key.toString(), callPosition);
 				}
 			case TAbstract(_.get()=>t, _):
 				if (t.module == "StdTypes" && t.name == "Int") {
@@ -353,9 +354,9 @@ class DataBuilder {
 					} catch (_:Dynamic) { continue;}
 				}
 				else {
-					Context.fatalError("json2object: Only maps with Int or String keys are parsable, got "+key.toString(), Context.currentPos());
+					Context.fatalError("json2object: Only maps with Int or String keys are parsable, got "+key.toString(), callPosition);
 				}
-			default: Context.fatalError("json2object: Only maps with Int or String keys are parsable, got "+key.toString(), Context.currentPos());
+			default: Context.fatalError("json2object: Only maps with Int or String keys are parsable, got "+key.toString(), callPosition);
 		}
 
 		var v_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(value.toComplexType())]};
@@ -499,15 +500,15 @@ class DataBuilder {
 		switch (type.followWithAbstracts()) {
 			case TInst(_.get()=>t, _):
 				if (t.module != "String") {
-					Context.fatalError("json2object: Unsupported abstract enum type:"+type.toString(), Context.currentPos());
+					Context.fatalError("json2object: Unsupported abstract enum type:"+type.toString(), callPosition);
 				}
 				name = "String";
 			case TAbstract(_.get()=>t, _):
 				if (t.module != "StdTypes" && (t.name != "Int" && t.name != "Bool" && t.name != "Float")) {
-					Context.fatalError("json2object: Unsupported abstract enum type:"+type.toString(), Context.currentPos());
+					Context.fatalError("json2object: Unsupported abstract enum type:"+type.toString(), callPosition);
 				}
 				name = t.name;
-			default: Context.fatalError("json2object: Unsupported abstract enum type:"+type.toString(), Context.currentPos());
+			default: Context.fatalError("json2object: Unsupported abstract enum type:"+type.toString(), callPosition);
 		}
 
 		var caseValues = new Array<Expr>();
@@ -539,7 +540,7 @@ class DataBuilder {
 				}
 
 				if (caseValues.length == 0 && !isNullable(type)) {
-					Context.fatalError("json2object: Abstract enum of type "+ type.toString() +"can't be parsed if empty", Context.currentPos());
+					Context.fatalError("json2object: Abstract enum of type "+ type.toString() +"can't be parsed if empty", callPosition);
 				}
 
 				var v = switch (name) {
@@ -672,7 +673,7 @@ class DataBuilder {
 										}
 										else if (st.isPrivate && (Context.defined("cs") || Context.defined("java") || Context.defined("hl")))
 										{
-											Context.fatalError("json2object: Abstract of private are not supported on this target", Context.currentPos());
+											Context.fatalError("json2object: Abstract of private are not supported on this target", callPosition);
 										}
 										else
 										{
@@ -774,7 +775,8 @@ class DataBuilder {
 			default:
 		}
 		if (!hasOneFrom) {
-			Context.fatalError("json2object: No parser can be generated for "+type.toString()+ " as it has no supported @:from", Context.currentPos());
+			trace(callPosition);
+			Context.fatalError("json2object: No parser can be generated for "+type.toString()+ " as it has no supported @:from", callPosition);
 		}
 	}
 
@@ -903,7 +905,7 @@ class DataBuilder {
 					case _:
 						switch (t.kind) {
 							case KTypeParameter(_):
-								Context.fatalError("json2object: Type parameters are not parsable: " + t.name, Context.currentPos());
+								Context.fatalError("json2object: Type parameters are not parsable: " + t.name, callPosition);
 
 							default:
 						}
@@ -932,7 +934,7 @@ class DataBuilder {
 							if (!isNullable(base)) {
 								value.kind = FVar(TypeTools.toComplexType(base), macro false);
 							}
-						default: Context.fatalError("json2object: Parser of "+t.name+" are not generated", Context.currentPos());
+						default: Context.fatalError("json2object: Parser of "+t.name+" are not generated", callPosition);
 					}
 				}
 				else if (t.module == #if (haxe_ver >= 4) "haxe.ds.Map" #else "Map" #end) {
@@ -952,7 +954,7 @@ class DataBuilder {
 				return makeParser(c, t.type.applyTypeParameters(t.params, p), type);
 			case TLazy(f):
 				return makeParser(c, f());
-			default: Context.fatalError("json2object: Parser of "+type.toString()+" are not generated", Context.currentPos());
+			default: Context.fatalError("json2object: Parser of "+type.toString()+" are not generated", callPosition);
 		}
 
 		parser.fields.push(value);
@@ -969,6 +971,10 @@ class DataBuilder {
 	public static function build() {
 		switch (Context.getLocalType()) {
 			case TInst(c, [type]):
+				var pos = Context.getPosInfos(Context.currentPos());
+				if (pos.min != -1 && pos.max != -1) {
+					callPosition = Context.makePosition(pos);
+				}
 				return makeParser(c.get(), type);
 			case _:
 				Context.fatalError("json2object: Parsing tools must be a class", Context.currentPos());
