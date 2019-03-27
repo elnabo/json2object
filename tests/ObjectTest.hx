@@ -25,6 +25,7 @@ package tests;
 import json2object.JsonParser;
 import json2object.JsonWriter;
 import utest.Assert;
+import utest.ITest;
 
 enum A {
 	First;
@@ -60,7 +61,7 @@ class ObjectTestData<K,V> {
 	public var foo(default, null) : Int;
 }
 
-class ObjectTest
+class ObjectTest implements ITest
 {
 	public function new () {}
 
@@ -69,7 +70,7 @@ class ObjectTest
 		var parser = new JsonParser<ObjectTestData<String, Float>>();
 		var writer = new JsonWriter<ObjectTestData<String, Float>>();
 		var data:ObjectTestData<String, Float> = parser.fromJson('{ "base": true, "array": [0,2], "map":{"key":{"base":false, "array":[1], "map":{"t":null}, "struct":{"i": 9}}}, "struct":{"i":1}, "foo": 25 }', "test");
-		
+
 		Assert.isTrue(data.base);
 		Assert.same([0,2], @:privateAccess data.array);
 		Assert.isFalse(data.map.get("key").base);

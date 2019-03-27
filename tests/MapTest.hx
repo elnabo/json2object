@@ -25,12 +25,13 @@ package tests;
 import json2object.JsonParser;
 import json2object.JsonWriter;
 import utest.Assert;
+import utest.ITest;
 
 typedef MapStruct = {
 	var i : Int;
 }
 
-class MapTest
+class MapTest implements ITest
 {
 	public function new () {}
 

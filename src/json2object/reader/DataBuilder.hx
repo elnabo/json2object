@@ -809,7 +809,7 @@ class DataBuilder {
 				this.errorType = (errorType == null) ? NONE : errorType;
 			}
 
-			public function fromJson(jsonString:String, filename:String) {
+			public function fromJson(jsonString:String, ?filename:String='') {
 				putils = new json2object.PositionUtils(jsonString);
 				errors = [];
 				try {

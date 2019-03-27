@@ -25,8 +25,9 @@ package tests;
 import json2object.JsonParser;
 import json2object.JsonWriter;
 import utest.Assert;
+import utest.ITest;
 
-class ArrayTest
+class ArrayTest implements ITest
 {
 	public function new () {}
 

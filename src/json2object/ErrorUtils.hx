@@ -33,11 +33,12 @@ class ErrorUtils {
 
 		var header = "";
 		if (pos != null) {
+			var file = (pos.file == '') ? 'line' : '${pos.file}:';
 			if (pos.lines.length == 1) {
-				header = '${pos.file}:${pos.lines[0].number}: characters ${pos.lines[0].start}-${pos.lines[0].end} : ';
+				header = '${file}${pos.lines[0].number}: characters ${pos.lines[0].start}-${pos.lines[0].end} : ';
 			}
 			else if (pos.lines.length > 1) {
-				header = '${pos.file}:${pos.lines[0].number}: lines ${pos.lines[0].number}-${pos.lines[pos.lines.length-1].number} : ';
+				header = '${file}${pos.lines[0].number}: lines ${pos.lines[0].number}-${pos.lines[pos.lines.length-1].number} : ';
 			}
 		}
 

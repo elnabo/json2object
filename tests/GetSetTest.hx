@@ -26,8 +26,9 @@ import json2object.Error;
 import json2object.JsonParser;
 import json2object.JsonWriter;
 import utest.Assert;
+import utest.ITest;
 
-class GetSetTest {
+class GetSetTest implements ITest {
 
 	var h : Int = 1;
 	public var i(get,set) : Int;
