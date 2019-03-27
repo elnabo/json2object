@@ -25,7 +25,6 @@ package tests;
 import json2object.JsonParser;
 import json2object.JsonWriter;
 import utest.Assert;
-import utest.ITest;
 
 class Parent
 {
@@ -42,7 +41,7 @@ class OtherChild extends Parent
 	public var b : Bool;
 }
 
-class InheritanceTest implements ITest
+class InheritanceTest
 {
 	public function new () {}
 

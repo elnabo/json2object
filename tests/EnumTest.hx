@@ -26,7 +26,6 @@ import json2object.Error;
 import json2object.JsonParser;
 import json2object.JsonWriter;
 import utest.Assert;
-import utest.ITest;
 
 enum Color {
 	Green;
@@ -67,7 +66,7 @@ typedef WithDefaultOther = {
 	@:default(VAL1) @:optional var value : tests.OtherEnum.TestEnum;
 }
 
-class EnumTest implements ITest
+class EnumTest
 {
 	public function new () {}
 

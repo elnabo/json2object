@@ -25,7 +25,6 @@ package tests;
 import json2object.JsonParser;
 import json2object.JsonWriter;
 import utest.Assert;
-import utest.ITest;
 
 typedef Aliased = {
 	@:alias("public") var isPublic : Bool;
@@ -43,7 +42,7 @@ class MultiAliasedClass {
 	@:alias("first") @:alias("public") public var isPublic : Bool;
 }
 
-class AliasTest implements ITest
+class AliasTest
 {
 	public function new () {}
 

@@ -25,7 +25,6 @@ package tests;
 import json2object.JsonParser;
 import json2object.JsonWriter;
 import utest.Assert;
-import utest.ITest;
 
 abstract Username (String) from String to String
 {
@@ -120,7 +119,7 @@ class OnClassData
 	public var x:Int;
 }
 
-class AbstractTest implements ITest
+class AbstractTest
 {
 	public function new () {}
 

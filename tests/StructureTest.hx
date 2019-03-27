@@ -25,7 +25,6 @@ package tests;
 import json2object.JsonParser;
 import json2object.JsonWriter;
 import utest.Assert;
-import utest.ITest;
 
 typedef Struct = {
 	@:default(true)
@@ -82,7 +81,7 @@ class StructA {
 	@:default(1) public var a:Int;
 }
 
-class StructureTest implements ITest
+class StructureTest
 {
 	public function new () {}
 

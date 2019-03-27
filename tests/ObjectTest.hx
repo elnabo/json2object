@@ -25,7 +25,6 @@ package tests;
 import json2object.JsonParser;
 import json2object.JsonWriter;
 import utest.Assert;
-import utest.ITest;
 
 enum A {
 	First;
@@ -61,7 +60,7 @@ class ObjectTestData<K,V> {
 	public var foo(default, null) : Int;
 }
 
-class ObjectTest implements ITest
+class ObjectTest
 {
 	public function new () {}
 
