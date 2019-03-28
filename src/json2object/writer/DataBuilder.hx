@@ -60,25 +60,32 @@ class DataBuilder {
 	}
 
 	private static function makeStringWriter () : Expr {
-		return macro return (o == null) ? "null" : json2object.writer.StringUtils.quote(cast o);
+		return macro return ((indentFirst) ? buildIndent(space, level) : '') + ((o == null) ? "null" : json2object.writer.StringUtils.quote(cast o));
 	}
 
 	private static function makeBasicWriter (type:Type) : Expr {
 		return isNullable(type)
-			? macro return (o == null) ? "null" : o+""
-			: macro return o+"";
+			? macro return ((indentFirst) ? buildIndent(space, level) : '') + ((o == null) ? "null" : o+"")
+			: macro return ((indentFirst) ? buildIndent(space, level) : '') + o;
 	}
 
 	private static function makeArrayWriter (subType:Type, baseParser:BaseType) : Expr {
 		var cls = { name:baseParser.name, pack:baseParser.pack, params:[TPType(subType.toComplexType())]};
 		return macro {
-			if (o == null) { return "null"; }
+			var indent = buildIndent(space, level);
+			var firstIndent = (indentFirst) ? indent : '';
+			if (o == null) { return firstIndent + "null"; }
 			var valueWriter = new $cls();
-			var json = "[";
-			var values =  [for (element in o) valueWriter.write(element)];
-			json += values.join(",");
-			json += "]";
-			return json;
+
+			@:privateAccess {
+				var values =  [for (element in o) indent + valueWriter._write(element, space, level + 1, true)];
+				var newLine = (space != '' && o.length > 0) ? '\n' : '';
+
+				var json = firstIndent + "[" + newLine;
+				json += values.join(',' + newLine) + newLine;
+				json += "]";
+				return json;
+			}
 		};
 	}
 
@@ -104,14 +111,20 @@ class DataBuilder {
 		}
 
 		return macro {
-			if (o == null) { return "null"; }
+			var indent = buildIndent(space, level);
+			var firstIndent = (indentFirst) ? indent : '';
+			if (o == null) { return firstIndent + "null"; }
 			var valueWriter = new $clsValue();
 
-			var json = "{";
-			var values =  [for (key in o.keys()) '"'+key+'": '+valueWriter.write(o.get(key))];
-			json += values.join(",");
-			json += "}";
-			return json;
+			@:privateAccess {
+				var values =  [for (key in o.keys()) indent + space + '"'+key+'": '+valueWriter._write(o.get(key), space, level + 1, false)];
+				var newLine = (space != '' && values.length > 0) ? '\n' : '';
+
+				var json = firstIndent+'{' + newLine;
+				json += values.join(',' + newLine) + newLine;
+				json += indent+'}';
+				return json;
+			}
 		};
 	}
 
@@ -148,6 +161,7 @@ class DataBuilder {
 		}
 
 		var assignations:Array<Expr> = [];
+
 		for (field in fields) {
 			if (field.meta.has(":jignored")) { continue; }
 			switch(field.kind) {
@@ -171,7 +185,7 @@ class DataBuilder {
 						}
 					}
 					name = '"' + name + '": ';
-					assignations.push(macro $v{name} + new $f_cls().write(cast $f_a));
+					assignations.push(macro indent + space + $v{name} + new $f_cls()._write(cast $f_a, space, level + 1, false));
 
 				default:
 			}
@@ -179,13 +193,18 @@ class DataBuilder {
 		var array = {expr:EArrayDecl(assignations), pos:Context.currentPos()};
 
 		return macro {
-			if (o == null) { return "null"; }
-			var json = "{";
+			var indent = buildIndent(space, level);
+			var firstIndent = (indentFirst) ? indent : '';
+			if (o == null) { return firstIndent + "null"; }
 			@:privateAccess{
-				json += ${array}.join(", ");
+				var decl = ${array};
+				var newLine = (space != '' && decl.length > 0) ? '\n' : '';
+
+				var json = firstIndent + "{" + newLine;
+				json += decl.join(',' + newLine) + newLine;
+				json += indent + "}";
+				return json;
 			}
-			json += "}";
-			return json;
 		};
 	}
 
@@ -202,7 +221,7 @@ class DataBuilder {
 					switch (t.constructs.get(n).type) {
 						case TEnum(_,_):
 							var value = '"'+n+'"';
-							cases.push({expr: macro $v{value}, guard: null, values: [macro $i{n}]});
+							cases.push({expr: macro firstIndent + $v{value}, guard: null, values: [macro $i{n}]});
 						case TFun(args, _):
 							var constructor = [];
 							var assignations:Array<Expr> = [];
@@ -212,16 +231,20 @@ class DataBuilder {
 								var a_type = a.t.applyTypeParameters(tParams, params);
 								var a_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(a_type.toComplexType())]};
 
-								assignations.push(macro '"'+$v{a.name} +'": '+ new $a_cls().write($i{a.name}));
+								assignations.push(macro indent + space + space + '"'+$v{a.name} +'": '+ new $a_cls()._write($i{a.name}, space, level + 2, false));
 							}
 
 
 							var call = {expr:ECall(macro $i{n}, constructor), pos:Context.currentPos()};
 							var array = {expr:EArrayDecl(assignations), pos:Context.currentPos()};
 							var jsonExpr = macro {
-								var json = '{"'+$v{n}+'": {';
-								json += ${array}.join(", ");
-								json += '}}';
+								var decl = ${array};
+								var newLine = (space != '' && decl.length > 0) ? '\n' : '';
+								var json = firstIndent +'{' + newLine;
+								json += indent + space + '"'+$v{n}+'": {' + newLine;
+								json += decl.join(',' + newLine) + newLine;
+								json += indent + space +'}' + newLine;
+								json += indent +'}';
 							}
 							cases.push({expr: jsonExpr, guard: null, values: [call]});
 
@@ -232,8 +255,12 @@ class DataBuilder {
 		}
 		var switchExpr = {expr:ESwitch(macro o, cases, null), pos:Context.currentPos()};
 		return macro {
-			if (o == null) { return null; }
-			return $switchExpr;
+			var indent = buildIndent(space, level);
+			var firstIndent = (indentFirst) ? indent : '';
+			if (o == null) { return firstIndent + "null"; }
+			@:privateAccess {
+				return $switchExpr;
+			}
 		};
 	}
 
@@ -270,6 +297,15 @@ class DataBuilder {
 		var writerName = c.name + "_" + (counter++);
 		var writerClass = macro class $writerName {
 			public function new () {}
+
+			private function buildIndent (space:String, level:Int) {
+				if (level == 0) { return ''; }
+				var buff = new StringBuf();
+				for (i in 0...level) {
+					buff.add(space);
+				}
+				return buff.toString();
+			}
 		};
 
 		var writeExpr = switch (type) {
@@ -328,9 +364,25 @@ class DataBuilder {
 			default: Context.fatalError("json2object: Writer for "+type.toString()+" are not generated", Context.currentPos());
 		}
 
+		var args = [
+			{name:"o", meta:null, opt:false, type:base.toComplexType(),value:null},
+			{name:"space", meta:null, opt:true, type:Context.getType("String").toComplexType(), value:macro ""},
+			{name:"level", meta:null, opt:false, type:Context.getType("Int").toComplexType(), value:null},
+			{name:"indentFirst", meta:null, opt:false, type:Context.getType("Bool").toComplexType(), value:null},
+		];
+		var privateWrite:Field = {
+			doc: null,
+			kind: FFun({args:args, expr:writeExpr, params:null, ret:null}),
+			access: [APrivate],
+			name: "_write",
+			pos:Context.currentPos(),
+			meta: null
+		}
+		writerClass.fields.push(privateWrite);
+
 		var write:Field = {
 			doc: null,
-			kind: FFun({args:[{name:"o", meta:null, opt:false, type:base.toComplexType(),value:null}], expr:writeExpr, params:null, ret:null}),
+			kind: FFun({args:[args[0], args[1]], expr:macro return _write(o, space, 0, false), params:null, ret:null}),
 			access: [APublic],
 			name: "write",
 			pos:Context.currentPos(),

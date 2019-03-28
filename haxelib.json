@@ -4,8 +4,8 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Type safe Haxe/JSON (de)serializer",
-	"version": "3.5.2",
-	"releasenote": "Multiple improvements to the experimental schema writer helper",
+	"version": "3.5.3",
+	"releasenote": "Support additional parameter on JsonWriter.write to specify indentation",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
 	"dependencies": {
