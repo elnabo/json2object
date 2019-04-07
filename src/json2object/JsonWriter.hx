@@ -22,5 +22,5 @@ SOFTWARE.
 package json2object;
 
 @:genericBuild(json2object.writer.DataBuilder.build())
-class JsonWriter<T> { 
+class JsonWriter<T> {
 }

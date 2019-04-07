@@ -24,6 +24,7 @@ package tests;
 
 import json2object.JsonParser;
 import json2object.JsonWriter;
+import json2object.utils.JsonSchemaWriter;
 import utest.Assert;
 
 enum A {
@@ -60,12 +61,10 @@ class ObjectTestData<K,V> {
 	public var foo(default, null) : Int;
 }
 
-class ObjectTest
-{
+class ObjectTest {
 	public function new () {}
 
-	public function test1 () // Optional/Jignored + missing
-	{
+	public function test1 () { // Optional/Jignored + missing
 		var parser = new JsonParser<ObjectTestData<String, Float>>();
 		var writer = new JsonWriter<ObjectTestData<String, Float>>();
 		var data:ObjectTestData<String, Float> = parser.fromJson('{ "base": true, "array": [0,2], "map":{"key":{"base":false, "array":[1], "map":{"t":null}, "struct":{"i": 9}}}, "struct":{"i":1}, "foo": 25 }', "test");
@@ -98,8 +97,7 @@ class ObjectTest
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
-	public function test2 () // Optional
-	{
+	public function test2 () { // Optional
 		var parser = new JsonParser<ObjectTestData<String, Float>>();
 		var writer = new JsonWriter<ObjectTestData<String, Float>>();
 		var data = parser.fromJson('{ "objTest":{"b": 2, "base":true, "array":[], "map":{}, "struct":{"i":10}, "array_array":null, "array_map":null, "array_obj":null, "foo":45}, "array": null, "map":{"key":null}, "struct":{"i":2}, "array_array":[[0,1], [4, -1]], "array_map":[{"a":1}, null], "array_obj":[{"base":true, "array":[], "map":{}, "struct":{"i":10}, "array_array":null, "array_map":null, "array_obj":null, "foo":46}], "foo": 63 }', "test");

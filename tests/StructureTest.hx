@@ -24,6 +24,7 @@ package tests;
 
 import json2object.JsonParser;
 import json2object.JsonWriter;
+import json2object.utils.JsonSchemaWriter;
 import utest.Assert;
 
 typedef Struct = {
@@ -45,15 +46,15 @@ typedef DefaultStruct = {
 }
 
 typedef ReadonlyStruct = {
-    var foo(default,null):Int;
+	var foo(default,null):Int;
 }
 
 typedef OuterStruct = {
-    @:optional var outer:InnerStruct;
+	@:optional var outer:InnerStruct;
 }
 
 typedef InnerStruct = {
-    @:optional var inner:Int;
+	@:optional var inner:Int;
 }
 
 typedef ArrayStruct = {
@@ -65,7 +66,7 @@ typedef MapIIStruct = {
 }
 
 typedef Issue19 = {
-    @:default(auto) var s:Issue19Inner;
+	@:default(auto) var s:Issue19Inner;
 }
 
 typedef Issue19Inner = {
@@ -81,12 +82,16 @@ class StructA {
 	@:default(1) public var a:Int;
 }
 
-class StructureTest
-{
+typedef StructB = {
+	@:optional @:default(0) var a:Int;
+	var b:Bool;
+	@:optional @:default(0) var c:String;
+}
+
+class StructureTest {
 	public function new () {}
 
-	public function test1 ()
-	{
+	public function test1 () {
 		var parser = new JsonParser<DefaultStruct>();
 		var writer = new JsonWriter<DefaultStruct>();
 		var data = parser.fromJson('{}', "test");
@@ -106,8 +111,7 @@ class StructureTest
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
-	public function test2 ()
-	{
+	public function test2 () {
 		var parser = new JsonParser<Struct>();
 		var writer = new JsonWriter<Struct>();
 		var data = parser.fromJson('{ "a": true, "b": 12 }', "test");
@@ -116,8 +120,7 @@ class StructureTest
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
-	public function test3 ()
-	{
+	public function test3 () {
 		var parser = new JsonParser<Struct>();
 		var writer = new JsonWriter<Struct>();
 		var data = parser.fromJson('{ "a": 12, "b": 12 }', "test");
@@ -126,8 +129,7 @@ class StructureTest
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
-	public function test4 ()
-	{
+	public function test4 () {
 		var parser = new JsonParser<ReadonlyStruct>();
 		var writer = new JsonWriter<ReadonlyStruct>();
 		var data = parser.fromJson('{"foo":1}', "");
@@ -135,8 +137,7 @@ class StructureTest
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
-	public function test5 ()
-	{
+	public function test5 () {
 		var parser = new JsonParser<ReadonlyStruct>();
 		var writer = new JsonWriter<ReadonlyStruct>();
 		var data = parser.fromJson('{"foo":1.2}', "");
@@ -145,8 +146,7 @@ class StructureTest
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
-	public function test6 ()
-	{
+	public function test6 () {
 		var parser = new JsonParser<{ var foo(default,null):Int; }>();
 		var writer = new JsonWriter<{ var foo(default,null):Int; }>();
 		var data = parser.fromJson('{"foo":12}', "");
@@ -154,8 +154,7 @@ class StructureTest
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
-	public function test7 ()
-	{
+	public function test7 () {
 		var parser = new JsonParser<OuterStruct>();
 		var writer = new JsonWriter<OuterStruct>();
 		var data = parser.fromJson('{"outer": {}}', "");
@@ -164,8 +163,7 @@ class StructureTest
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
-	public function test8 ()
-	{
+	public function test8 () {
 		var parser = new JsonParser<ArrayStruct>();
 		var writer = new JsonWriter<ArrayStruct>();
 		var data = parser.fromJson('{"array": [1,2,3.2]}', "");
@@ -174,8 +172,7 @@ class StructureTest
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
-	public function test9 ()
-	{
+	public function test9 () {
 		var parser = new JsonParser<MapIIStruct>();
 		var writer = new JsonWriter<MapIIStruct>();
 		var data = parser.fromJson('{"map": {"1":2, "3.1": 4, "5":6, "7":8.2}}', "");
@@ -186,8 +183,7 @@ class StructureTest
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
-	public function test10 ()
-	{
+	public function test10 () {
 		var parser = new JsonParser<Issue19>();
 		var writer = new JsonWriter<Issue19>();
 		var data = parser.fromJson('{}', "");
@@ -202,8 +198,7 @@ class StructureTest
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
-	public function test11 ()
-	{
+	public function test11 () {
 		var parser = new JsonParser<Issue19>();
 		var writer = new JsonWriter<Issue19>();
 		var data = parser.fromJson('{"s":{"a":1, "b":2, "c":3, "d":null, "e":{"a":false,"b":1}, "f":{"a":2}}}', "");
@@ -217,4 +212,12 @@ class StructureTest
 		Assert.equals(2, data.s.f.a);
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
+
+	#if !lua
+	public function test12 () {
+		var schema = new JsonSchemaWriter<ReadonlyStruct>().schema;
+		var oracle = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/tests.ReadonlyStruct","definitions": {"tests.ReadonlyStruct": {"additionalProperties": false,"properties": {"foo": {"type": "integer"}},"required": ["foo"],"type": "object"}}}';
+		Assert.same(oracle, schema);
+	}
+	#end
 }

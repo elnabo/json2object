@@ -22,45 +22,142 @@ SOFTWARE.
 
 package json2object.utils.schema;
 
-using json2object.utils.schema.JsonTypeTools;
+import haxe.macro.Context;
+import haxe.macro.Expr;
+
 using json2object.writer.StringUtils;
 using StringTools;
 
+typedef AnonDecls = Map<String, {field:String, expr:Expr}>;
+
 class JsonTypeTools {
-	public static function toString(jt:JsonType) : String {
-		return _toString(jt);
+#if macro
+
+	static var id = 2;
+	static var prefix = '__j2o_s_a_';
+	static var store = [
+		"$schema" => "__j2o_s_a_0",
+		"$ref" => "__j2o_s_a_1"
+	];
+	static var reverseStore = new Map<String, String>();
+	public static function registerAlias (name:String) : String {
+		if (store.exists(name)) {
+			return store.get(name);
+		}
+		var alias = prefix+(id++);
+		store.set(name, alias);
+		reverseStore.set(alias, name);
+		return alias;
 	}
 
-	static function _toString(jt:JsonType, descr:String="}") : String {
-		var end = descr;
-		return switch (jt) {
-			case JTNull: '{"type":"null"${end}';
-			case JTSimple(t): '{"type":"${t}"${end}';
-			case JTConst(v): '{"const":${v}$end';
+	static function unstore (alias:String) : String {
+		return reverseStore.get(alias);
+	}
+
+	inline static function str2Expr (str:String) : Expr {
+		return macro $v{str};
+	}
+
+	inline static function nullable (ct:ComplexType) : ComplexType {
+		return TPath({name: "Null", pack:[], params:[ TPType(ct)], sub:null});
+	}
+
+	public static function toExpr(jt:JsonType) : Expr {
+		return _toExpr(jt, '');
+	}
+
+	static function declsToAnonDecl (decls:AnonDecls) : Expr {
+		#if haxe4
+		return {
+			expr:EObjectDecl([ for (k=>v in decls) {field:k, expr:v.expr, quotes:Quoted}]),
+			pos:Context.currentPos()
+		};
+		#else
+		return {
+			expr:EObjectDecl([ for (value in decls) value]),
+			pos:Context.currentPos()
+		};
+		#end
+	}
+
+	static function sort (a:String, b:String) : Int {
+		if (a == b) { return 0; }
+		return (a > b) ? 1 : -1;
+	}
+
+	static function _toExpr(jt:JsonType, descr:String) : Expr {
+		var decls = new AnonDecls();
+		inline function declare(name:String, expr:Expr) {
+			decls.set(name, {field:name, expr:expr});
+		}
+
+		switch (jt) {
+			case JTNull:
+				declare("type", macro "null");
+			case JTSimple(type):
+				declare("type", macro $v{type});
+			case JTString(s):
+				declare("const", macro $v{s});
+			case JTBool(b):
+				declare("const_bool", (b) ? macro true : macro false);
+			case JTFloat(f):
+				declare("const_float", macro $v{f});
+			case JTInt(i):
+				declare("const_int", macro $v{i});
 			case JTObject(properties, rq):
-				var str = new StringBuf();
-				str.add('{"type":"object", "properties":{');
-				var comma = false;
-				var required = (rq.length > 0) ? ', "required":["${rq.join('", "')}"]': "";
-				for (key in properties.keys()) {
-					if(comma) { str.add(", "); }
-					str.add('"${key}": ${properties.get(key).toString()}');
-					comma = true;
+				declare("type", macro 'object');
+				var propertiesDecl = [];
+				var keys = [ for (k in properties.keys()) k ];
+				keys.sort(sort);
+				for (key in keys) {
+					propertiesDecl.push({
+						expr:EBinop(
+							OpArrow,
+							macro $v{key},
+							toExpr(properties.get(key))
+						),
+						pos:Context.currentPos()
+					});
 				}
-				str.add('}, "additionalProperties": false${required}${end}');
-				str.toString();
-			case JTArray(type): '{"type":"array", "items": ${type.toString()}${end}';
+				var propertiesExpr = {expr: EArrayDecl(propertiesDecl), pos: Context.currentPos()};
+				declare("properties", propertiesExpr);
+				if (rq.length > 0) {
+					rq.sort(sort);
+					var requiredExpr = {expr:EArrayDecl(rq.map(str2Expr)), pos: Context.currentPos()};
+					declare("required", requiredExpr);
+				}
+				declare("additionalProperties", macro false);
+			case JTArray(type):
+				declare("type", macro "array");
+				declare("items", toExpr(type));
 			case JTMap(onlyInt, type):
+				declare("type", macro "object");
 				if (onlyInt) {
-					'{"type":"object", "patternProperties": {"/^[-+]?\\d+([Ee][+-]?\\d+)?$/"} : ${type.toString()}${end}';
+					var patternPropertiesExpr = {
+						expr: EArrayDecl([
+							{expr:EBinop(OpArrow, macro "/^[-+]?\\d+([Ee][+-]?\\d+)?$/", toExpr(type)), pos:Context.currentPos()}
+						]),
+						pos: Context.currentPos()
+					}
+					declare("patternProperties", patternPropertiesExpr);
 				}
 				else {
-					'{"type": "object", "additionalProperties":${type._toString()}${end}';
+					declare("additionalProperties_obj", toExpr(type));
 				}
-			case JTRef(name): '{"$$ref": "#/definitions/${name}"${end}';
-			case JTAnyOf(types): '{"anyOf": [${types.map(toString).join(', ')}]${end}';
-			case JTWithDescr(type, descr): _toString(type, ', "description": ${clean(descr).quote()}}');
+			case JTRef(name):
+				declare(registerAlias("$ref"), str2Expr('#/definitions/'+name));
+			case JTAnyOf(types):
+				var anyOfExpr = {expr: EArrayDecl(types.map(toExpr)), pos:Context.currentPos()};
+				declare("anyOf", anyOfExpr);
+			case JTWithDescr(type, descr):
+				return _toExpr(type, descr);
 		}
+
+		if (descr != '') {
+			declare("description", str2Expr(clean(descr).quote()));
+		}
+
+		return declsToAnonDecl(decls);
 	}
 
 	/**
@@ -128,4 +225,5 @@ class JsonTypeTools {
 		}
 		return result.join("\n");
 	}
+#end
 }

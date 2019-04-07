@@ -25,6 +25,7 @@ package tests;
 import json2object.Error;
 import json2object.JsonParser;
 import json2object.JsonWriter;
+import json2object.utils.JsonSchemaWriter;
 import utest.Assert;
 
 enum Color {

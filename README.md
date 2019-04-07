@@ -42,10 +42,14 @@ var writer = new json2object.JsonWriter<Cls>(); // Creating a writer for Cls cla
 var json = writer.write(value);
 ```
 
+The `write` function accepts an optional `String` parameter for indenting the json file.
+
 ### Using the experimental JsonSchema writer
 ```haxe
 var schema = new json2object.utils.JsonSchemaWriter<Cls>().schema;
 ```
+
+The constructor accepts an optional `String` parameter for indenting the schema. The generated schema follow null-safety rules.
 
 ### Constraints in the parsing
 
