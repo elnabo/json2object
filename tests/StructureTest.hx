@@ -82,6 +82,12 @@ class StructA {
 	@:default(1) public var a:Int;
 }
 
+typedef StructB = {
+	@:optional @:default(0) var a:Int;
+	var b:Bool;
+	@:optional @:default(0) var c:String;
+}
+
 class StructureTest {
 	public function new () {}
 
@@ -208,12 +214,8 @@ class StructureTest {
 	}
 
 	public function test12 () {
-		var schema1 = new JsonSchemaWriter<Struct>().schema;
-		var oracle1 = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/tests.Struct","definitions": {"tests.Struct": {"additionalProperties": false,"properties": {"b": {"type": "integer"},"a": {"type": "boolean"}},"required": ["a","b"],"type": "object"}}}';
-		Assert.same(oracle1, schema1);
-
-		var schema2 = new JsonSchemaWriter<Issue19>().schema;
-		var oracle2 = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/tests.Issue19","definitions": {"tests.StructA": {"additionalProperties": false,"properties": {"a": {"type": "integer"}},"required": ["a"],"type": "object"},"tests.Struct": {"additionalProperties": false,"properties": {"b": {"type": "integer"},"a": {"type": "boolean"}},"required": ["a","b"],"type": "object"},"tests.Issue19Inner": {"additionalProperties": false,"properties": {"f": {"$$ref": "#/definitions/tests.StructA"},"e": {"$$ref": "#/definitions/tests.Struct"},"d": {"$$ref": "#/definitions/tests.Issue19Inner"},"c": {"type": "integer"},"b": {"type": "integer"},"a": {"type": "integer"}},"required": ["d","f"],"type": "object"},"tests.Issue19": {"additionalProperties": false,"properties": {"s": {"$$ref": "#/definitions/tests.Issue19Inner"}},"required": ["s"],"type": "object"}}}';
-		Assert.same(oracle2, schema2);
+		var schema = new JsonSchemaWriter<ReadonlyStruct>().schema;
+		var oracle = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/tests.ReadonlyStruct","definitions": {"tests.ReadonlyStruct": {"additionalProperties": false,"properties": {"foo": {"type": "integer"}},"required": ["foo"],"type": "object"}}}';
+		Assert.same(oracle, schema);
 	}
 }

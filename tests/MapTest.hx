@@ -83,13 +83,10 @@ class MapTest {
 	}
 
 	public function test6 () { // Schema writer
-		var schema1 = new JsonSchemaWriter<Map<String, Array<String>>>().schema;
-		var schema2 = new JsonSchemaWriter<Map<Int, Map<String, Bool>>>().schema;
+		var schema = new JsonSchemaWriter<Map<Int, Bool>>().schema;
 
-		var oracle1 = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/Map<String, Array<String>>","definitions": {"Map<String, Array<String>>": {"additionalProperties": {"items": {"type": "string"},"type": "array"},"type": "object"}}}';
-		var oracle2 = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/Map<Int, Map<String, Bool>>","definitions": {"Map<String, Bool>": {"additionalProperties": {"type": "boolean"},"type": "object"},"Map<Int, Map<String, Bool>>": {"patternProperties": {"/^[-+]?\\d+([Ee][+-]?\\d+)?$/": {"$$ref": "#/definitions/Map<String, Bool>"}},"type": "object"}}}';
+		var oracle = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/Map<Int, Bool>","definitions": {"Map<Int, Bool>": {"patternProperties": {"/^[-+]?\\d+([Ee][+-]?\\d+)?$/": {"type": "boolean"}},"type": "object"}}}';
 
-		Assert.same(oracle1, schema1);
-		Assert.same(oracle2, schema2);
+		Assert.same(oracle, schema);
 	}
 }

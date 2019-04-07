@@ -135,10 +135,4 @@ class ObjectTest {
 		Assert.equals(3, parser.errors.length);
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
-
-	public function test3 () {
-		var schema = new JsonSchemaWriter<ObjectTestData<String, Float>>().schema;
-		var oracle = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/tests.ObjectTestData<String, Float>","definitions": {"tests.ObjectTestData<String, Float>": {"additionalProperties": false,"properties": {"struct": {"$$ref": "#/definitions/tests.ObjectStruct"},"objTest": {"$$ref": "#/definitions/tests.ObjectTestData<String, Float>"},"map": {"$$ref": "#/definitions/Map<String, tests.ObjectTestData<String, Float>>"},"foo": {"type": "integer"},"base": {"type": "boolean"},"b": {"type": "integer"},"array_obj": {"items": {"$$ref": "#/definitions/tests.ObjectTestData<String, Float>"},"type": "array"},"array_map": {"items": {"$$ref": "#/definitions/Map<String, Int>"},"type": "array"},"array_array": {"items": {"items": {"type": "integer"},"type": "array"},"type": "array"},"array": {"items": {"type": "number"},"type": "array"}},"required": ["b","base","map","struct","array","array_array","array_map","array_obj","foo"],"type": "object"},"tests.ObjectStruct": {"additionalProperties": false,"properties": {"i": {"type": "integer"}},"required": ["i"],"type": "object"},"Map<String, tests.ObjectTestData<String, Float>>": {"additionalProperties": {"$$ref": "#/definitions/tests.ObjectTestData<String, Float>"},"type": "object"},"Map<String, Int>": {"additionalProperties": {"type": "integer"},"type": "object"}}}';
-		Assert.same(oracle, schema);
-	}
 }

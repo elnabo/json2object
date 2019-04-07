@@ -198,7 +198,7 @@ class DataBuilder {
 		define(name, JTMap(onlyInt, makeSchema(valueType, definitions)), definitions);
 		return JTRef(name);
 	}
-	static function makeObjectSchema(type:Type, name:String, definitions:Definitions):JsonType {
+	static function makeObjectSchema(type:Type, name:String, definitions:Definitions) : JsonType {
 		var properties = new Map<String, JsonType>();
 		var required = new Array<String>();
 
@@ -403,7 +403,7 @@ class DataBuilder {
 			function get_schema () : String {
 				if (_schema == null) {
 					@:privateAccess {
-						_schema = new json2object.JsonWriter<json2object.utils.schema.JsonTypeTools.Schema>(true)._write(${obj}, space, 0, true, function () { return '"const": null'; });
+						_schema = new json2object.JsonWriter<json2object.utils.schema.JsonSchemaType>(true)._write(${obj}, space, 0, true, function () { return '"const": null'; });
 					}
 				}
 				return _schema;
