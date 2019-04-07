@@ -213,9 +213,11 @@ class StructureTest {
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
+	#if !lua
 	public function test12 () {
 		var schema = new JsonSchemaWriter<ReadonlyStruct>().schema;
 		var oracle = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/tests.ReadonlyStruct","definitions": {"tests.ReadonlyStruct": {"additionalProperties": false,"properties": {"foo": {"type": "integer"}},"required": ["foo"],"type": "object"}}}';
 		Assert.same(oracle, schema);
 	}
+	#end
 }

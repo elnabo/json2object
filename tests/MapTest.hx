@@ -82,6 +82,7 @@ class MapTest {
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
+	#if !lua
 	public function test6 () { // Schema writer
 		var schema = new JsonSchemaWriter<Map<Int, Bool>>().schema;
 
@@ -89,4 +90,5 @@ class MapTest {
 
 		Assert.same(oracle, schema);
 	}
+	#end
 }

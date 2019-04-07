@@ -50,9 +50,11 @@ class ArrayTest {
 		Assert.same(data, parser.fromJson(writer.write(data),"test"));
 	}
 
+	#if !lua
 	public function test2 () {
 		var schema = new JsonSchemaWriter<Array<Int>>().schema;
 		var oracle = '{"$$schema": "http://json-schema.org/draft-07/schema#","items": {"type": "integer"},"type": "array"}';
 		Assert.same(oracle, schema);
 	}
+	#end
 }
