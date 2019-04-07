@@ -39,7 +39,7 @@ class JsonTypeTools {
 		"$schema" => "__j2o_s_a_0",
 		"$ref" => "__j2o_s_a_1"
 	];
-	static final reverseStore = new Map<String, String>();
+	static var reverseStore = new Map<String, String>();
 	public static function registerAlias (name:String) : String {
 		if (store.exists(name)) {
 			return store.get(name);

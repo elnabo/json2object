@@ -85,15 +85,4 @@ class InheritanceTest {
 		Assert.equals(2, parser.errors.length);
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
-
-	public function test6 () {
-		var schema1 = new JsonSchemaWriter<Child>().schema;
-		var schema2 = new JsonSchemaWriter<OtherChild>().schema;
-
-		var oracle1 = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/tests.Child","definitions": {"tests.Child": {"additionalProperties": false,"properties": {"a": {"type": "integer"},"b": {"type": "string"}},"required": ["a","b"],"type": "object"}}}';
-		var oracle2 = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/tests.OtherChild","definitions": {"tests.OtherChild": {"additionalProperties": false,"properties": {"a": {"type": "integer"},"b": {"type": "boolean"}},"required": ["a","b"],"type": "object"}}}';
-
-		Assert.same(oracle1, schema1);
-		Assert.same(oracle2, schema2);
-	}
 }

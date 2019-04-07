@@ -231,10 +231,4 @@ class EnumTest
 		Assert.same(data.value, tests.OtherEnum.TestEnum.VAL1);
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
-
-	public function test11 () {
-		var schema = new JsonSchemaWriter<WithParam<String, Int>>().schema;
-		var oracle = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/tests.WithParam<String, Int>","definitions": {"tests.WithParam<String, Int>": {"anyOf": [{"additionalProperties": false,"properties": {"First": {"additionalProperties": false,"properties": {"a": {"type": "string"}},"required": ["a"],"type": "object"}},"required": ["First"],"type": "object"},{"additionalProperties": false,"properties": {"Second": {"additionalProperties": false,"properties": {"a": {"type": "integer"}},"required": ["a"],"type": "object"}},"required": ["Second"],"type": "object"},{"additionalProperties": false,"properties": {"Both": {"additionalProperties": false,"properties": {"a": {"type": "string"},"b": {"type": "integer"}},"required": ["a","b"],"type": "object"}},"required": ["Both"],"type": "object"}]}}}';
-		Assert.same(oracle, schema);
-	}
 }
