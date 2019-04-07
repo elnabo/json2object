@@ -74,7 +74,7 @@ class JsonTypeTools {
 		};
 		#else
 		return {
-			expr:EObjectDecl([ for (values in decls.values()) values]),
+			expr:EObjectDecl([ for (key in decls.keys()) decls.get(key)]),
 			pos:Context.currentPos()
 		};
 		#end
