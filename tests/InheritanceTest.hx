@@ -24,29 +24,25 @@ package tests;
 
 import json2object.JsonParser;
 import json2object.JsonWriter;
+import json2object.utils.JsonSchemaWriter;
 import utest.Assert;
 
-class Parent
-{
+class Parent {
 	public var a : Int;
 }
 
-class Child extends Parent
-{
+class Child extends Parent {
 	public var b : String;
 }
 
-class OtherChild extends Parent
-{
+class OtherChild extends Parent {
 	public var b : Bool;
 }
 
-class InheritanceTest
-{
+class InheritanceTest {
 	public function new () {}
 
-	public function test1 ()
-	{
+	public function test1 () {
 		var parser = new JsonParser<Parent>();
 		var writer = new JsonWriter<Parent>();
 		var data = parser.fromJson('{"a": 7}', "test.json");
@@ -55,8 +51,7 @@ class InheritanceTest
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
-	public function test2 ()
-	{
+	public function test2 () {
 		var parser = new JsonParser<Child>();
 		var writer = new JsonWriter<Child>();
 		var data = parser.fromJson('{"a": 7, "b": "hello"}', "test.json");
@@ -66,8 +61,7 @@ class InheritanceTest
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
-	public function test3 ()
-	{
+	public function test3 () {
 		var parser = new JsonParser<OtherChild>();
 		var writer = new JsonWriter<OtherChild>();
 		var data = parser.fromJson('{"a": 7, "b": true}', "test.json");
@@ -76,8 +70,7 @@ class InheritanceTest
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
-	public function test4 ()
-	{
+	public function test4 () {
 		var parser = new JsonParser<Child>();
 		var writer = new JsonWriter<Child>();
 		var data = parser.fromJson('{"a": 7, "b": true}', "test.json");
@@ -85,12 +78,22 @@ class InheritanceTest
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
 	}
 
-	public function test5 ()
-	{
+	public function test5 () {
 		var parser = new JsonParser<OtherChild>();
 		var writer = new JsonWriter<OtherChild>();
 		var data = parser.fromJson('{"a": 7, "b": "hello"}', "test.json");
 		Assert.equals(2, parser.errors.length);
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
+	}
+
+	public function test6 () {
+		var schema1 = new JsonSchemaWriter<Child>().schema;
+		var schema2 = new JsonSchemaWriter<OtherChild>().schema;
+
+		var oracle1 = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/tests.Child","definitions": {"tests.Child": {"additionalProperties": false,"properties": {"b": {"type": "string"},"a": {"type": "integer"}},"required": ["b","a"],"type": "object"}}}';
+		var oracle2 = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/tests.OtherChild","definitions": {"tests.OtherChild": {"additionalProperties": false,"properties": {"b": {"type": "boolean"},"a": {"type": "integer"}},"required": ["b","a"],"type": "object"}}}';
+
+		Assert.same(oracle1, schema1);
+		Assert.same(oracle2, schema2);
 	}
 }

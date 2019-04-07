@@ -60,7 +60,7 @@ class DataBuilder {
 	}
 
 	private static function makeStringWriter () : Expr {
-		return macro return ((indentFirst) ? buildIndent(space, level) : '') + ((o == null) ? "null" : json2object.writer.StringUtils.quote(cast o));
+		return macro return ((indentFirst) ? buildIndent(space, level) : '') + ((o == null) ? "null" : quote(cast o));
 	}
 
 	private static function makeBasicWriter (type:Type) : Expr {
@@ -75,15 +75,15 @@ class DataBuilder {
 			var indent = buildIndent(space, level);
 			var firstIndent = (indentFirst) ? indent : '';
 			if (o == null) { return firstIndent + "null"; }
-			var valueWriter = new $cls();
+			var valueWriter = new $cls(ignoreNullOptionals);
 
 			@:privateAccess {
-				var values =  [for (element in o) indent + valueWriter._write(element, space, level + 1, true)];
+				var values =  [for (element in o) indent + valueWriter._write(element, space, level + 1, true, onAllOptionalNull)];
 				var newLine = (space != '' && o.length > 0) ? '\n' : '';
 
 				var json = firstIndent + "[" + newLine;
 				json += values.join(',' + newLine) + newLine;
-				json += "]";
+				json += indent + "]";
 				return json;
 			}
 		};
@@ -95,7 +95,7 @@ class DataBuilder {
 		var keyMacro = switch (keyType.followWithAbstracts()) {
 			case TInst(_.get()=>t, _):
 				if (t.module == "String") {
-					macro json2object.writer.StringUtils.quote(key);
+					macro quote(key);
 				}
 				else {
 					Context.fatalError("json2object: Only maps with Int or String keys are writable, got "+keyType.toString(), Context.currentPos());
@@ -114,10 +114,10 @@ class DataBuilder {
 			var indent = buildIndent(space, level);
 			var firstIndent = (indentFirst) ? indent : '';
 			if (o == null) { return firstIndent + "null"; }
-			var valueWriter = new $clsValue();
+			var valueWriter = new $clsValue(ignoreNullOptionals);
 
 			@:privateAccess {
-				var values =  [for (key in o.keys()) indent + space + '"'+key+'": '+valueWriter._write(o.get(key), space, level + 1, false)];
+				var values =  [for (key in o.keys()) indent + space + '"'+key+'": '+valueWriter._write(o.get(key), space, level + 1, false, onAllOptionalNull)];
 				var newLine = (space != '' && values.length > 0) ? '\n' : '';
 
 				var json = firstIndent+'{' + newLine;
@@ -161,6 +161,7 @@ class DataBuilder {
 		}
 
 		var assignations:Array<Expr> = [];
+		var skips: Array<Expr> = [];
 
 		for (field in fields) {
 			if (field.meta.has(":jignored")) { continue; }
@@ -185,12 +186,20 @@ class DataBuilder {
 						}
 					}
 					name = '"' + name + '": ';
-					assignations.push(macro indent + space + $v{name} + new $f_cls()._write(cast $f_a, space, level + 1, false));
+					var assignation = macro indent + space + $v{name} + new $f_cls(ignoreNullOptionals)._write(cast $f_a, space, level + 1, false, onAllOptionalNull);
+					assignations.push(assignation);
+
+					skips.push(
+						field.meta.has(':optional')
+							? macro $f_a == null
+							: macro false
+					);
 
 				default:
 			}
 		}
 		var array = {expr:EArrayDecl(assignations), pos:Context.currentPos()};
+		var skips = {expr:EArrayDecl(skips), pos:Context.currentPos()};
 
 		return macro {
 			var indent = buildIndent(space, level);
@@ -198,6 +207,15 @@ class DataBuilder {
 			if (o == null) { return firstIndent + "null"; }
 			@:privateAccess{
 				var decl = ${array};
+				if (ignoreNullOptionals) {
+					var skips = ${skips};
+					if (skips.indexOf(false) == -1) {
+						decl = onAllOptionalNull != null ? [onAllOptionalNull()] : [];
+					}
+					else {
+						decl = [ for (i in 0...decl.length) skips[i] ? continue : decl[i]];
+					}
+				}
 				var newLine = (space != '' && decl.length > 0) ? '\n' : '';
 
 				var json = firstIndent + "{" + newLine;
@@ -231,7 +249,7 @@ class DataBuilder {
 								var a_type = a.t.applyTypeParameters(tParams, params);
 								var a_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(a_type.toComplexType())]};
 
-								assignations.push(macro indent + space + space + '"'+$v{a.name} +'": '+ new $a_cls()._write($i{a.name}, space, level + 2, false));
+								assignations.push(macro indent + space + space + '"'+$v{a.name} +'": '+ new $a_cls(ignoreNullOptionals)._write($i{a.name}, space, level + 2, false, onAllOptionalNull));
 							}
 
 
@@ -296,8 +314,15 @@ class DataBuilder {
 
 		var writerName = c.name + "_" + (counter++);
 		var writerClass = macro class $writerName {
-			public function new () {}
+			public var ignoreNullOptionals : Bool;
+			public function new (?ignoreNullOptionals:Bool=false) {
+				this.ignoreNullOptionals = ignoreNullOptionals;
+			}
 
+
+			private inline function quote (str:String) {
+				return json2object.writer.StringUtils.quote(str);
+			}
 			private function buildIndent (space:String, level:Int) {
 				if (level == 0) { return ''; }
 				var buff = new StringBuf();
@@ -364,11 +389,13 @@ class DataBuilder {
 			default: Context.fatalError("json2object: Writer for "+type.toString()+" are not generated", Context.currentPos());
 		}
 
+		var onAllOptionalNullCT : ComplexType = TFunction([],Context.getType("String").toComplexType());
 		var args = [
 			{name:"o", meta:null, opt:false, type:base.toComplexType(),value:null},
-			{name:"space", meta:null, opt:true, type:Context.getType("String").toComplexType(), value:macro ""},
-			{name:"level", meta:null, opt:false, type:Context.getType("Int").toComplexType(), value:null},
-			{name:"indentFirst", meta:null, opt:false, type:Context.getType("Bool").toComplexType(), value:null},
+			{name:"space", meta:null, opt:false, type:Context.getType("String").toComplexType(), value:macro ""},
+			{name:"level", meta:null, opt:false, type:Context.getType("Int").toComplexType(), value:macro 0},
+			{name:"indentFirst", meta:null, opt:false, type:Context.getType("Bool").toComplexType(), value:macro false},
+			{name:"onAllOptionalNull", meta:null, opt:true, type:onAllOptionalNullCT, value: macro null}
 		];
 		var privateWrite:Field = {
 			doc: null,

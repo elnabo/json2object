@@ -37,16 +37,18 @@ using haxe.macro.TypeTools;
 using json2object.utils.schema.JsonTypeTools;
 using StringTools;
 
+typedef Definitions = Map<String, JsonType>;
+
 class DataBuilder {
 
 	static var counter:Int = 0;
-	static var definitions = new Map<String, JsonType>();
+	private static var writers = new Map<String, Type>();
 
 	private inline static function describe (type:JsonType, descr:Null<String>) {
 		return (descr == null) ? type : JTWithDescr(type, descr);
 	}
 
-	private static function define(name:String, type:JsonType, ?doc:Null<String>=null) {
+	private static function define(name:String, type:JsonType, definitions:Definitions, doc:Null<String>=null) {
 		definitions.set(name, describe(type, doc));
 	}
 
@@ -60,7 +62,7 @@ class DataBuilder {
 		}
 	}
 
-	static function makeAbstractSchema(type:Type):JsonType {
+	static function makeAbstractSchema(type:Type, definitions:Definitions):JsonType {
 		var name = type.toString();
 		var doc:Null<String> = null;
 		switch (type) {
@@ -72,20 +74,20 @@ class DataBuilder {
 					try {
 						var ft = fromType.t.applyTypeParameters(t.params, p);
 						var ft = ft.followWithAbstracts();
-						jt = anyOf(jt, makeSchema(ft));
+						jt = anyOf(jt, makeSchema(ft, definitions));
 					}
 					catch (_:#if (haxe_ver >= 4) Any #else Dynamic #end) {}
 				}
 				if (jt == null) {
 					throw "Abstract "+name+ " has no json representation "+ Context.currentPos();
 				}
-				define(name, jt, doc);
+				define(name, jt, definitions, doc);
 				return JTRef(name);
 			default:
 				throw "Unexpected type "+name;
 		}
 	}
-	static function makeAbstractEnumSchema(type:Type):JsonType {
+	static function makeAbstractEnumSchema(type:Type, definitions:Definitions):JsonType {
 		var name = type.toString();
 		var doc:Null<String> = null;
 		switch (type.followWithAbstracts()) {
@@ -105,11 +107,11 @@ class DataBuilder {
 
 		function handleExpr(expr:TypedExprDef, ?rec:Bool=true) : Dynamic {
 			return switch (expr) {
-				case TConst(TString(s)): StringUtils.quote(s);
-				case TConst(TNull): null;
-				case TConst(TBool(b)): b;
-				case TConst(TFloat(f)): f;
-				case TConst(TInt(i)): i;
+				case TConst(TString(s)): JTString(StringUtils.quote(s));
+				case TConst(TNull): JTString(null);
+				case TConst(TBool(b)): JTBool(b);
+				case TConst(TFloat(f)): JTFloat(f);
+				case TConst(TInt(i)): JTInt(i);
 				case TCast(c, _) if (rec): handleExpr(c.expr, false);
 				default: throw false;
 			}
@@ -123,7 +125,7 @@ class DataBuilder {
 					}
 					if (field.expr() == null) { continue; }
 					try {
-						jt = anyOf(jt, describe(JTConst(handleExpr(field.expr().expr)), field.doc));
+						jt = anyOf(jt, describe(handleExpr(field.expr().expr), field.doc));
 					}
 					catch (_:#if (haxe_ver >= 4) Any #else Dynamic #end) {}
 				}
@@ -133,10 +135,10 @@ class DataBuilder {
 		if (jt == null) {
 			throw 'json2object: Abstract enum ${name} has no supported value';
 		}
-		define(name, jt, doc);
+		define(name, jt, definitions, doc);
 		return JTRef(name);
 	}
-	static function makeEnumSchema(type:Type):JsonType {
+	static function makeEnumSchema(type:Type, definitions:Definitions):JsonType {
 		var name = type.toString();
 		var doc:Null<String> = null;
 
@@ -150,10 +152,10 @@ class DataBuilder {
 					var required = [];
 					switch (construct.type) {
 						case TEnum(_,_):
-							jt = anyOf(jt, describe(JTConst(StringUtils.quote(n)), construct.doc));
+							jt = anyOf(jt, describe(JTString(StringUtils.quote(n)), construct.doc));
 						case TFun(args,_):
 							for (a in args) {
-								properties.set(a.name, makeSchema(a.t.applyTypeParameters(t.params, p)));
+								properties.set(a.name, makeSchema(a.t.applyTypeParameters(t.params, p), definitions));
 								if (!a.opt) {
 									required.push(a.name);
 								}
@@ -166,12 +168,12 @@ class DataBuilder {
 				doc = t.doc;
 			default:
 		}
-		define(name, jt, doc);
+		define(name, jt, definitions, doc);
 		return JTRef(name);
 	}
 
-	static function makeMapSchema(keyType:Type, valueType:Type):JsonType {
-		var name = "Map_" + keyType.toString() + "_" + valueType.toString();
+	static function makeMapSchema(keyType:Type, valueType:Type, definitions:Definitions):JsonType {
+		var name = 'Map<${keyType.toString()}, ${valueType.toString()}>';
 		if (definitions.exists(name)) {
 			return JTRef(name);
 		}
@@ -193,10 +195,10 @@ class DataBuilder {
 			default:
 				throw "json2object: Only maps with Int or String keys can be transformed to json, got "+keyType.toString() + " " + Context.currentPos();
 		}
-		define(name, JTMap(onlyInt, makeSchema(valueType)));
+		define(name, JTMap(onlyInt, makeSchema(valueType, definitions)), definitions);
 		return JTRef(name);
 	}
-	static function makeObjectSchema(type:Type, name:String):JsonType {
+	static function makeObjectSchema(type:Type, name:String, definitions:Definitions):JsonType {
 		var properties = new Map<String, JsonType>();
 		var required = new Array<String>();
 
@@ -231,7 +233,7 @@ class DataBuilder {
 
 
 		try {
-			define(name, null); // Protection against recursive types
+			define(name, null, definitions); // Protection against recursive types
 			for (field in fields) {
 				if (field.meta.has(":jignored")) { continue; }
 				switch(field.kind) {
@@ -256,12 +258,12 @@ class DataBuilder {
 							required.push(f_name);
 						}
 
-						properties.set(f_name, describe(makeSchema(f_type, optional), field.doc));
+						properties.set(f_name, describe(makeSchema(f_type, definitions, optional), field.doc));
 					default:
 				}
 			}
 
-			define(name, JTObject(properties, required), doc);
+			define(name, JTObject(properties, required), definitions, doc);
 			return JTRef(name);
 		}
 		catch (e:#if (haxe_ver >= 4) Any #else Dynamic #end) {
@@ -272,7 +274,7 @@ class DataBuilder {
 		}
 	}
 
-	static function makeSchema(type:Type, ?name:String=null, ?optional:Bool=false) : JsonType {
+	static function makeSchema(type:Type, definitions:Null<Definitions>, ?name:String=null, ?optional:Bool=false) : JsonType {
 
 		if (name == null) {
 			name = type.toString();
@@ -288,15 +290,15 @@ class DataBuilder {
 					case "String":
 						return JTSimple("string");
 					case "Array" if (p.length == 1 && p[0] != null):
-						return JTArray(makeSchema(p[0]));
+						return JTArray(makeSchema(p[0], definitions));
 					default:
-						makeObjectSchema(type, name);
+						makeObjectSchema(type, name, definitions);
 				}
 			case TAnonymous(_):
-				makeObjectSchema(type, name);
+				makeObjectSchema(type, name, definitions);
 			case TAbstract(_.get()=>t, p):
 				if (t.name == "Null") {
-					var jt = makeSchema(p[0]);
+					var jt = makeSchema(p[0], definitions);
 					return (optional) ? jt : anyOf(JTNull, jt);
 				}
 				else if (t.module == "StdTypes") {
@@ -308,66 +310,109 @@ class DataBuilder {
 					}
 				}
 				else if (t.module == #if (haxe_ver >= 4) "haxe.ds.Map" #else "Map" #end) {
-					makeMapSchema(p[0], p[1]);
+					makeMapSchema(p[0], p[1], definitions);
 				}
 				else {
 					if (t.meta.has(":enum")) {
-						makeAbstractEnumSchema(type.applyTypeParameters(t.params, p));
+						makeAbstractEnumSchema(type.applyTypeParameters(t.params, p), definitions);
 					}
 					else {
-						makeAbstractSchema(type.applyTypeParameters(t.params, p));
+						makeAbstractSchema(type.applyTypeParameters(t.params, p), definitions);
 					}
 				}
 			case TEnum(_.get()=>t,p):
-				makeEnumSchema(type.applyTypeParameters(t.params, p));
+				makeEnumSchema(type.applyTypeParameters(t.params, p), definitions);
 			case TType(_.get()=>t, p):
-				var _tmp = makeSchema(t.type.applyTypeParameters(t.params, p), name);
+				var _tmp = makeSchema(t.type.applyTypeParameters(t.params, p), definitions, name);
 				if (t.name != "Null") {
 					if (t.doc != null) {
-						define(name, describe(definitions.get(name), t.doc));
+						define(name, describe(definitions.get(name), t.doc), definitions);
 					}
 					else {
-						define(name, definitions.get(name));
+						define(name, definitions.get(name), definitions);
 					}
 				}
 				(t.name == "Null" && !optional) ? anyOf(JTNull, _tmp) : _tmp;
 			case TLazy(f):
-				makeSchema(f());
+				makeSchema(f(), definitions);
 			default:
 				throw "json2object: Json schema can not make a schema for type " + name + " " + Context.currentPos();
 		}
 		return schema;
 	}
 
-	static function format(schema:JsonType) : String {
-		var buf = new StringBuf();
-		buf.add('{');
-		buf.add('"$$schema": "http://json-schema.org/draft-07/schema#",');
+	static function format(schema:JsonType, definitions:Definitions) : Expr {
+		inline function finishDecl (decl:{field:String, expr:Expr}) #if haxe4 : ObjectField #end {
+		#if haxe4
+			return {field: decl.field, expr: decl.expr, quotes:Quoted};
+		#else
+			return decl;
+		#end
+		}
+
+		var decls = [];
+		var schemaExpr:Expr = macro $v{"http://json-schema.org/draft-07/schema#"};
+		decls.push(finishDecl({field:JsonTypeTools.registerAlias("$schema"), expr:schemaExpr}));
 		var hasDef = definitions.keys().hasNext();
 		if (hasDef) {
-			buf.add('"definitions":{');
-			var comma = false;
-			for (defName in definitions.keys()) {
-				if (comma) { buf.add(", "); }
-				buf.add('"$defName": ${definitions.get(defName).toString()}');
-				comma = true;
-			}
-			buf.add('},');
+			var definitionsExpr = {
+				expr: EArrayDecl(
+					[ for (key in definitions.keys())
+						{
+							expr: EBinop(
+								OpArrow,
+								macro $v{key},
+								definitions.get(key).toExpr()
+							),
+							pos: Context.currentPos()
+						}
+					]
+				),
+				pos: Context.currentPos()
+			};
+			decls.push(finishDecl({field: 'definitions', expr: definitionsExpr}));
 		}
-		var s = schema.toString();
-		buf.add(s.substring(1, s.length - 1));
-		buf.add('}');
-		return buf.toString();
+
+		switch (schema.toExpr().expr) {
+			case EObjectDecl(fields):
+				decls = decls.concat(fields);
+			default:
+		}
+
+		return { expr: EObjectDecl(decls), pos: Context.currentPos()} ;
+
 	}
 
 	static function makeSchemaWriter(c:BaseType, type:Type, base:Type=null) {
 		var swriterName = c.name + "_" + (counter++);
-		var schema = Context.defined("display") ? "Schema generation not available in display mode." : format(makeSchema(type));
+
+		if (writers.exists(swriterName)) {
+			return writers.get(swriterName);
+		}
+
+		var definitions = new Definitions();
+		var obj = format(makeSchema(type, definitions), definitions);
 		var schemaWriter = macro class $swriterName {
-			public function new () {}
-			public #if (haxe_ver >= 4) final #else var #end schema#if (haxe_ver >= 4) #else (default,never) #end:String = $v{schema};
+			public var space:String;
+			public function new (space:String='') {
+				this.space = space;
+			}
+
+			private var _schema : Null<String>;
+			public var schema(get,never):String;
+			function get_schema () : String {
+				if (_schema == null) {
+					@:privateAccess {
+						_schema = new json2object.JsonWriter<json2object.utils.schema.JsonTypeTools.Schema>(true)._write(${obj}, space, 0, true, function () { return '"const": null'; });
+					}
+				}
+				return _schema;
+			}
 		}
 		haxe.macro.Context.defineType(schemaWriter);
+
+		var constructedType = haxe.macro.Context.getType(swriterName);
+		writers.set(swriterName, constructedType);
 		return haxe.macro.Context.getType(swriterName);
 	}
 

@@ -25,7 +25,10 @@ package json2object.utils.schema;
 enum JsonType {
 	JTNull;
 	JTSimple(t:String);
-	JTConst(v:Dynamic);
+	JTString(s:String);
+	JTInt(i:Int);
+	JTFloat(f:String);
+	JTBool(b:Bool);
 	JTObject(properties:Map<String, JsonType>, required:Array<String>);
 	JTArray(type:JsonType);
 	JTMap(onlyInt:Bool, type:JsonType);

@@ -24,14 +24,13 @@ package tests;
 
 import json2object.JsonParser;
 import json2object.JsonWriter;
+import json2object.utils.JsonSchemaWriter;
 import utest.Assert;
 
-class ArrayTest
-{
+class ArrayTest {
 	public function new () {}
 
-	public function test ()
-	{
+	public function test1 () {
 		var parser = new JsonParser<Array<Int>>();
 		var writer = new JsonWriter<Array<Int>>();
 		var data = parser.fromJson('[0,1,4,3]', "");
@@ -49,5 +48,11 @@ class ArrayTest
 			Assert.equals(oracle[i], data[i]);
 		}
 		Assert.same(data, parser.fromJson(writer.write(data),"test"));
+	}
+
+	public function test2 () {
+		var schema = new JsonSchemaWriter<Array<Int>>().schema;
+		var oracle = '{"$$schema": "http://json-schema.org/draft-07/schema#","items": {"type": "integer"},"type": "array"}';
+		Assert.same(oracle, schema);
 	}
 }

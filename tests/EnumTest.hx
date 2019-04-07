@@ -25,6 +25,7 @@ package tests;
 import json2object.Error;
 import json2object.JsonParser;
 import json2object.JsonWriter;
+import json2object.utils.JsonSchemaWriter;
 import utest.Assert;
 
 enum Color {
@@ -229,5 +230,11 @@ class EnumTest
 		Assert.equals(0, parser.errors.length);
 		Assert.same(data.value, tests.OtherEnum.TestEnum.VAL1);
 		Assert.same(data, parser.fromJson(writer.write(data), "test"));
+	}
+
+	public function test11 () {
+		var schema = new JsonSchemaWriter<WithParamStruct>().schema;
+		var oracle = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/tests.WithParamStruct","definitions": {"tests.WithParamStruct": {"additionalProperties": false,"properties": {"value": {"$$ref": "#/definitions/tests.WithParam<String, Int>"}},"required": ["value"],"type": "object"},"tests.WithParam<String, Int>": {"anyOf": [{"additionalProperties": false,"properties": {"First": {"additionalProperties": false,"properties": {"a": {"type": "string"}},"required": ["a"],"type": "object"}},"required": ["First"],"type": "object"},{"additionalProperties": false,"properties": {"Second": {"additionalProperties": false,"properties": {"a": {"type": "integer"}},"required": ["a"],"type": "object"}},"required": ["Second"],"type": "object"},{"additionalProperties": false,"properties": {"Both": {"additionalProperties": false,"properties": {"b": {"type": "integer"},"a": {"type": "string"}},"required": ["a","b"],"type": "object"}},"required": ["Both"],"type": "object"}]}}}';
+		Assert.same(oracle, schema);
 	}
 }

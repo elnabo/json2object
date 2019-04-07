@@ -300,4 +300,10 @@ class AbstractTest
 		//Assert.same(data, parser.fromJson(writer.write(data), ""));
 	}
 	#end
+
+	public function test13 () {
+		var schema = new json2object.utils.JsonSchemaWriter<TernaryValue>().schema;
+		var oracle = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/tests.TernaryValue","definitions": {"tests.TernaryValue": {"anyOf": [{"const": true},{"const": false},{"const": null}]}}}';
+		Assert.same(oracle, schema);
+	}
 }
