@@ -788,54 +788,27 @@ class DataBuilder {
 			return parsers.get(parserMapName);
 		}
 
+		var defaultValueExpr:Expr = switch (type) {
+			case TAbstract(_.get()=>t,_) if (t.module == "StdTypes"):
+				switch (t.name) {
+					case "Int", "Float", "Single" if (!isNullable(base)):
+						macro value = 0;
+					case "Bool" if (!isNullable(base)):
+						macro value = false;
+					default: macro {};
+				}
+			default: macro {};
+		}
+
 		var parserName = c.name + "_" + (counter++);
-		var parser = macro class $parserName {
-			public var errors:Array<json2object.Error>;
-			@:deprecated("json2object: Field 'warnings' is replaced by 'errors'")
-			public var warnings(get,never):Array<json2object.Error>;
-			@:deprecated("json2object: Field 'warnings' is replaced by 'errors'")
-			private inline function get_warnings():Array<json2object.Error> { return errors; }
-
-			@:deprecated("json2object: Field 'object' is replaced by 'value'")
-			private inline function get_object() { return value; }
-
-			private var errorType:json2object.Error.ErrorType;
-
-			private var putils:json2object.PositionUtils;
-
+		var parent = {name:"BaseParser", pack:["json2object", "reader"], params:[TPType(base.toComplexType())]};
+		var parser = macro class $parserName extends $parent {
 			public function new(?errors:Array<json2object.Error>=null, ?putils:json2object.PositionUtils=null, ?errorType:json2object.Error.ErrorType=null) {
-				this.errors = (errors == null) ? [] : errors;
-				this.putils = putils;
-				this.errorType = (errorType == null) ? NONE : errorType;
+				super(errors, putils, errorType);
+				${defaultValueExpr}
 			}
 
-			public function fromJson(jsonString:String, ?filename:String='') {
-				putils = new json2object.PositionUtils(jsonString);
-				errors = [];
-				try {
-					var json = hxjsonast.Parser.parse(jsonString, filename);
-					loadJson(json);
-				}
-				catch (e:hxjsonast.Error) {
-					errors.push(json2object.Error.ParserError(e.message, putils.convertPosition(e.pos)));
-				}
-				return value;
-			}
-
-			public function loadJson(json:hxjsonast.Json, ?variable:String="") {
-				var pos = putils.convertPosition(json.pos);
-				switch (json.value) {
-					case JNull : loadJsonNull(pos, variable);
-					case JString(s) : loadJsonString(s, pos, variable);
-					case JNumber(n) : loadJsonNumber(n, pos, variable);
-					case JBool(b) : loadJsonBool(b, pos, variable);
-					case JArray(a) : loadJsonArray(a, pos, variable);
-					case JObject(o) : loadJsonObject(o, pos, variable);
-				}
-				return value;
-			}
-
-			private function onIncorrectType(pos:json2object.Position, variable:String) {
+			override private function onIncorrectType(pos:json2object.Position, variable:String) {
 				errors.push(IncorrectType(variable, $v{type.toString()}, pos));
 				switch (errorType) {
 					case OBJECTTHROW, THROW: throw "json2object: parsing throw";
@@ -843,44 +816,19 @@ class DataBuilder {
 				}
 			}
 
-			private function loadJsonNull(pos:json2object.Position, variable:String) {
-				onIncorrectType(pos, variable);
+			override private function loadJsonNull(pos:json2object.Position, variable:String) {
 			}
-			private function loadJsonString(s:String, pos:json2object.Position, variable:String) {
-				onIncorrectType(pos, variable);
+			override private function loadJsonString(s:String, pos:json2object.Position, variable:String) {
 			}
-			private function loadJsonNumber(f:String, pos:json2object.Position, variable:String) {
-				onIncorrectType(pos, variable);
+			override private function loadJsonNumber(f:String, pos:json2object.Position, variable:String) {
 			}
-			private function loadJsonBool(b:Bool, pos:json2object.Position, variable:String) {
-				onIncorrectType(pos, variable);
+			override private function loadJsonBool(b:Bool, pos:json2object.Position, variable:String) {
 			}
-			private function loadJsonArray(a:Array<hxjsonast.Json>, pos:json2object.Position, variable:String) {
-				onIncorrectType(pos, variable);
+			override private function loadJsonArray(a:Array<hxjsonast.Json>, pos:json2object.Position, variable:String) {
 			}
-			private function loadJsonObject(o:Array<hxjsonast.Json.JObjectField>, pos:json2object.Position, variable:String) {
-				onIncorrectType(pos, variable);
+			override private function loadJsonObject(o:Array<hxjsonast.Json.JObjectField>, pos:json2object.Position, variable:String) {
 			}
 		};
-
-		var value:Field = {
-			doc: null,
-			kind: FVar(TypeTools.toComplexType(base), null),
-			access: [APublic],
-			name: "value",
-			pos: Context.currentPos(),
-			meta: null,
-		};
-
-		var object:Field = {
-			doc: null,
-			kind: FProp("get", "never", TypeTools.toComplexType(base), null),
-			access: [APublic],
-			name: "object",
-			pos: Context.currentPos(),
-			meta: [{name:":deprecated", params:[{expr:EConst(CString("json2object: Field 'object' is replaced by 'value'")), pos:Context.currentPos()}], pos:Context.currentPos()}],
-		};
-
 
 		var parser_cls = { name: parserName, pack: [], params: null, sub: null };
 		var getAutoExpr = macro return new $parser_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}});
@@ -920,19 +868,10 @@ class DataBuilder {
 					switch (t.name) {
 						case "Int" :
 							makeIntParser(parser, base);
-							if (!isNullable(base)) {
-								value.kind = FVar(TypeTools.toComplexType(base), macro 0);
-							}
 						case "Float", "Single":
 							makeFloatParser(parser, base);
-							if (!isNullable(base)) {
-								value.kind = FVar(TypeTools.toComplexType(base), macro 0);
-							}
 						case "Bool":
 							makeBoolParser(parser, base);
-							if (!isNullable(base)) {
-								value.kind = FVar(TypeTools.toComplexType(base), macro false);
-							}
 						default: Context.fatalError("json2object: Parser of "+t.name+" are not generated", callPosition);
 					}
 				}
@@ -956,8 +895,12 @@ class DataBuilder {
 			default: Context.fatalError("json2object: Parser of "+type.toString()+" are not generated", callPosition);
 		}
 
-		parser.fields.push(value);
-		parser.fields.push(object);
+		parser.fields = parser.fields.filter(function (field) {
+			return switch (field.kind) {
+				case FFun({expr:{expr:EBlock([])}}): false;
+				default: true;
+			}
+		});
 
 		haxe.macro.Context.defineType(parser);
 
