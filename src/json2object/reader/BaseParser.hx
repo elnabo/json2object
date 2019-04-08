@@ -99,5 +99,14 @@ class BaseParser<T> {
 		onIncorrectType(pos, variable);
 	}
 
-	private function onIncorrectType(pos:Position, variable:String) {}
+	private function onIncorrectType(pos:Position, variable:String) {
+		switch (errorType) {
+			case OBJECTTHROW, THROW: throw "json2object: parsing throw";
+			case NONE:
+		}
+	}
+
+	private #if !js inline #end function assign (name:String, value:Bool, assigned:Map<String, Bool>) {
+		assigned.set(name, value);
+	}
 }

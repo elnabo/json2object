@@ -217,7 +217,7 @@ class DataBuilder {
 					var needReflect = w == AccNever || w == AccCall #if (haxe_ver >= 4) || w == AccCtor #end;
 
 					var isAlwaysAssigned = field.meta.has(":optional");
-					assigned.push(macro { assigned.set($v{field.name}, $v{isAlwaysAssigned});});
+					assigned.push(macro assign($v{field.name}, $v{isAlwaysAssigned}, assigned));
 
 					var f_a = { expr: EField(macro value, field.name), pos: Context.currentPos() };
 					var f_type = field.type.applyTypeParameters(tParams, params);
@@ -229,7 +229,7 @@ class DataBuilder {
 						try {
 							var tmp = new $f_cls(errors, putils, OBJECTTHROW).loadJson(field.value, field.name);
 							$assignationExpr;
-							assigned.set($v{field.name}, true);
+							assign($v{field.name}, true, assigned);
 						} catch (_:Dynamic) {}
 					};
 
@@ -810,10 +810,7 @@ class DataBuilder {
 
 			override private function onIncorrectType(pos:json2object.Position, variable:String) {
 				errors.push(IncorrectType(variable, $v{type.toString()}, pos));
-				switch (errorType) {
-					case OBJECTTHROW, THROW: throw "json2object: parsing throw";
-					case NONE:
-				}
+				super.onIncorrectType(pos, variable);
 			}
 
 			override private function loadJsonNull(pos:json2object.Position, variable:String) {
