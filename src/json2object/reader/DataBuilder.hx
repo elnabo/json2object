@@ -818,6 +818,15 @@ class DataBuilder {
 			}
 		};
 
+		if (Context.defined("cs")) {
+			// C# fix for conversion with baseparser
+			parser.meta.push({
+				name: ":nativeGen",
+				params: null,
+				pos: Context.currentPos()
+			});
+		}
+
 		var parser_cls = { name: parserName, pack: [], params: null, sub: null };
 		var getAutoExpr = macro return new $parser_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}});
 		var getAuto:Field = {

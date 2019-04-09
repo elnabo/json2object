@@ -78,7 +78,7 @@ enum Error {
 	ParserError(message:String, pos:Position);
 }
 
-enum abstract ErrorType(Int) {
+#if haxe4 enum #else @:enum #end abstract ErrorType(Int) {
 	var NONE = 0;
 	var OBJECTTHROW = 1;
 	var THROW = 2;

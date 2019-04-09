@@ -28,6 +28,7 @@ import json2object.Error.ErrorType;
 import json2object.Position;
 import json2object.PositionUtils;
 
+#if cs @:nativeGen #end
 class BaseParser<T> {
 
 	public var value : T;
