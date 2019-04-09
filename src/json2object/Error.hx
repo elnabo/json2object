@@ -78,8 +78,8 @@ enum Error {
 	ParserError(message:String, pos:Position);
 }
 
-enum ErrorType {
-	NONE;
-	OBJECTTHROW;
-	THROW;
+enum abstract ErrorType(Int) {
+	var NONE = 0;
+	var OBJECTTHROW = 1;
+	var THROW = 2;
 }

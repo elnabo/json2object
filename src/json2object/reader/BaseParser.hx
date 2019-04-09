@@ -54,7 +54,7 @@ class BaseParser<T> {
 		this.errorType = errorType;
 	}
 
-	public function fromJson(jsonString:String, ?filename:String='') : T {
+	public function fromJson(jsonString:String, filename:String="") : T {
 		putils = new PositionUtils(jsonString);
 		errors = [];
 		try {
@@ -67,7 +67,7 @@ class BaseParser<T> {
 		return value;
 	}
 
-	public function loadJson(json:hxjsonast.Json, ?variable:String="") : T {
+	public function loadJson(json:hxjsonast.Json, variable:String="") : T {
 		var pos = putils.convertPosition(json.pos);
 		switch (json.value) {
 			case JNull : loadJsonNull(pos, variable);
@@ -128,23 +128,27 @@ class BaseParser<T> {
 		onIncorrectType(pos, variable);
 	}
 
-	private function loadObjectField(loadJsonFn:Function, field:hxjsonast.Json.JObjectField, name:String, assigned:Map<String, Bool>, defaultAssign:Bool, defaultValue:Any):Any {
-		assigned.set(name, defaultAssign);
+	private function loadObjectField(loadJsonFn:Function, field:hxjsonast.Json.JObjectField, name:String, assigned:Map<String, Bool>, defaultValue:Any):Any {
 		try {
 			var ret = cast loadJsonFn(field.value, field.name);
-			assigned.set(name, true);
+			mapSet(assigned, name, true);
 			return ret;
 		} catch (_:Any) {
 		}
 		return defaultValue;
 	}
 
-	private function loadObjectFieldReflect(loadJsonFn:Function, field:hxjsonast.Json.JObjectField, name:String, assigned:Map<String, Bool>, defaultAssign:Bool) {
-		assigned.set(name, defaultAssign);
+	private function loadObjectFieldReflect(loadJsonFn:Function, field:hxjsonast.Json.JObjectField, name:String, assigned:Map<String, Bool>) {
 		try {
 			Reflect.setField(value, name, cast loadJsonFn(field.value, field.name));
-			assigned.set(name, true);
+			mapSet(assigned, name, true);
 		} catch (_:Any) {
+		}
+	}
+
+	private function objectSetupAssign(assigned:Map<String, Bool>, keys:Array<String>, values:Array<Bool>) {
+		for (i in 0...keys.length) {
+			mapSet(assigned, keys[i], values[i]);
 		}
 	}
 
@@ -162,17 +166,20 @@ class BaseParser<T> {
 	}
 
 	private function parsingThrow() {
-		switch (errorType) {
-			case OBJECTTHROW, THROW : throw "json2object: parsing throw";
-			case NONE:
+		if (errorType != NONE) {
+			throw "json2object: parsing throw";
 		}
 	}
 
 	private function objectThrow(pos:Position, variable:String) {
-		switch (errorType) {
-			case THROW: throw "json2object: parsing throw";
-			case OBJECTTHROW: errors.push(UninitializedVariable(variable, pos));
-			case NONE:
+		if (errorType == THROW) {
+			throw "json2object: parsing throw";
+		} else if (errorType == OBJECTTHROW) {
+			errors.push(UninitializedVariable(variable, pos));
 		}
+	}
+
+	private #if !js inline #end function mapSet(map:Map<String, Bool>, key:String, value:Bool) {
+		map.set(key, value);
 	}
 }

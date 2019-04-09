@@ -194,6 +194,8 @@ class DataBuilder {
 		var baseValues:Array<{field:String, expr:Expr #if (haxe_ver >= 4) , quotes:haxe.macro.Expr.QuoteStatus #end}> = [];
 		var autoExprs:Array<Expr> = [];
 		var cases:Array<Case> = [];
+		var assignedKeys:Array<Expr> = [];
+		var assignedValues:Array<Expr> = [];
 
 		for (field in fields) {
 			if (field.meta.has(":jignored")) { continue; }
@@ -209,20 +211,31 @@ class DataBuilder {
 					var f_a = { expr: EField(macro value, field.name), pos: Context.currentPos() };
 					var f_type = field.type.applyTypeParameters(tParams, params);
 					var f_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(f_type.toComplexType())]};
+					var nullCheck = Context.defined("cpp") && isNullable(f_type); // For cpp
 
-					var isAlwaysAssigned = field.meta.has(":optional");
+					assignedKeys.push(macro $v{field.name});
+					assignedValues.push(macro $v{field.meta.has(":optional")});
 
 					var assignation = if (needReflect) {
 						macro {
-							loadObjectFieldReflect(new $f_cls(errors, putils, OBJECTTHROW).loadJson, field, $v{field.name}, assigned, $v{isAlwaysAssigned});
+							loadObjectFieldReflect(new $f_cls(errors, putils, OBJECTTHROW).loadJson, field, $v{field.name}, assigned);
+						};
+					} else if (nullCheck) {
+						macro {
+							var v = loadObjectField(new $f_cls(errors, putils, OBJECTTHROW).loadJson, field, $v{field.name}, assigned, null);
+							if (v != null) {
+								$f_a = cast v;
+							} else {
+								$f_a = null;
+							}
 						};
 					} else if (canRead) {
 						macro {
-							$f_a = cast loadObjectField(new $f_cls(errors, putils, OBJECTTHROW).loadJson, field, $v{field.name}, assigned, $v{isAlwaysAssigned}, $f_a);
+							$f_a = cast loadObjectField(new $f_cls(errors, putils, OBJECTTHROW).loadJson, field, $v{field.name}, assigned, $f_a);
 						};
 					} else {
 						macro {
-							var v = loadObjectField(new $f_cls(errors, putils, OBJECTTHROW).loadJson, field, $v{field.name}, assigned, $v{isAlwaysAssigned}, null);
+							var v = loadObjectField(new $f_cls(errors, putils, OBJECTTHROW).loadJson, field, $v{field.name}, assigned, null);
 							if (v != null) {
 								$f_a = cast v;
 							}
@@ -305,8 +318,12 @@ class DataBuilder {
 			changeFunction("getAuto", parser, macro return $autoExpr);
 		}
 
+		var assignedKeys = { expr: EArrayDecl(assignedKeys), pos: Context.currentPos() };
+		var assignedValues = { expr: EArrayDecl(assignedValues), pos: Context.currentPos() };
+
 		var e = macro {
 			var assigned = new Map<String,Bool>();
+			objectSetupAssign(assigned, $assignedKeys, $assignedValues);
 			value = getAuto();
 			@:privateAccess {
 				for (field in o) {

@@ -43,7 +43,7 @@ class Main
 			allOk = allOk && result.result.allOk();
 		});
 
-		utest.ui.Report.create(r, ShowSuccessResultsWithNoErrors, AlwaysShowHeader);
+		utest.ui.Report.create(r, NeverShowSuccessResults, AlwaysShowHeader);
 		r.run();
 
 		#if sys
