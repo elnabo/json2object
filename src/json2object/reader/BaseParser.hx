@@ -125,6 +125,19 @@ class BaseParser<T> {
 		onIncorrectType(pos, variable);
 	}
 
+	private function loadJsonArrayValue(a:Array<hxjsonast.Json>, loadJsonFn:Function, variable:String) {
+		return [
+			for (j in a)
+			{
+				try {
+					loadJsonFn(j, variable);
+				} catch (_:String) {
+					continue;
+				}
+			}
+		];
+	}
+
 	private function loadJsonObject(o:Array<hxjsonast.Json.JObjectField>, pos:Position, variable:String) {
 		onIncorrectType(pos, variable);
 	}

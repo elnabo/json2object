@@ -125,11 +125,21 @@ class DataBuilder {
 
 	public static function makeArrayParser(parser:TypeDefinition, subType:Type, baseParser:BaseType) {
 		var cls = { name:baseParser.name, pack:baseParser.pack, params:[TPType(subType.toComplexType())]};
-		var e = macro value = cast [
-				for (j in a)
-					try { new $cls(errors, putils, THROW).loadJson(j, variable); }
-					catch (_:String) { continue; }
-			];
+
+		var e = if (Context.defined("cs")) {
+			// Reduced version doesn't work on C#, using manual copy of the loop
+			macro value = {
+				var parser = new $cls(errors, putils, THROW);
+				cast [
+					for (j in a)
+						try { parser.loadJson(j, variable); }
+						catch (_:String) { continue; }
+				];
+			}
+		} else {
+			macro value = cast loadJsonArrayValue(a, new $cls(errors, putils, THROW).loadJson, variable);
+		}
+
 		changeFunction("loadJsonArray", parser, e);
 		changeFunction("loadJsonNull", parser, macro {value = null;});
 	}
