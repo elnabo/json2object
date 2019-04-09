@@ -98,12 +98,7 @@ class DataBuilder {
 
 	public static function makeIntParser(parser:TypeDefinition, ?base:Type=null) {
 		var e = macro {
-			if (Std.parseInt(f) != null && Std.parseInt(f) == Std.parseFloat(f)) {
-				value = cast Std.parseInt(f);
-			}
-			else {
-				onIncorrectType(pos, variable);
-			}
+			value = loadJsonInt(f, pos, variable, value);
 		};
 		changeFunction("loadJsonNumber", parser, e);
 		if (base != null && isNullable(base)) {
@@ -113,12 +108,7 @@ class DataBuilder {
 
 	public static function makeFloatParser(parser:TypeDefinition, ?base:Type=null) {
 		var e = macro {
-			if (Std.parseInt(f) != null) {
-				value = cast Std.parseFloat(f);
-			}
-			else {
-				onIncorrectType(pos, variable);
-			}
+			value = loadJsonFloat(f, pos, variable, value);
 		};
 		changeFunction("loadJsonNumber", parser, e);
 		if (base != null && isNullable(base)) {
@@ -203,7 +193,6 @@ class DataBuilder {
 
 		var baseValues:Array<{field:String, expr:Expr #if (haxe_ver >= 4) , quotes:haxe.macro.Expr.QuoteStatus #end}> = [];
 		var autoExprs:Array<Expr> = [];
-		var assigned:Array<Expr> = [];
 		var cases:Array<Case> = [];
 
 		for (field in fields) {
@@ -215,23 +204,30 @@ class DataBuilder {
 					}
 
 					var needReflect = w == AccNever || w == AccCall #if (haxe_ver >= 4) || w == AccCtor #end;
-
-					var isAlwaysAssigned = field.meta.has(":optional");
-					assigned.push(macro assign($v{field.name}, $v{isAlwaysAssigned}, assigned));
+					var canRead = r == AccNormal || r == AccNo;
 
 					var f_a = { expr: EField(macro value, field.name), pos: Context.currentPos() };
 					var f_type = field.type.applyTypeParameters(tParams, params);
 					var f_cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(f_type.toComplexType())]};
 
-					var nullCheck = isNullable(f_type) ? macro (tmp == null) ? $f_a = null : $f_a = tmp : macro $f_a = tmp; // For cpp
-					var assignationExpr = (needReflect) ? macro Reflect.setField(value, $v{field.name}, tmp) : nullCheck;
-					var assignation = macro {
-						try {
-							var tmp = new $f_cls(errors, putils, OBJECTTHROW).loadJson(field.value, field.name);
-							$assignationExpr;
-							assign($v{field.name}, true, assigned);
-						} catch (_:Dynamic) {}
-					};
+					var isAlwaysAssigned = field.meta.has(":optional");
+
+					var assignation = if (needReflect) {
+						macro {
+							loadObjectFieldReflect(new $f_cls(errors, putils, OBJECTTHROW).loadJson, field, $v{field.name}, assigned, $v{isAlwaysAssigned});
+						};
+					} else if (canRead) {
+						macro {
+							$f_a = cast loadObjectField(new $f_cls(errors, putils, OBJECTTHROW).loadJson, field, $v{field.name}, assigned, $v{isAlwaysAssigned}, $f_a);
+						};
+					} else {
+						macro {
+							var v = loadObjectField(new $f_cls(errors, putils, OBJECTTHROW).loadJson, field, $v{field.name}, assigned, $v{isAlwaysAssigned}, null);
+							if (v != null) {
+								$f_a = cast v;
+							}
+						};
+					}
 
 					var caseValue = null;
 					for (m in field.meta.get()) {
@@ -311,23 +307,13 @@ class DataBuilder {
 
 		var e = macro {
 			var assigned = new Map<String,Bool>();
-			$b{assigned}
+			value = getAuto();
 			@:privateAccess {
-				value = getAuto();
 				for (field in o) {
 					$loop;
 				}
 			}
-
-			var lastPos:Null<json2object.Position> = null;
-			for (s in assigned.keys()) {
-				if (!assigned[s]) {
-					if (lastPos == null) {
-						lastPos = putils.convertPosition({file:pos.file, min:pos.max-1, max:pos.max-1});
-					}
-					errors.push(UninitializedVariable(s, lastPos));
-				}
-			}
+			objectErrors(assigned, pos);
 		};
 
 		changeFunction("loadJsonObject", parser, e);
@@ -412,10 +398,7 @@ class DataBuilder {
 								$subExpr;
 							} else {
 								errors.push(InvalidEnumConstructor(field.name, $v{t.name}, pos));
-									switch (errorType) {
-										case OBJECTTHROW, THROW : throw "json2object: parsing throw";
-										case _:
-									}
+								parsingThrow();
 							};
 							internObjectCases.push({expr: objSubExpr, guard: null, values: [macro $v{n}]});
 
@@ -427,10 +410,7 @@ class DataBuilder {
 							blockExpr.push(
 								macro if (s0.length != $v{args.length} || s0.filter(function (_v) { return _names.indexOf(_v.name) != -1;}).length != s0.length) {
 									errors.push(InvalidEnumConstructor(field.name, $v{t.name}, pos));
-									switch (errorType) {
-										case OBJECTTHROW, THROW : throw "json2object: parsing throw";
-										case _:
-									}
+									parsingThrow();
 								}
 							);
 							var argCount = 0;
@@ -460,18 +440,12 @@ class DataBuilder {
 				}
 				var default_e = macro {
 						errors.push(IncorrectEnumValue(variable, $v{t.name}, pos));
-						switch (errorType) {
-							case OBJECTTHROW, THROW : throw "json2object: parsing throw";
-							case _:
-						}
+						parsingThrow();
 					};
 				objMacro = {expr: ESwitch(macro field.name, internObjectCases, default_e), pos: Context.currentPos() };
 				objMacro = macro if (o.length != 1) {
 					errors.push(IncorrectType(variable, $v{typeName}, pos));
-					switch (errorType) {
-						case OBJECTTHROW, THROW : throw "json2object: parsing throw";
-						case _:
-					}
+					parsingThrow();
 				} else {
 					var field = o[0];
 					switch (o[0].value.value) {
@@ -479,10 +453,7 @@ class DataBuilder {
 							${objMacro};
 						default:
 							errors.push(IncorrectType(field.name, $v{typeName}, putils.convertPosition(field.value.pos)));
-							switch (errorType) {
-								case OBJECTTHROW, THROW : throw "json2object: parsing throw";
-								case _:
-							}
+							parsingThrow();
 					}
 				}
 				strMacro = {expr: ESwitch(macro $i{"s"}, internStringCases, default_e), pos: Context.currentPos() };
@@ -553,10 +524,17 @@ class DataBuilder {
 				}
 
 				if (caseValues.length > 0) {
-					var case_e = [{expr:macro value = cast $v, guard:null, values:caseValues}];
-					var default_e = macro {value = cast ${caseValues[0]}; onIncorrectType(pos, variable);};
+					if (name == "String") {
+						var values = { expr: EArrayDecl(caseValues), pos: Context.currentPos() };
+						e = macro {
+							value = cast loadString(s, pos, variable, $values, ${caseValues[0]});
+						};
+					} else {
+						var case_e = [{expr:macro value = cast $v, guard:null, values:caseValues}];
+						var default_e = macro {value = cast ${caseValues[0]}; onIncorrectType(pos, variable);};
 
-					e = {expr: ESwitch(macro cast $v, case_e, default_e), pos: Context.currentPos() };
+						e = {expr: ESwitch(macro cast $v, case_e, default_e), pos: Context.currentPos() };
+					}
 				}
 				else {
 					e = macro null;
@@ -567,11 +545,7 @@ class DataBuilder {
 				changeFunction("onIncorrectType", parser, macro {
 					value = ${defaultValue};
 					errors.push(IncorrectType(variable, $v{type.toString()}, pos));
-					switch (errorType) {
-						case THROW: throw "json2object: parsing throw";
-						case OBJECTTHROW: errors.push(UninitializedVariable(variable, pos));
-						case NONE:
-					}
+					objectThrow(pos, variable);
 				});
 
 				if (isNullable(t.type)) {

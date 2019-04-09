@@ -22,6 +22,7 @@ SOFTWARE.
 
 package json2object.reader;
 
+import haxe.Constraints.Function;
 import json2object.Error;
 import json2object.Error.ErrorType;
 import json2object.Position;
@@ -53,7 +54,6 @@ class BaseParser<T> {
 		this.errorType = errorType;
 	}
 
-
 	public function fromJson(jsonString:String, ?filename:String='') : T {
 		putils = new PositionUtils(jsonString);
 		errors = [];
@@ -83,30 +83,96 @@ class BaseParser<T> {
 	private function loadJsonNull(pos:Position, variable:String) {
 		onIncorrectType(pos, variable);
 	}
+
 	private function loadJsonString(s:String, pos:Position, variable:String) {
 		onIncorrectType(pos, variable);
 	}
+
+	private function loadString(s:String, pos:Position, variable:String, validValues:Array<String>, defaultValue:String):String {
+		if (validValues.indexOf(s) != -1) {
+			return s;
+		}
+		onIncorrectType(pos, variable);
+		return defaultValue;
+	}
+
 	private function loadJsonNumber(f:String, pos:Position, variable:String) {
 		onIncorrectType(pos, variable);
 	}
+
+	private function loadJsonInt(f:String, pos:Position, variable:String, value:Int):Int {
+		if (Std.parseInt(f) != null && Std.parseInt(f) == Std.parseFloat(f)) {
+			return Std.parseInt(f);
+		}
+		onIncorrectType(pos, variable);
+		return value;
+	}
+
+	private function loadJsonFloat(f:String, pos:Position, variable:String, value:Float):Float {
+		if (Std.parseInt(f) != null) {
+			return Std.parseFloat(f);
+		}
+		onIncorrectType(pos, variable);
+		return value;
+	}
+
 	private function loadJsonBool(b:Bool, pos:Position, variable:String) {
 		onIncorrectType(pos, variable);
 	}
+
 	private function loadJsonArray(a:Array<hxjsonast.Json>, pos:Position, variable:String) {
 		onIncorrectType(pos, variable);
 	}
+
 	private function loadJsonObject(o:Array<hxjsonast.Json.JObjectField>, pos:Position, variable:String) {
 		onIncorrectType(pos, variable);
 	}
 
+	private function loadObjectField(loadJsonFn:Function, field:hxjsonast.Json.JObjectField, name:String, assigned:Map<String, Bool>, defaultAssign:Bool, defaultValue:Any):Any {
+		assigned.set(name, defaultAssign);
+		try {
+			var ret = cast loadJsonFn(field.value, field.name);
+			assigned.set(name, true);
+			return ret;
+		} catch (_:Any) {
+		}
+		return defaultValue;
+	}
+
+	private function loadObjectFieldReflect(loadJsonFn:Function, field:hxjsonast.Json.JObjectField, name:String, assigned:Map<String, Bool>, defaultAssign:Bool) {
+		assigned.set(name, defaultAssign);
+		try {
+			Reflect.setField(value, name, cast loadJsonFn(field.value, field.name));
+			assigned.set(name, true);
+		} catch (_:Any) {
+		}
+	}
+
+	private function objectErrors(assigned:Map<String, Bool>, pos:Position) {
+		var lastPos:Null<json2object.Position> = putils.convertPosition({file:pos.file, min:pos.max-1, max:pos.max-1});
+		for (s in assigned.keys()) {
+			if (!assigned[s]) {
+				errors.push(UninitializedVariable(s, lastPos));
+			}
+		}
+	}
+
 	private function onIncorrectType(pos:Position, variable:String) {
+		parsingThrow();
+	}
+
+	private function parsingThrow() {
 		switch (errorType) {
-			case OBJECTTHROW, THROW: throw "json2object: parsing throw";
+			case OBJECTTHROW, THROW : throw "json2object: parsing throw";
 			case NONE:
 		}
 	}
 
-	private #if !js inline #end function assign (name:String, value:Bool, assigned:Map<String, Bool>) {
-		assigned.set(name, value);
+	private function objectThrow(pos:Position, variable:String) {
+		switch (errorType) {
+			case THROW: throw "json2object: parsing throw";
+			case OBJECTTHROW: errors.push(UninitializedVariable(variable, pos));
+			case NONE:
+		}
 	}
 }
