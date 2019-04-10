@@ -75,7 +75,7 @@ class DataBuilder {
 						var ft = ft.followWithAbstracts();
 						jt = anyOf(jt, makeSchema(ft, definitions));
 					}
-					catch (_:#if (haxe_ver >= 4) Any #else Dynamic #end) {}
+					catch (_:Dynamic) {}
 				}
 				if (jt == null) {
 					throw "Abstract "+name+ " has no json representation "+ Context.currentPos();
@@ -126,7 +126,7 @@ class DataBuilder {
 					try {
 						jt = anyOf(jt, describe(handleExpr(field.expr().expr), field.doc));
 					}
-					catch (_:#if (haxe_ver >= 4) Any #else Dynamic #end) {}
+					catch (_:Dynamic) {}
 				}
 			default:
 		}
@@ -265,7 +265,7 @@ class DataBuilder {
 			define(name, JTObject(properties, required), definitions, doc);
 			return JTRef(name);
 		}
-		catch (e:#if (haxe_ver >= 4) Any #else Dynamic #end) {
+		catch (e:Dynamic) {
 			if (definitions.get(name) == null) {
 				definitions.remove(name);
 			}
