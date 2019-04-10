@@ -198,23 +198,23 @@ class JsonTypeTools {
 		var result = [""];
 		var i = -1;
 		for (line in lines) {
-			if (line.length == 0) {
+			line = (hasStar) ? line.substr(1) : line;
+			if (line.trim().length == 0) {
 				if (i == -1) {
 					continue;
 				}
 				consecutiveNewLine++;
 			}
 			else {
-				var next = (hasStar) ? line.substr(1) : line;
 				if (i == -1) { i = 0; }
 				else {
 					var curr = result[i];
-					if (curr != "" && curr.charAt(curr.length - 1) != " " && next.charAt(0) != " ") {
-						next = " " + next;
+					if (curr != "" && curr.charAt(curr.length - 1) != " " && line.charAt(0) != " ") {
+						line = " " + line;
 					}
 				}
-				result[i] += next;
-				consecutiveNewLine++;
+				result[i] += line;
+				consecutiveNewLine = 1;
 			}
 			if (consecutiveNewLine > 1) {
 				result.push('');
