@@ -30,7 +30,6 @@ import haxe.macro.Context;
 import haxe.macro.Type;
 import haxe.macro.TypeTools;
 import json2object.utils.schema.JsonType;
-import json2object.writer.StringUtils;
 
 using haxe.macro.ExprTools;
 using haxe.macro.TypeTools;
@@ -107,7 +106,7 @@ class DataBuilder {
 
 		function handleExpr(expr:TypedExprDef, ?rec:Bool=true) : Dynamic {
 			return switch (expr) {
-				case TConst(TString(s)): JTString(StringUtils.quote(s));
+				case TConst(TString(s)): JTString(s);
 				case TConst(TNull): JTString(null);
 				case TConst(TBool(b)): JTBool(b);
 				case TConst(TFloat(f)): JTFloat(f);
@@ -152,7 +151,7 @@ class DataBuilder {
 					var required = [];
 					switch (construct.type) {
 						case TEnum(_,_):
-							jt = anyOf(jt, describe(JTString(StringUtils.quote(n)), construct.doc));
+							jt = anyOf(jt, describe(JTString(n), construct.doc));
 						case TFun(args,_):
 							for (a in args) {
 								properties.set(a.name, makeSchema(a.t.applyTypeParameters(t.params, p), definitions));

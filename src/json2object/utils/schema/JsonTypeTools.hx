@@ -25,7 +25,6 @@ package json2object.utils.schema;
 import haxe.macro.Context;
 import haxe.macro.Expr;
 
-using json2object.writer.StringUtils;
 using StringTools;
 
 typedef AnonDecls = Map<String, {field:String, expr:Expr}>;
@@ -154,7 +153,7 @@ class JsonTypeTools {
 		}
 
 		if (descr != '') {
-			declare("description", str2Expr(clean(descr).quote()));
+			declare("description", str2Expr(clean(descr)));
 		}
 
 		return declsToAnonDecl(decls);
