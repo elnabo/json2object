@@ -78,7 +78,7 @@ class DataBuilder {
 			var valueWriter = new $cls(ignoreNullOptionals);
 
 			@:privateAccess {
-				var values =  [for (element in o) indent + valueWriter._write(element, space, level + 1, true, onAllOptionalNull)];
+				var values =  [for (element in o) valueWriter._write(element, space, level + 1, true, onAllOptionalNull)];
 				var newLine = (space != '' && o.length > 0) ? '\n' : '';
 
 				var json = firstIndent + "[" + newLine;
