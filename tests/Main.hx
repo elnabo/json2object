@@ -35,7 +35,9 @@ class Main
 		r.addCase(new AliasTest());
 		r.addCase(new ArrayTest());
 		r.addCase(new EnumTest());
+		#if haxe4
 		r.addCase(new FinalTest());
+		#end
 		r.addCase(new GetSetTest());
 		r.addCase(new InheritanceTest());
 		r.addCase(new MapTest());
