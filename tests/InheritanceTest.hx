@@ -39,7 +39,7 @@ class OtherChild extends Parent {
 	public var b : Bool;
 }
 
-class InheritanceTest {
+class InheritanceTest implements utest.ITest {
 	public function new () {}
 
 	public function test1 () {

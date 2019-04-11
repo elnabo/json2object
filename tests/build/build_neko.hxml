@@ -1,0 +1,3 @@
+tests/build/build_common.hxml
+-neko testout/test.n
+-cmd neko testout/test.n

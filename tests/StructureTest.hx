@@ -88,7 +88,7 @@ typedef StructB = {
 	@:optional @:default(0) var c:String;
 }
 
-class StructureTest {
+class StructureTest implements utest.ITest {
 	public function new () {}
 
 	public function test1 () {

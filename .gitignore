@@ -1,4 +1,3 @@
-dump/*
-tests.n
-.vscode
+dump/
 testout/
+.unittest

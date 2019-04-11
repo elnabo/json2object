@@ -1,0 +1,3 @@
+tests/build/build_common.hxml
+-cppia testout/test.cppia
+-cmd haxelib run hxcpp testout/test.cppia

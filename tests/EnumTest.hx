@@ -67,7 +67,7 @@ typedef WithDefaultOther = {
 	@:default(VAL1) @:optional var value : tests.OtherEnum.TestEnum;
 }
 
-class EnumTest
+class EnumTest implements utest.ITest
 {
 	public function new () {}
 

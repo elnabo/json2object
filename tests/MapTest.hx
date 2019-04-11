@@ -31,7 +31,7 @@ typedef MapStruct = {
 	var i : Int;
 }
 
-class MapTest {
+class MapTest implements utest.ITest {
 	public function new () {}
 
 	public function test1 () { // Str -> Str

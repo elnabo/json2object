@@ -1,0 +1,3 @@
+tests/build/build_common.hxml
+-hl testout/test.hl
+-cmd hl ./testout/test.hl

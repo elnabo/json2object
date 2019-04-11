@@ -26,6 +26,8 @@ class Main
 {
 	public static function main ()
 	{
+		printTarget();
+
 		var allOk = true;
 		var r = new utest.Runner();
 
@@ -33,6 +35,7 @@ class Main
 		r.addCase(new AliasTest());
 		r.addCase(new ArrayTest());
 		r.addCase(new EnumTest());
+		r.addCase(new FinalTest());
 		r.addCase(new GetSetTest());
 		r.addCase(new InheritanceTest());
 		r.addCase(new MapTest());
@@ -45,9 +48,36 @@ class Main
 
 		utest.ui.Report.create(r, NeverShowSuccessResults, AlwaysShowHeader);
 		r.run();
+	}
 
-		#if sys
-		Sys.exit(allOk ? 0 : 1);
+	static function printTarget()
+	{
+		#if (cpp && !cppia)
+		trace("cpp");
+		#elseif cppia
+		trace("cppia");
+		#elseif cs
+		trace("cs");
+		#elseif flash
+		trace("flash");
+		#elseif hl
+		trace("hl");
+		#elseif interp
+		trace("interp");
+		#elseif java
+		trace("java");
+		#elseif js
+		trace("js");
+		#elseif lua
+		trace("lua");
+		#elseif neko
+		trace("neko");
+		#elseif php
+		trace("php");
+		#elseif python
+		trace("python");
+		#else
+		trace("unknown");
 		#end
 	}
 }

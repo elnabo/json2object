@@ -1,0 +1,3 @@
+tests/build/build_common.hxml
+-cpp testout/cpp/
+-cmd ./testout/cpp/Main

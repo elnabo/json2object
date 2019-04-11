@@ -42,7 +42,7 @@ class MultiAliasedClass {
 	@:alias("first") @:alias("public") public var isPublic : Bool;
 }
 
-class AliasTest
+class AliasTest implements utest.ITest
 {
 	public function new () {}
 

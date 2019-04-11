@@ -1,0 +1,4 @@
+tests/build/build_common.hxml
+-php testout/php
+-D php7
+-cmd php testout/php/index.php

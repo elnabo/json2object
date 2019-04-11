@@ -1,0 +1,3 @@
+tests/build/build_common.hxml
+-python testout/test.py
+-cmd python3 testout/test.py

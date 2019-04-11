@@ -1,0 +1,3 @@
+tests/build/build_common.hxml
+-lua testout/test.lua
+-cmd lua testout/test.lua

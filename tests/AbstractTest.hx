@@ -119,7 +119,7 @@ class OnClassData
 	public var x:Int;
 }
 
-class AbstractTest
+class AbstractTest implements utest.ITest
 {
 	public function new () {}
 

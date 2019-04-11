@@ -1,0 +1,3 @@
+tests/build/build_common.hxml
+-js testout/test.js
+-cmd node testout/test.js

@@ -61,7 +61,7 @@ class ObjectTestData<K,V> {
 	public var foo(default, null) : Int;
 }
 
-class ObjectTest {
+class ObjectTest implements utest.ITest {
 	public function new () {}
 
 	public function test1 () { // Optional/Jignored + missing

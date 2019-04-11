@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2017-2018 Guillaume Desquesnes, Valentin Lemière
+Copyright (c) 2017-2019 Guillaume Desquesnes, Valentin Lemière
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,39 +22,32 @@ SOFTWARE.
 
 package tests;
 
+import json2object.Error;
 import json2object.JsonParser;
 import json2object.JsonWriter;
 import json2object.utils.JsonSchemaWriter;
 import utest.Assert;
 
-class ArrayTest implements utest.ITest {
+typedef Data = {
+	final foo:String;
+	final bar:{
+		var foobar:String;
+	}
+}
+
+class FinalTest implements utest.ITest
+{
 	public function new () {}
 
-	public function test1 () {
-		var parser = new JsonParser<Array<Int>>();
-		var writer = new JsonWriter<Array<Int>>();
-		var data = parser.fromJson('[0,1,4,3]', "");
-		var oracle = [0,1,4,3];
-		for (i in 0...data.length) {
-			Assert.equals(oracle[i], data[i]);
-		}
-		Assert.equals(0, parser.errors.length);
-		Assert.same(data, parser.fromJson(writer.write(data),"test"));
+	public function test1 ()
+	{
+		var parser = new JsonParser<Data>();
+		var writer = new JsonParser<Data>();
+		var schema = new JsonSchemaWriter<Data>();
 
-		data = parser.fromJson('[0,1,4.4,3]', "");
-		Assert.equals(1, parser.errors.length);
-		oracle = [0,1,3];
-		for (i in 0...data.length) {
-			Assert.equals(oracle[i], data[i]);
-		}
-		Assert.same(data, parser.fromJson(writer.write(data),"test"));
+		var data = parser.fromJson('{}', "test.json");
+		Assert.equals(2, parser.errors.length);
+		Assert.equals(null, data.foo);
+		Assert.equals(null, data.bar);
 	}
-
-	#if !lua
-	public function test2 () {
-		var schema = new JsonSchemaWriter<Array<Int>>().schema;
-		var oracle = '{"$$schema": "http://json-schema.org/draft-07/schema#","items": {"type": "integer"},"type": "array"}';
-		Assert.same(oracle, schema);
-	}
-	#end
 }

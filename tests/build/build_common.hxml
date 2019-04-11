@@ -2,5 +2,4 @@
 -main tests.Main
 -lib hxjsonast
 -lib utest
--D travis # for utest report
--js testout/test.js
+--macro include("json2object")

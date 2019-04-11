@@ -1,0 +1,3 @@
+tests/build/build_common.hxml
+-cs testout/cs/
+-cmd mono ./testout/cs/bin/Main.exe

@@ -105,4 +105,4 @@ install:
   - haxelib list
 
 script:
-  - haxe tests.hxml
+  - haxe tests/build/build_all.hxml
