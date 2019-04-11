@@ -31,7 +31,7 @@ import utest.Assert;
 typedef Data = {
 	final foo:String;
 	final bar:{
-		var foobar:String;
+		final foobar:String;
 	}
 }
 
