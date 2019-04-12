@@ -70,7 +70,7 @@ The constructor accepts an optional `String` parameter for indenting the schema.
 
 ### Other
 
-- As of version 2.4.0, the parser fields `warnings` and `object` have been replaced by `errors` and `value` respectively. Previous notations are still supported.
+- As of version 2.4.0, the parser fields `warnings` and `object` have been replaced by `errors` and `value` respectively. Since version `3.6.0`, previous notations are no longer supported.
 
 - Anonymous structure variables can be defined to be loaded with a default value if none is specified in the json using the `@:default` metadata
 ```haxe

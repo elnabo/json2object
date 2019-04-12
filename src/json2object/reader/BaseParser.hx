@@ -35,17 +35,7 @@ class BaseParser<T> {
 
 	public var value : T;
 
-	@:deprecated("json2object: Field 'object' is replaced by 'value'")
-	public var object(get,never) : T;
-
 	public var errors:Array<Error>;
-	@:deprecated("json2object: Field 'warnings' is replaced by 'errors'")
-	public var warnings(get,never):Array<Error>;
-	@:deprecated("json2object: Field 'warnings' is replaced by 'errors'")
-	private inline function get_warnings():Array<Error> { return errors; }
-
-	@:deprecated("json2object: Field 'object' is replaced by 'value'")
-	private inline function get_object() { return value; }
 
 	private var errorType:Error.ErrorType;
 
