@@ -18,8 +18,8 @@ class UIntTest implements utest.ITest {
 	public function test2 () {
 		var parser = new JsonParser<UInt>();
 		var data = parser.fromJson('2147483648.54');
-		trace(parser.errors);
+		var orcale:UInt = 0;
 		Assert.equals(1, parser.errors.length);
-		Assert.same(data, 0);
+		Assert.same(orcale, data);
 	}
 }
