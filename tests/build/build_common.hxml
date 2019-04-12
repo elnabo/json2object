@@ -1,5 +1,5 @@
--cp src
 -main tests.Main
 -lib hxjsonast
 -lib utest
+-cp src
 --macro include("json2object")
