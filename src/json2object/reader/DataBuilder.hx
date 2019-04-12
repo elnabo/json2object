@@ -32,7 +32,7 @@ import haxe.macro.TypeTools;
 
 using StringTools;
 using haxe.macro.ExprTools;
-using haxe.macro.TypeTools;
+using json2object.utils.TypeTools;
 
 typedef JsonType = {jtype:String, name:String, params:Array<Type>}
 typedef ParserInfo = {packs:Array<String>, clsName:String}

@@ -31,7 +31,7 @@ import haxe.macro.TypeTools;
 
 using StringTools;
 using haxe.macro.ExprTools;
-using haxe.macro.TypeTools;
+using json2object.utils.TypeTools;
 
 class DataBuilder {
 
