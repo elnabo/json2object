@@ -43,6 +43,7 @@ class Main
 		r.addCase(new MapTest());
 		r.addCase(new ObjectTest());
 		r.addCase(new StructureTest());
+		r.addCase(new UIntTest());
 
 		r.onProgress.add(function (result) {
 			allOk = allOk && result.result.allOk();

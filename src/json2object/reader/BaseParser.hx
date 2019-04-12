@@ -28,6 +28,8 @@ import json2object.Error.ErrorType;
 import json2object.Position;
 import json2object.PositionUtils;
 
+using StringTools;
+
 #if cs @:nativeGen #end
 class BaseParser<T> {
 
@@ -99,6 +101,34 @@ class BaseParser<T> {
 
 	private function loadJsonNumber(f:String, pos:Position, variable:String) {
 		onIncorrectType(pos, variable);
+	}
+
+	private function loadJsonUInt(f:String, pos:Position, variable:String, value:UInt):UInt {
+		var uint:UInt = 0;
+		f = f.trim();
+		var neg = f.charAt(0) == '-';
+		if (neg) {
+			f = f.substr(1);
+		}
+		var hex = f.startsWith('0x');
+		if (hex) {
+			f = f.substr(2);
+		}
+
+		var base = hex ? 16 : 10;
+		var pow = 1;
+		var i = f.length - 1;
+		while (i >= 0) {
+			var cur = hex ? Std.parseInt('0x${f.charAt(i)}') : Std.parseInt(f.charAt(i));
+			if (cur == null) {
+				onIncorrectType(pos, variable);
+				return value;
+			}
+			uint += pow * cur;
+			pow *= base;
+			i--;
+		}
+		return uint;
 	}
 
 	private function loadJsonInt(f:String, pos:Position, variable:String, value:Int):Int {

@@ -361,6 +361,9 @@ class DataBuilder {
 				if (t.name == "Null") {
 					return makeWriter(c, p[0], type);
 				}
+				else if (t.module == "UInt" || t.name == "UInt") {
+					makeBasicWriter(base);
+				}
 				else if (t.module == "StdTypes") {
 					switch (t.name) {
 						case "Int", "Float", "Single", "Bool":

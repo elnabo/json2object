@@ -106,6 +106,16 @@ class DataBuilder {
 		}
 	}
 
+	public static function makeUIntParser(parser:TypeDefinition, ?base:Type=null) {
+		var e = macro {
+			value = loadJsonUInt(f, pos, variable, value);
+		};
+		changeFunction("loadJsonNumber", parser, e);
+		if (base != null && isNullable(base)) {
+			changeFunction("loadJsonNull", parser, macro {value = null;});
+		}
+	}
+
 	public static function makeFloatParser(parser:TypeDefinition, ?base:Type=null) {
 		var e = macro {
 			value = loadJsonFloat(f, pos, variable, value);
@@ -790,11 +800,13 @@ class DataBuilder {
 		}
 
 		var defaultValueExpr:Expr = switch (type) {
-			case TAbstract(_.get()=>t,_) if (t.module == "StdTypes"):
+			case TAbstract(_.get()=>t,_):
 				switch (t.name) {
-					case "Int", "Float", "Single" if (!isNullable(base)):
+					case "Int", "Float", "Single" if (!isNullable(base) && t.module == "StdTypes"):
 						macro value = 0;
-					case "Bool" if (!isNullable(base)):
+					case "UInt" if (!isNullable(base) && t.module == "UInt"):
+						macro value = 0;
+					case "Bool" if (!isNullable(base) && t.module == "StdTypes"):
 						macro value = false;
 					default: macro {};
 				}
@@ -804,7 +816,7 @@ class DataBuilder {
 		var parserName = c.name + "_" + (counter++);
 		var parent = {name:"BaseParser", pack:["json2object", "reader"], params:[TPType(base.toComplexType())]};
 		var parser = macro class $parserName extends $parent {
-			public function new(?errors:Array<json2object.Error>=null, ?putils:json2object.PositionUtils=null, ?errorType:json2object.Error.ErrorType=null) {
+			public function new(?errors:Array<json2object.Error>=null, ?putils:json2object.PositionUtils=null, ?errorType:json2object.Error.ErrorType=NONE) {
 				super(errors, putils, errorType);
 				${defaultValueExpr}
 			}
@@ -870,6 +882,9 @@ class DataBuilder {
 			case TAbstract(_.get()=>t, p):
 				if (t.name == "Null") {
 					return makeParser(c, p[0], type);
+				}
+				else if (t.module == "UInt" && t.name == "UInt") {
+					makeUIntParser(parser, base);
 				}
 				else if (t.module == "StdTypes") {
 					switch (t.name) {
