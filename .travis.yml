@@ -47,7 +47,7 @@ install:
     elif [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       brew update;
       brew install mono;
-      brew upgrade python
+      brew upgrade python;
       brew install php@7.2;
     fi
   # Haxe Lua dependencies
