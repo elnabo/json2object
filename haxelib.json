@@ -5,7 +5,7 @@
 	"tags": ["json", "cross", "macro"],
 	"description": "Type safe Haxe/JSON (de)serializer",
 	"version": "3.6.1",
-	"releasenote": "Bug fixes and reduction of JsonParser code output",
+	"releasenote": "Bug fixes and improved UInt support",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
 	"dependencies": {
