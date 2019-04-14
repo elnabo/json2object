@@ -88,7 +88,7 @@ class MapTest implements utest.ITest {
 
 		var oracle = '{"$$schema": "http://json-schema.org/draft-07/schema#","$$ref": "#/definitions/Map<Int, Bool>","definitions": {"Map<Int, Bool>": {"patternProperties": {"/^[-+]?\\d+([Ee][+-]?\\d+)?$/": {"type": "boolean"}},"type": "object"}}}';
 
-		Assert.same(oracle, schema);
+		Assert.isTrue(JsonComparator.areSame(oracle, schema));
 	}
 	#end
 }

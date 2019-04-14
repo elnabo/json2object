@@ -54,7 +54,7 @@ class ArrayTest implements utest.ITest {
 	public function test2 () {
 		var schema = new JsonSchemaWriter<Array<Int>>().schema;
 		var oracle = '{"$$schema": "http://json-schema.org/draft-07/schema#","items": {"type": "integer"},"type": "array"}';
-		Assert.same(oracle, schema);
+		Assert.isTrue(JsonComparator.areSame(oracle, schema));
 	}
 	#end
 }

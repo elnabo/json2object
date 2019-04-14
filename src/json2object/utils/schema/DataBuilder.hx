@@ -162,7 +162,7 @@ class DataBuilder {
 						default:
 							continue;
 					}
-					jt = anyOf(jt, JTObject([n=>describe(JTObject(properties, required), construct.doc)], [n]));
+					jt = anyOf(jt, JTObject([n=>describe(JTObject(properties, required, []), construct.doc)], [n], []));
 				}
 				doc = t.doc;
 			default:
@@ -232,6 +232,7 @@ class DataBuilder {
 
 
 		try {
+			var defaults = new Map<String, Expr>();
 			define(name, null, definitions); // Protection against recursive types
 			for (field in fields) {
 				if (field.meta.has(":jignored")) { continue; }
@@ -257,12 +258,24 @@ class DataBuilder {
 							required.push(f_name);
 						}
 
+						var defaultMeta = field.meta.extract(':default');
+						if (defaultMeta.length == 1) {
+							var params = defaultMeta[0].params;
+							if (params != null && params.length == 1) {
+								var ct = f_type.toComplexType();
+								var parserCls = {name:"JsonParser", pack:["json2object"], params:[TPType(ct)]};
+								var writerCls = {name:"JsonWriter", pack:["json2object"], params:[TPType(ct)]};
+								var e = (params[0].toString() == "auto") ? macro new $parserCls([], putils, NONE).getAuto() : params[0];
+								defaults.set(f_name, macro new $writerCls(true).write($e));
+							}
+						}
+
 						properties.set(f_name, describe(makeSchema(f_type, definitions, optional), field.doc));
 					default:
 				}
 			}
 
-			define(name, JTObject(properties, required), definitions, doc);
+			define(name, JTObject(properties, required, defaults), definitions, doc);
 			return JTRef(name);
 		}
 		catch (e:Dynamic) {
@@ -351,7 +364,7 @@ class DataBuilder {
 
 		var decls = [];
 		var schemaExpr:Expr = macro $v{"http://json-schema.org/draft-07/schema#"};
-		decls.push(finishDecl({field:JsonTypeTools.registerAlias("$schema"), expr:schemaExpr}));
+		decls.push(finishDecl({field:"schema", expr:schemaExpr}));
 		var hasDef = definitions.keys().hasNext();
 		if (hasDef) {
 			var definitionsExpr = {

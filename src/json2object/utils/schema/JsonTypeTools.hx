@@ -26,33 +26,12 @@ import haxe.macro.Context;
 import haxe.macro.Expr;
 
 using StringTools;
+using json2object.utils.TypeTools;
 
 typedef AnonDecls = Map<String, {field:String, expr:Expr}>;
 
 class JsonTypeTools {
 #if macro
-
-	static var id = 2;
-	static var prefix = '__j2o_s_a_';
-	static var store = [
-		"$schema" => "__j2o_s_a_0",
-		"$ref" => "__j2o_s_a_1"
-	];
-	static var reverseStore = new Map<String, String>();
-	public static function registerAlias (name:String) : String {
-		if (store.exists(name)) {
-			return store.get(name);
-		}
-		var alias = prefix+(id++);
-		store.set(name, alias);
-		reverseStore.set(alias, name);
-		return alias;
-	}
-
-	static function unstore (alias:String) : String {
-		return reverseStore.get(alias);
-	}
-
 	inline static function str2Expr (str:String) : Expr {
 		return macro $v{str};
 	}
@@ -62,7 +41,7 @@ class JsonTypeTools {
 	}
 
 	public static function toExpr(jt:JsonType) : Expr {
-		return _toExpr(jt, '');
+		return _toExpr(jt, '', null);
 	}
 
 	static function declsToAnonDecl (decls:AnonDecls) : Expr {
@@ -84,7 +63,7 @@ class JsonTypeTools {
 		return (a > b) ? 1 : -1;
 	}
 
-	static function _toExpr(jt:JsonType, descr:String) : Expr {
+	static function _toExpr(jt:JsonType, descr:String, defaultValue:Null<Expr>) : Expr {
 		var decls = new AnonDecls();
 		inline function declare(name:String, expr:Expr) {
 			decls.set(name, {field:name, expr:expr});
@@ -103,7 +82,7 @@ class JsonTypeTools {
 				declare("const_float", macro $v{f});
 			case JTInt(i):
 				declare("const_int", macro $v{i});
-			case JTObject(properties, rq):
+			case JTObject(properties, rq, defaults):
 				declare("type", macro 'object');
 				var propertiesDecl = [];
 				var keys = [ for (k in properties.keys()) k ];
@@ -113,7 +92,7 @@ class JsonTypeTools {
 						expr:EBinop(
 							OpArrow,
 							macro $v{key},
-							toExpr(properties.get(key))
+							_toExpr(properties.get(key), '', defaults.get(key))
 						),
 						pos:Context.currentPos()
 					});
@@ -144,16 +123,20 @@ class JsonTypeTools {
 					declare("additionalProperties_obj", toExpr(type));
 				}
 			case JTRef(name):
-				declare(registerAlias("$ref"), str2Expr('#/definitions/'+name));
+				declare("ref", str2Expr('#/definitions/'+name));
 			case JTAnyOf(types):
 				var anyOfExpr = {expr: EArrayDecl(types.map(toExpr)), pos:Context.currentPos()};
 				declare("anyOf", anyOfExpr);
 			case JTWithDescr(type, descr):
-				return _toExpr(type, descr);
+				return _toExpr(type, descr, defaultValue);
 		}
 
 		if (descr != '') {
 			declare("description", str2Expr(clean(descr)));
+		}
+
+		if (defaultValue != null) {
+			declare('defaultValue', defaultValue);
 		}
 
 		return declsToAnonDecl(decls);

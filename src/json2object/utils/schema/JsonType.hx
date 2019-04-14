@@ -29,7 +29,7 @@ enum JsonType {
 	JTInt(i:Int);
 	JTFloat(f:String);
 	JTBool(b:Bool);
-	JTObject(properties:Map<String, JsonType>, required:Array<String>);
+	JTObject(properties:Map<String, JsonType>, required:Array<String>, defaults:Map<String, haxe.macro.Expr>);
 	JTArray(type:JsonType);
 	JTMap(onlyInt:Bool, type:JsonType);
 	JTRef(name:String);
