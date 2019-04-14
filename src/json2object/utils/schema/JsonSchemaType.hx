@@ -9,14 +9,16 @@ typedef JsonSchemaType = {
 	var const_int : Int;
 	@:optional @:alias('const')
 	var const_float : Float;
+	@:optional @:alias('default') @:noquoting
+	var defaultValue : String;
 	@:optional
 	var description: String;
 	@:optional
 	var type: String;
 	@:optional @:alias("$schema")
-	var __j2o_s_a_0: String;
+	var schema: String;
 	@:optional @:alias("$ref")
-	var __j2o_s_a_1: String;
+	var ref: String;
 	@:optional
 	var required: Array<String>;
 	@:optional

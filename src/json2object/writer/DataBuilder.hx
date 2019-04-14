@@ -186,7 +186,15 @@ class DataBuilder {
 						}
 					}
 					name = '"' + name + '": ';
-					var assignation = macro indent + space + $v{name} + new $f_cls(ignoreNullOptionals)._write(cast $f_a, space, level + 1, false, onAllOptionalNull);
+
+
+					var assignation:Expr;
+					if (field.meta.has(":noquoting")) {
+						assignation = macro indent + space + $v{name} + new $f_cls(ignoreNullOptionals).dontQuote()._write(cast $f_a, space, level + 1, false, onAllOptionalNull);
+					}
+					else {
+						assignation = macro indent + space + $v{name} + new $f_cls(ignoreNullOptionals)._write(cast $f_a, space, level + 1, false, onAllOptionalNull);
+					}
 					assignations.push(assignation);
 
 					skips.push(
@@ -315,14 +323,20 @@ class DataBuilder {
 		var writerName = c.name + "_" + (counter++);
 		var writerClass = macro class $writerName {
 			public var ignoreNullOptionals : Bool;
+			private var shouldQuote : Bool = true;
 			public function new (?ignoreNullOptionals:Bool=false) {
 				this.ignoreNullOptionals = ignoreNullOptionals;
 			}
 
 
 			private inline function quote (str:String) {
-				return json2object.writer.StringUtils.quote(str);
+				return shouldQuote ? json2object.writer.StringUtils.quote(str) : str;
 			}
+			private inline function dontQuote () {
+				shouldQuote = false;
+				return this;
+			}
+
 			private function buildIndent (space:String, level:Int) {
 				if (level == 0) { return ''; }
 				var buff = new StringBuf();
