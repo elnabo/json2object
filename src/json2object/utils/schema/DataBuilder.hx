@@ -162,7 +162,7 @@ class DataBuilder {
 						default:
 							continue;
 					}
-					jt = anyOf(jt, JTObject([n=>describe(JTObject(properties, required, []), construct.doc)], [n], []));
+					jt = anyOf(jt, JTObject([n=>describe(JTObject(properties, required, new Map<String, Expr>()), construct.doc)], [n], new Map<String, Expr>()));
 				}
 				doc = t.doc;
 			default:
