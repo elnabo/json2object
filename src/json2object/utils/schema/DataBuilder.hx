@@ -40,6 +40,10 @@ typedef Definitions = Map<String, JsonType>;
 
 class DataBuilder {
 
+	static var BOOL = Context.getType("Bool");
+	static var FLOAT = Context.getType("Float");
+	static var STRING = Context.getType("String");
+
 	static var counter:Int = 0;
 	private static var writers = new Map<String, Type>();
 
@@ -59,6 +63,10 @@ class DataBuilder {
 			case [JTAnyOf(val), t], [t, JTAnyOf(val)]: JTAnyOf(val.concat([t]));
 			default: JTAnyOf([t1, t2]);
 		}
+	}
+
+	private static inline function canHaveDefault(type:Type) : Bool {
+		return Context.unify(type, BOOL) || Context.unify(type, FLOAT) || Context.unify(type, STRING);
 	}
 
 	static function makeAbstractSchema(type:Type, definitions:Definitions):JsonType {
@@ -259,7 +267,7 @@ class DataBuilder {
 						}
 
 						var defaultMeta = field.meta.extract(':default');
-						if (defaultMeta.length == 1) {
+						if (defaultMeta.length == 1 && canHaveDefault(f_type)) {
 							var params = defaultMeta[0].params;
 							if (params != null && params.length == 1) {
 								var ct = f_type.toComplexType();
