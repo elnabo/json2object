@@ -66,7 +66,8 @@ class DataBuilder {
 	}
 
 	private static inline function canHaveDefault(type:Type) : Bool {
-		return Context.unify(type, BOOL) || Context.unify(type, FLOAT) || Context.unify(type, STRING);
+		var t = type.followWithAbstracts();
+		return Context.unify(t, BOOL) || Context.unify(t, FLOAT) || Context.unify(t, STRING);
 	}
 
 	static function makeAbstractSchema(type:Type, definitions:Definitions):JsonType {
