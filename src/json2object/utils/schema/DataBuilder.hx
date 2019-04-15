@@ -265,7 +265,7 @@ class DataBuilder {
 								var ct = f_type.toComplexType();
 								var parserCls = {name:"JsonParser", pack:["json2object"], params:[TPType(ct)]};
 								var writerCls = {name:"JsonWriter", pack:["json2object"], params:[TPType(ct)]};
-								var e = (params[0].toString() == "auto") ? macro new $parserCls([], putils, NONE).getAuto() : params[0];
+								var e = (params[0].toString() == "auto") ? macro new $parserCls([], new json2object.PositionUtils(''), NONE).getAuto() : params[0];
 								defaults.set(f_name, macro new $writerCls(true).write($e));
 							}
 						}

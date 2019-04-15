@@ -52,6 +52,8 @@ typedef ReadonlyStruct = {
 typedef SimpleDefault = {
 	@:default({a:"foo", b:3})
 	var foo(default,null):{a:String, b:Int};
+	@:default(auto)
+	var auto:Bool;
 }
 
 typedef OuterStruct = {
@@ -221,7 +223,7 @@ class StructureTest implements utest.ITest {
 	#if !lua
 	public function test12 () {
 		var schema = new JsonSchemaWriter<SimpleDefault>().schema;
-		var oracle = '{"definitions": {"{ b : Int, a : String }": {"additionalProperties": false,"properties": {"b": {"type": "integer"},"a": {"type": "string"}},"required": ["a","b"],"type": "object"},"tests.SimpleDefault": {"additionalProperties": false,"properties": {"foo": {"default": {"a": "foo","b": 3},"$$ref": "#/definitions/{ b : Int, a : String }"}},"required": ["foo"],"type": "object"}},"$$ref": "#/definitions/tests.SimpleDefault","$$schema": "http://json-schema.org/draft-07/schema#"}';
+		var oracle = '{"definitions": {"{ b : Int, a : String }": {"additionalProperties": false,"properties": {"b": {"type": "integer"},"a": {"type": "string"}},"required": ["a","b"],"type": "object"},"tests.SimpleDefault": {"additionalProperties": false,"properties": {"foo": {"default": {"a": "foo","b": 3},"$$ref": "#/definitions/{ b : Int, a :String }"},"auto": {"default": false, "type": "boolean"}},"required": ["auto","foo"],"type": "object"}},"$$ref": "#/definitions/tests.SimpleDefault","$$schema": "http://json-schema.org/draft-07/schema#"}';
 		Assert.isTrue(JsonComparator.areSame(oracle, schema));
 	}
 	#end
