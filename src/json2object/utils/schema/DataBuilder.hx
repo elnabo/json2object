@@ -407,22 +407,6 @@ class DataBuilder {
 	static function makeSchemaWriter(c:BaseType, type:Type, base:Type=null) {
 		var swriterName = c.name + "_" + (counter++);
 
-		if (writers.exists(swriterName)) {
-			return writers.get(swriterName);
-		}
-
-		if (Context.defined("display")) { // Issue #44
-			var schemaWriter = macro class $swriterName {
-				public function new (_:String='')  {}
-				public var schema(get, never):String;
-				function get_schema() {return null;}
-			};
-			haxe.macro.Context.defineType(schemaWriter);
-			var constructedType = haxe.macro.Context.getType(swriterName);
-			writers.set(swriterName, constructedType);
-			return haxe.macro.Context.getType(swriterName);
-		}
-
 		var definitions = new Definitions();
 		var obj = format(makeSchema(type, definitions), definitions);
 		var schemaWriter = macro class $swriterName {
@@ -445,7 +429,6 @@ class DataBuilder {
 		haxe.macro.Context.defineType(schemaWriter);
 
 		var constructedType = haxe.macro.Context.getType(swriterName);
-		writers.set(swriterName, constructedType);
 		return haxe.macro.Context.getType(swriterName);
 	}
 
