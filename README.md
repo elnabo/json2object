@@ -44,7 +44,7 @@ var json = writer.write(value);
 
 The `write` function accepts an optional `String` parameter for indenting the json file.
 
-### Using the experimental JsonSchema writer
+### Using the JsonSchema writer
 ```haxe
 var schema = new json2object.utils.JsonSchemaWriter<Cls>().schema;
 ```
