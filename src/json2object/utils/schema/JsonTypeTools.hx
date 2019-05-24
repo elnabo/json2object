@@ -132,7 +132,7 @@ class JsonTypeTools {
 		}
 
 		if (descr != '') {
-			declare("description", str2Expr(clean(descr)));
+			declare("description", str2Expr(clean(descr.trim())));
 		}
 
 		if (defaultValue != null) {
@@ -150,7 +150,7 @@ class JsonTypeTools {
 	 */
 	static function clean (doc:String) : String {
 		var lines = [];
-		var hasStar = true;
+		var hasStar = doc.charAt(0) == '*';
 		var start = 0;
 		var cursor = 0;
 		while (cursor < doc.length) {
@@ -176,6 +176,8 @@ class JsonTypeTools {
 			}
 			cursor++;
 		}
+
+		lines.push(doc.substring(start).trim());
 
 		var consecutiveNewLine = 0;
 		var result = [""];
