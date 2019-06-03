@@ -14,6 +14,8 @@ typedef JsonSchemaType = {
 	@:optional
 	var description: String;
 	@:optional
+	var markdownDescription: String;
+	@:optional
 	var type: String;
 	@:optional @:alias("$schema")
 	var schema: String;

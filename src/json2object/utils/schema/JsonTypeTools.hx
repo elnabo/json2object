@@ -40,8 +40,8 @@ class JsonTypeTools {
 		return TPath({name: "Null", pack:[], params:[ TPType(ct)], sub:null});
 	}
 
-	public static function toExpr(jt:JsonType) : Expr {
-		return _toExpr(jt, '', null);
+	public static function toExpr(jt:JsonType, parsingType:ParsingType) : Expr {
+		return _toExpr(jt, '', null, parsingType);
 	}
 
 	static function declsToAnonDecl (decls:AnonDecls) : Expr {
@@ -63,7 +63,7 @@ class JsonTypeTools {
 		return (a > b) ? 1 : -1;
 	}
 
-	static function _toExpr(jt:JsonType, descr:String, defaultValue:Null<Expr>) : Expr {
+	static function _toExpr(jt:JsonType, descr:String, defaultValue:Null<Expr>, parsingType:ParsingType) : Expr {
 		var decls = new AnonDecls();
 		inline function declare(name:String, expr:Expr) {
 			decls.set(name, {field:name, expr:expr});
@@ -92,7 +92,7 @@ class JsonTypeTools {
 						expr:EBinop(
 							OpArrow,
 							macro $v{key},
-							_toExpr(properties.get(key), '', defaults.get(key))
+							_toExpr(properties.get(key), '', defaults.get(key), parsingType)
 						),
 						pos:Context.currentPos()
 					});
@@ -107,32 +107,34 @@ class JsonTypeTools {
 				declare("additionalProperties", macro false);
 			case JTArray(type):
 				declare("type", macro "array");
-				declare("items", toExpr(type));
+				declare("items", toExpr(type, parsingType));
 			case JTMap(onlyInt, type):
 				declare("type", macro "object");
 				if (onlyInt) {
 					var patternPropertiesExpr = {
 						expr: EArrayDecl([
-							{expr:EBinop(OpArrow, macro "/^[-+]?\\d+([Ee][+-]?\\d+)?$/", toExpr(type)), pos:Context.currentPos()}
+							{expr:EBinop(OpArrow, macro "/^[-+]?\\d+([Ee][+-]?\\d+)?$/", toExpr(type, parsingType)), pos:Context.currentPos()}
 						]),
 						pos: Context.currentPos()
 					}
 					declare("patternProperties", patternPropertiesExpr);
 				}
 				else {
-					declare("additionalProperties_obj", toExpr(type));
+					declare("additionalProperties_obj", toExpr(type, parsingType));
 				}
 			case JTRef(name):
 				declare("ref", str2Expr('#/definitions/'+name));
 			case JTAnyOf(types):
-				var anyOfExpr = {expr: EArrayDecl(types.map(toExpr)), pos:Context.currentPos()};
+				var decls = [ for (t in types) toExpr(t, parsingType)];
+				var anyOfExpr = {expr: EArrayDecl(decls), pos:Context.currentPos()};
 				declare("anyOf", anyOfExpr);
 			case JTWithDescr(type, descr):
-				return _toExpr(type, descr, defaultValue);
+				return _toExpr(type, descr, defaultValue, parsingType);
 		}
 
 		if (descr != '') {
-			declare("description", str2Expr(clean(descr.trim())));
+			var description = parsingType.useMarkdownLabel ? "markdownDescription" : "description";
+			declare(description, str2Expr(clean(descr.trim(), parsingType)));
 		}
 
 		if (defaultValue != null) {
@@ -144,11 +146,14 @@ class JsonTypeTools {
 
 	/**
 	 * Clean the doc
-	 * 2 new line => 1 new line
-	 * 1 new line => 0 new line
-	 * all line first non whitespace char is * then remove all first *
+	 * if all line first non whitespace char is * then remove all first *
+	 *
+	 * if parsingType.useMarkdown:
+	 *     keep all new line as they are md formatting
+	 * else:
+	 *     a single new line is for readability so they are removed
 	 */
-	static function clean (doc:String) : String {
+	static function clean (doc:String, parsingType:ParsingType) : String {
 		var lines = [];
 		var hasStar = doc.charAt(0) == '*';
 		var start = 0;
@@ -179,11 +184,20 @@ class JsonTypeTools {
 
 		lines.push(doc.substring(start).trim());
 
+		if (parsingType.useMarkdown) {
+			if (!hasStar) {
+				return lines.join('\n');
+			}
+			else {
+				return [ for (l in lines) l.substr(2) ].join('\n');
+			}
+		}
+
 		var consecutiveNewLine = 0;
 		var result = [""];
 		var i = -1;
 		for (line in lines) {
-			line = (hasStar) ? line.substr(1) : line;
+			line = (hasStar) ? line.substr(2) : line;
 			if (line.trim().length == 0) {
 				if (i == -1) {
 					continue;

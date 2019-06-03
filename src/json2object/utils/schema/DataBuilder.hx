@@ -30,6 +30,7 @@ import haxe.macro.Context;
 import haxe.macro.Type;
 import haxe.macro.TypeTools;
 import json2object.utils.schema.JsonType;
+using json2object.utils.schema.ParsingType;
 
 using haxe.macro.ExprTools;
 using haxe.macro.TypeTools;
@@ -362,7 +363,7 @@ class DataBuilder {
 		return schema;
 	}
 
-	static function format(schema:JsonType, definitions:Definitions) : Expr {
+	static function format(schema:JsonType, definitions:Definitions, parsingType:ParsingType) : Expr {
 		inline function finishDecl (decl:{field:String, expr:Expr}) #if haxe4 : ObjectField #end {
 		#if haxe4
 			return {field: decl.field, expr: decl.expr, quotes:Quoted};
@@ -383,7 +384,7 @@ class DataBuilder {
 							expr: EBinop(
 								OpArrow,
 								macro $v{key},
-								definitions.get(key).toExpr()
+								definitions.get(key).toExpr(parsingType)
 							),
 							pos: Context.currentPos()
 						}
@@ -394,7 +395,7 @@ class DataBuilder {
 			decls.push(finishDecl({field: 'definitions', expr: definitionsExpr}));
 		}
 
-		switch (schema.toExpr().expr) {
+		switch (schema.toExpr(parsingType).expr) {
 			case EObjectDecl(fields):
 				decls = decls.concat(fields);
 			default:
@@ -404,11 +405,11 @@ class DataBuilder {
 
 	}
 
-	static function makeSchemaWriter(c:BaseType, type:Type, base:Type=null) {
+	static function makeSchemaWriter(c:BaseType, type:Type, parsingType:ParsingType) {
 		var swriterName = c.name + "_" + (counter++);
 
 		var definitions = new Definitions();
-		var obj = format(makeSchema(type, definitions), definitions);
+		var obj = format(makeSchema(type, definitions), definitions, parsingType);
 		var schemaWriter = macro class $swriterName {
 			public var space:String;
 			public function new (space:String='') {
@@ -434,8 +435,12 @@ class DataBuilder {
 
 	public static function build() {
 		switch (Context.getLocalType()) {
-			case TInst(c, [type]):
-				return makeSchemaWriter(c.get(), type);
+			case TInst(_.get()=>c, [type]):
+				var parsingType:ParsingType = switch (c.name) {
+					case "VSCodeSchemaWriter": { useMarkdown: true, useMarkdownLabel: true };
+					default: { useMarkdown: false, useMarkdownLabel: false };
+				}
+				return makeSchemaWriter(c, type, parsingType);
 			case _:
 				Context.fatalError("json2object: Json schema tools must be a class", Context.currentPos());
 				return null;
