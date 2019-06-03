@@ -31,8 +31,7 @@ class StringUtils {
 		public static function quote(s:String) : String {
 			#if neko
 			if( s.length != neko.Utf8.length(s) ) {
-				quoteUtf8(s);
-				return;
+				return quoteUtf8(s);
 			}
 			#end
 
@@ -41,7 +40,7 @@ class StringUtils {
 				buf = new flash.utils.ByteArray();
 				buf.endian = flash.utils.Endian.BIG_ENDIAN;
 				buf.position = 0;
-				#else
+			#else
 				buf = new StringBuf();
 			#end
 			inline function addChar (c:Int) {
@@ -120,9 +119,11 @@ class StringUtils {
 				default: u.addChar(c);
 				}
 			});
+			var buf = new StringBuf();
 			buf.add('"');
 			buf.add(u.toString());
 			buf.add('"');
+			return buf.toString();
 		}
 		#end
 	#else
