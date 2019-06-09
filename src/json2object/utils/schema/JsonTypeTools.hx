@@ -167,7 +167,7 @@ class JsonTypeTools {
 
 					if (descrLength > 0) {
 						var descr = {expr: EArrayDecl(descrDecls), pos: Context.currentPos()};
-						var descrLabel = parsingType.useMarkdownLabel ? "markdownEnumDescription" : "enumDescription";
+						var descrLabel = parsingType.useMarkdownLabel ? "markdownEnumDescriptions" : "enumDescriptions";
 						declare(descrLabel, descr);
 					}
 				}
