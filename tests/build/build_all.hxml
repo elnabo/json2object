@@ -19,8 +19,8 @@ tests/build/build_java.hxml
 tests/build/build_js.hxml
 --next
 
-tests/build/build_lua.hxml
---next
+#tests/build/build_lua.hxml
+#--next
 
 tests/build/build_neko.hxml
 --next
