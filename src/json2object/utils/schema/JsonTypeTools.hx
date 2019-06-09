@@ -214,14 +214,14 @@ class JsonTypeTools {
 					if (doc.charAt(cursor+1) == "\n") {
 						cursor++;
 					}
-					var line = doc.substring(start, cursor).trim();
+					var line = doc.substring(start, cursor).rtrim();
 					lines.push(line);
 					start = cursor + 1;
 					if (line.length > 0) {
 						hasStar = hasStar && (line.charAt(0) == '*');
 					}
 				case "\n":
-					var line = doc.substring(start, cursor).trim();
+					var line = doc.substring(start, cursor).rtrim();
 					lines.push(line);
 					start = cursor + 1;
 					if (line.length > 0) {
@@ -232,10 +232,11 @@ class JsonTypeTools {
 			cursor++;
 		}
 
-		lines.push(doc.substring(start).trim());
+		lines.push(doc.substring(start).rtrim());
 
 		if (parsingType.useMarkdown) {
 			if (!hasStar) {
+				lines = keepSharedIndentation(lines);
 				return lines.join('\n');
 			}
 			else {
@@ -248,6 +249,7 @@ class JsonTypeTools {
 		var i = -1;
 		for (line in lines) {
 			line = (hasStar) ? line.substr(2) : line;
+			line = line.ltrim();
 			if (line.trim().length == 0) {
 				if (i == -1) {
 					continue;
@@ -272,6 +274,45 @@ class JsonTypeTools {
 			}
 		}
 		return result.join("\n");
+	}
+
+	static function keepSharedIndentation (lines:Array<String>) : Array<String> {
+		var newLines = [lines.shift()];
+		var i = 0;
+		var flag = true;
+		while (flag) {
+			var char = null;
+			for (line in lines) {
+				if (line.length >= i) {
+					if (!line.isSpace(i)) {
+						flag = false;
+						break;
+					}
+
+					var c = line.charAt(i);
+					if (char == null) {
+						char = c;
+					}
+					else if (c != char) {
+						flag = false;
+						break;
+					}
+					flag = true;
+				}
+			}
+			if (char == null) {
+				flag = false;
+			}
+			else {
+				i++;
+			}
+		}
+
+		for (line in lines) {
+			newLines.push(line.substring(i));
+		}
+
+		return newLines;
 	}
 #end
 }
