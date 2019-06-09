@@ -31,6 +31,7 @@ enum JsonType {
 	JTBool(b:Bool);
 	JTObject(properties:Map<String, JsonType>, required:Array<String>, defaults:Map<String, haxe.macro.Expr>);
 	JTArray(type:JsonType);
+	JTEnumValues(values:Array<JsonType>);
 	JTMap(onlyInt:Bool, type:JsonType);
 	JTRef(name:String);
 	JTAnyOf(types:Array<JsonType>);

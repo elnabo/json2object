@@ -51,6 +51,8 @@ var schema = new json2object.utils.JsonSchemaWriter<Cls>().schema;
 
 The constructor accepts an optional `String` parameter for indenting the schema. The generated schema follow null-safety rules.
 
+An other parser `json2object.utils.special.VSCodeSchemaWriter` has been introduced in 3.6.3 to produce a schema with some non standard properties used by VScode.
+
 ### Constraints in the parsing
 
 - Variables defined with the `@:jignored` metadata will be ignored by the parser.

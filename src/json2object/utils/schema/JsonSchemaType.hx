@@ -37,4 +37,16 @@ typedef JsonSchemaType = {
 	var anyOf: Array<JsonSchemaType>;
 	@:optional
 	var definitions: Map<String, JsonSchemaType>;
+	@:optional
+	var markdownEnumDescription: Array<String>;
+	@:optional
+	var enumDescription: Array<String>;
+	@:optional @:alias("enum")
+	var enum_string: Array<Null<String>>;
+	@:optional @:alias("enum")
+	var enum_int: Array<Null<Int>>;
+	@:optional @:alias("enum")
+	var enum_float: Array<Null<Float>>;
+	@:optional @:alias("enum")
+	var enum_bool: Array<Null<Bool>>;
 }

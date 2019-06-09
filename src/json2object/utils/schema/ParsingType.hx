@@ -23,6 +23,7 @@ SOFTWARE.
 package json2object.utils.schema;
 
 typedef ParsingType = {
+	useEnumDescriptions : Bool,
 	useMarkdown : Bool,
 	useMarkdownLabel : Bool
 }

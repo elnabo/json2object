@@ -27,6 +27,7 @@ import haxe.macro.Expr;
 
 using StringTools;
 using json2object.utils.TypeTools;
+using json2object.writer.StringUtils;
 
 typedef AnonDecls = Map<String, {field:String, expr:Expr}>;
 
@@ -124,6 +125,55 @@ class JsonTypeTools {
 				}
 			case JTRef(name):
 				declare("ref", str2Expr('#/definitions/'+name));
+			case JTEnumValues(values):
+				if (parsingType.useEnumDescriptions) {
+					var enumDecls = [];
+					var descrDecls = [];
+					var descrLength = 0;
+					var type = '_string';
+
+					function parseValue (v:JsonType) {
+						switch (v) {
+							case JTNull:
+								enumDecls.push(macro null);
+							case JTString(s):
+								enumDecls.push(macro $v{s});
+							case JTFloat(s):
+								enumDecls.push(macro $v{Std.parseFloat(s)});
+								type = '_float';
+							case JTInt(i):
+								enumDecls.push(macro $v{i});
+								type = '_int';
+							case JTBool(b):
+								enumDecls.push(macro $v{b});
+								type = '_bool';
+							case JTWithDescr(v, descr):
+								descrDecls.push(macro $v{descr});
+								descrLength += descr.length;
+								parseValue(v);
+							default:
+						}
+						if (enumDecls.length > descrDecls.length) {
+							descrDecls.push(macro '');
+						}
+					}
+
+					for (v in values) {
+						parseValue(v);
+					}
+
+					var enumValues = {expr: EArrayDecl(enumDecls), pos: Context.currentPos()};
+					declare("enum"+type, enumValues);
+
+					if (descrLength > 0) {
+						var descr = {expr: EArrayDecl(descrDecls), pos: Context.currentPos()};
+						var descrLabel = parsingType.useMarkdownLabel ? "markdownEnumDescription" : "enumDescription";
+						declare(descrLabel, descr);
+					}
+				}
+				else {
+					return _toExpr(JTAnyOf(values), descr, defaultValue, parsingType);
+				}
 			case JTAnyOf(types):
 				var decls = [ for (t in types) toExpr(t, parsingType)];
 				var anyOfExpr = {expr: EArrayDecl(decls), pos:Context.currentPos()};

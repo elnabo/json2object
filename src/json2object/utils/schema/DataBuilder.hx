@@ -112,7 +112,6 @@ class DataBuilder {
 		}
 		var values = new Array<Dynamic>();
 		var docs = [];
-		var jt = null;
 
 		function handleExpr(expr:TypedExprDef, ?rec:Bool=true) : Dynamic {
 			return switch (expr) {
@@ -125,6 +124,8 @@ class DataBuilder {
 				default: throw false;
 			}
 		}
+
+		var enumValues = [];
 		switch (type) {
 			case TAbstract(_.get()=>t, p) :
 				doc = t.doc;
@@ -134,17 +135,17 @@ class DataBuilder {
 					}
 					if (field.expr() == null) { continue; }
 					try {
-						jt = anyOf(jt, describe(handleExpr(field.expr().expr), field.doc));
+						enumValues.push(describe(handleExpr(field.expr().expr), field.doc));
 					}
 					catch (_:Dynamic) {}
 				}
 			default:
 		}
 
-		if (jt == null) {
+		if (enumValues.length == 0) {
 			throw 'json2object: Abstract enum ${name} has no supported value';
 		}
-		define(name, jt, definitions, doc);
+		define(name, JTEnumValues(enumValues), definitions, doc);
 		return JTRef(name);
 	}
 	static function makeEnumSchema(type:Type, definitions:Definitions):JsonType {
@@ -437,8 +438,8 @@ class DataBuilder {
 		switch (Context.getLocalType()) {
 			case TInst(_.get()=>c, [type]):
 				var parsingType:ParsingType = switch (c.name) {
-					case "VSCodeSchemaWriter": { useMarkdown: true, useMarkdownLabel: true };
-					default: { useMarkdown: false, useMarkdownLabel: false };
+					case "VSCodeSchemaWriter": { useEnumDescriptions: true, useMarkdown: true, useMarkdownLabel: true };
+					default: { useEnumDescriptions: false, useMarkdown: false, useMarkdownLabel: false };
 				}
 				return makeSchemaWriter(c, type, parsingType);
 			case _:
