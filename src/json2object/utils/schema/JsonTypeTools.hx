@@ -278,7 +278,20 @@ class JsonTypeTools {
 
 	static function keepSharedIndentation (lines:Array<String>) : Array<String> {
 		var first = lines.shift().ltrim();
-		var newLines = first.length == 0 ? [] : [first];
+		var newLines = [];
+		if (first.length == 0) {
+			while (lines.length > 0) {
+				if (lines[0].ltrim().length == 0) {
+					lines.shift();
+				}
+				else {
+					break;
+				}
+			}
+		}
+		else {
+			newLines.push(first);
+		}
 		var i = 0;
 		var flag = true;
 		while (flag) {
@@ -313,7 +326,7 @@ class JsonTypeTools {
 			newLines.push(line.substring(i));
 		}
 
-		while (true) {
+		while (newLines.length > 0) {
 			if (newLines[newLines.length - 1].length == 0) {
 				newLines.pop();
 			}
