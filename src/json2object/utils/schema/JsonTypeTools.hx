@@ -148,7 +148,7 @@ class JsonTypeTools {
 								enumDecls.push(macro $v{b});
 								type = '_bool';
 							case JTWithDescr(v, descr):
-								descrDecls.push(macro $v{descr});
+								descrDecls.push(macro $v{clean(descr, parsingType)});
 								descrLength += descr.length;
 								parseValue(v);
 							default:
@@ -283,7 +283,7 @@ class JsonTypeTools {
 		while (flag) {
 			var char = null;
 			for (line in lines) {
-				if (line.length >= i) {
+				if (line.length > i) {
 					if (!line.isSpace(i)) {
 						flag = false;
 						break;
