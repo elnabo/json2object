@@ -38,9 +38,9 @@ typedef JsonSchemaType = {
 	@:optional
 	var definitions: Map<String, JsonSchemaType>;
 	@:optional
-	var markdownEnumDescription: Array<String>;
+	var markdownEnumDescriptions: Array<String>;
 	@:optional
-	var enumDescription: Array<String>;
+	var enumDescriptions: Array<String>;
 	@:optional @:alias("enum")
 	var enum_string: Array<Null<String>>;
 	@:optional @:alias("enum")
