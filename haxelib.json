@@ -4,8 +4,8 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Type safe Haxe/JSON (de)serializer",
-	"version": "3.6.3",
-	"releasenote": "Bug fixes and introducing VSCodeSchemaWriter schema writer variant",
+	"version": "3.6.4",
+	"releasenote": "Enum value name clash fix",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
 	"dependencies": {
