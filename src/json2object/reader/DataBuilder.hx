@@ -816,7 +816,7 @@ class DataBuilder {
 		var parserName = c.name + "_" + (counter++);
 		var parent = {name:"BaseParser", pack:["json2object", "reader"], params:[TPType(base.toComplexType())]};
 		var parser = macro class $parserName extends $parent {
-			public function new(?errors:Array<json2object.Error>=null, ?putils:json2object.PositionUtils=null, ?errorType:json2object.Error.ErrorType=NONE) {
+			public function new(?errors:Array<json2object.Error>=null, ?putils:json2object.PositionUtils=null, ?errorType:json2object.Error.ErrorType=json2object.Error.ErrorType.NONE) {
 				super(errors, putils, errorType);
 				${defaultValueExpr}
 			}
