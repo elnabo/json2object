@@ -42,6 +42,7 @@ class DataBuilder {
 	private static var counter = 0;
 	private static var parsers = new Map<String, Type>();
 	private static var callPosition:Null<haxe.macro.Position> = null;
+	private static final jcustom = ":jcustomparse";
 
 	private static function notNull(type:Type):Type {
 		return switch (type) {
@@ -154,6 +155,80 @@ class DataBuilder {
 		changeFunction("loadJsonNull", parser, macro {value = null;});
 	}
 
+	public static function makeCustomParser(parser:TypeDefinition, type:Type, t:ClassType){
+		var cexpr:Expr;
+		try {
+			cexpr = t.meta.extract(jcustom)[0].params[0];
+			validateCustomParser(type, cexpr);
+		} catch(_:Any){
+			trace(invalidParserError(type, cexpr));
+		}
+		
+		var e = macro {
+			value = ${cexpr}(json, variable);
+			return value;
+		}
+
+		var args:Array<FunctionArg> =[
+			{
+				name: "json",
+				type: macro:hxjsonast.Json
+			},
+			{
+				name:"variable",
+				type: macro:String,
+				opt:true,
+				value:  macro ""
+			}
+		];
+
+		var loadJ:Field = {
+			doc:null,
+			kind: FFun({args:args, expr:e, params:null, ret:TypeTools.toComplexType(type)}),
+			access: [AOverride, APublic],
+			name: "loadJson",
+			pos:Context.currentPos(),
+			meta: null
+		}
+		parser.fields.push(loadJ);
+	}
+
+	private static function invalidParserError(t:Type, e:Expr):String {
+		var methodName = jcustom;
+		if (e != null) {
+			methodName = e.toString();
+			var index = methodName.lastIndexOf(".") + 1;
+			methodName = methodName.substr(index);
+		}
+		var msg = '
+		Failed to create custom parser: ${e.toString()}
+		@$jcustom arg should point to something like
+		public static function ${methodName}(o:hxjsonast.Json, name:String): ${t.toString()}';
+		return msg;
+	}
+
+	private static function validateCustomParser(target:Type, e:Expr) {
+		switch Context.typeof(e) {
+			case TFun(args, ret):
+				if (ret.toString() != target.toString()){
+					throw('invalid method return: ${ret.toString()} should be ${target.toString()}');
+				}
+				if (args.length != 2) {
+					throw("should have 2 method args");
+				}
+				var a = args[0].t.toString();
+				if (a != "hxjsonast.Json") {
+					throw('invalid method args: $a should be hxjsonast.Json');
+				}
+				a = args[1].t.toString();
+				if (a != "String") {
+					throw('invalid method args: $a should be String');
+				}
+			default:
+				throw("invalid expression type");
+		}
+	}
+
 	public static function makeObjectOrAnonParser(parser:TypeDefinition, type:Type, superType:Type, baseParser:BaseType) {
 		var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(type.toComplexType())]};
 
@@ -236,13 +311,24 @@ class DataBuilder {
 					assignedKeys.push(macro $v{field.name});
 					assignedValues.push(macro $v{field.meta.has(":optional")});
 
+					var reader:Expr = macro new $f_cls(errors, putils, OBJECTTHROW).loadJson;
+					if (field.meta.has(jcustom)){
+						try {
+							reader = field.meta.extract(jcustom)[0].params[0];
+							validateCustomParser(field.type, reader);
+						} catch(unknown : Any){
+							trace(invalidParserError(field.type, reader));
+							trace(unknown);
+						}
+					}
+
 					var assignation = if (needReflect) {
 						macro {
-							loadObjectFieldReflect(new $f_cls(errors, putils, OBJECTTHROW).loadJson, field, $v{field.name}, assigned);
+							loadObjectFieldReflect($reader, field, $v{field.name}, assigned);
 						};
 					} else if (nullCheck) {
 						macro {
-							var v = loadObjectField(new $f_cls(errors, putils, OBJECTTHROW).loadJson, field, $v{field.name}, assigned, null);
+							var v = loadObjectField($reader, field, $v{field.name}, assigned, null);
 							if (v != null) {
 								$f_a = cast v;
 							} else {
@@ -251,11 +337,11 @@ class DataBuilder {
 						};
 					} else if (canRead) {
 						macro {
-							$f_a = cast loadObjectField(new $f_cls(errors, putils, OBJECTTHROW).loadJson, field, $v{field.name}, assigned, $f_a);
+							$f_a = cast loadObjectField($reader, field, $v{field.name}, assigned, $f_a);
 						};
 					} else {
 						macro {
-							var v = loadObjectField(new $f_cls(errors, putils, OBJECTTHROW).loadJson, field, $v{field.name}, assigned, null);
+							var v = loadObjectField($reader, field, $v{field.name}, assigned, null);
 							if (v != null) {
 								$f_a = cast v;
 							}
@@ -875,7 +961,11 @@ class DataBuilder {
 
 							default:
 						}
-						makeObjectOrAnonParser(parser, type, null, c);
+						if (t.meta.has(jcustom)){
+							makeCustomParser(parser, type, t);
+						} else {
+							makeObjectOrAnonParser(parser, type, null, c);
+						}
 				}
 			case TAnonymous(_):
 				makeObjectOrAnonParser(parser, type, null, c);

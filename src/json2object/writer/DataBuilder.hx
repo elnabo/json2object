@@ -37,6 +37,7 @@ class DataBuilder {
 
 	private static var counter = 0;
 	private static var writers = new Map<String, Type>();
+	private static final jcustom = ":jcustomwrite";
 
 	private static function notNull (type:Type) : Type {
 		return switch (type) {
@@ -187,13 +188,25 @@ class DataBuilder {
 					}
 					name = '"' + name + '": ';
 
+					var assignation:Expr = macro indent + space + $v{name};
 
-					var assignation:Expr;
-					if (field.meta.has(":noquoting")) {
-						assignation = macro indent + space + $v{name} + new $f_cls(ignoreNullOptionals).dontQuote()._write(cast $f_a, space, level + 1, false, onAllOptionalNull);
+					var writer:Expr;
+					if (field.meta.has(jcustom)) {
+						try {
+							writer = field.meta.extract(jcustom)[0].params[0];
+							validateCustomWriter(field.type, writer);
+						} catch (ex:Any) {
+							trace(invalidWriterError(field.type, writer));
+							trace(ex);
+						}
 					}
-					else {
-						assignation = macro indent + space + $v{name} + new $f_cls(ignoreNullOptionals)._write(cast $f_a, space, level + 1, false, onAllOptionalNull);
+					if (writer != null) {
+						assignation = macro $assignation + $writer(cast $f_a);
+					} else if (field.meta.has(":noquoting")) {
+						assignation = macro $assignation
+							+ new $f_cls(ignoreNullOptionals).dontQuote()._write(cast $f_a, space, level + 1, false, onAllOptionalNull);
+					} else {
+						assignation = macro $assignation + new $f_cls(ignoreNullOptionals)._write(cast $f_a, space, level + 1, false, onAllOptionalNull);
 					}
 					assignations.push(assignation);
 
@@ -311,9 +324,52 @@ class DataBuilder {
 		return null;
 	}
 
-	public static function makeWriter (c:BaseType, type:Type, base:Type) {
+	private static function makeCustomWriter(t:Type, c:ClassType):Expr {
+		var e:Expr;
+		try {
+			e = c.meta.extract(jcustom)[0].params[0];
+			validateCustomWriter(t, e);
+		} catch (ex:Any) {
+			trace(invalidWriterError(t, e));
+		}
+		return macro {
+			return ${e}(o);
+		};
+	}
 
-		if (base == null) { base = type; }
+	private static function invalidWriterError(t:Type, e:Expr):String {
+		var methodName = jcustom;
+		if (e != null) {
+			methodName = e.toString();
+			var index = methodName.lastIndexOf(".") + 1;
+			methodName = methodName.substr(index);
+		}
+		var msg = '
+		Failed to create custom writer:  ${e.toString()}
+		@$jcustom arg should point to something like
+		public static function ${methodName}(o:${t.toString()}): String';
+		return msg;
+	}
+
+	private static function validateCustomWriter(target:Type, e:Expr) {
+		switch Context.typeof(e) {
+			case TFun(args, ret):
+				if (ret.toString() != "String"){
+					throw('invalid method return: ${ret.toString()} should be String');
+				}
+				if (args.length != 1) {
+					throw("should have 1 method arg");
+				}
+				if (args[0].t.toString() != target.toString()) {
+					throw('invalid method args: ${args[0].t.toString()} should be ${target.toString()}');
+				}
+			default:
+				throw("invalid expression type");
+		}
+	}
+
+	public static function makeWriter (c:BaseType, type:Type, base:Type) {
+        if (base == null) { base = type; }
 
 		var writerMapName = base.toString();
 		if (writers.exists(writerMapName)) {
@@ -367,7 +423,11 @@ class DataBuilder {
 							default:
 								macro return null;
 						}
-						makeObjectOrAnonWriter(type, c);
+						if (t.meta.has(jcustom)) {
+							makeCustomWriter(type, t);
+						} else {
+							makeObjectOrAnonWriter(type, c);
+						}
 				}
 			case TAnonymous(_.get()=>t):
 				makeObjectOrAnonWriter(type, c);
