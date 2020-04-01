@@ -34,6 +34,7 @@ class Main
 		r.addCase(new AbstractTest());
 		r.addCase(new AliasTest());
 		r.addCase(new ArrayTest());
+		r.addCase(new CustomTest());
 		r.addCase(new EnumTest());
 		#if haxe4
 		r.addCase(new FinalTest());
