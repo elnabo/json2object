@@ -160,8 +160,9 @@ class DataBuilder {
 		try {
 			cexpr = t.meta.extract(jcustom)[0].params[0];
 			validateCustomParser(type, cexpr);
-		} catch(_:Any){
-			trace(invalidParserError(type, cexpr));
+		} catch(ex:Any){
+			var err = invalidParserError(type, cexpr, Std.string(ex));
+			Context.fatalError(err, Context.currentPos());
 		}
 		
 		var e = macro {
@@ -193,7 +194,7 @@ class DataBuilder {
 		parser.fields.push(loadJ);
 	}
 
-	private static function invalidParserError(t:Type, e:Expr):String {
+	private static function invalidParserError(t:Type, e:Expr, m:String):String {
 		var methodName = jcustom;
 		if (e != null) {
 			methodName = e.toString();
@@ -203,7 +204,8 @@ class DataBuilder {
 		var msg = '
 		Failed to create custom parser: ${e.toString()}
 		@$jcustom arg should point to something like
-		public static function ${methodName}(o:hxjsonast.Json, name:String): ${t.toString()}';
+		public static function ${methodName}(o:hxjsonast.Json, name:String): ${t.toString()}
+		$m';
 		return msg;
 	}
 
@@ -316,9 +318,9 @@ class DataBuilder {
 						try {
 							reader = field.meta.extract(jcustom)[0].params[0];
 							validateCustomParser(field.type, reader);
-						} catch(unknown : Any){
-							trace(invalidParserError(field.type, reader));
-							trace(unknown);
+						} catch(ex : Any){
+							var err = invalidParserError(field.type, reader, Std.string(ex));
+							Context.fatalError(err, Context.currentPos());
 						}
 					}
 
