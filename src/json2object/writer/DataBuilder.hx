@@ -196,8 +196,8 @@ class DataBuilder {
 							writer = field.meta.extract(jcustom)[0].params[0];
 							validateCustomWriter(field.type, writer);
 						} catch (ex:Any) {
-							trace(invalidWriterError(field.type, writer));
-							trace(ex);
+							var err = invalidWriterError(field.type, writer, Std.string(ex));
+							Context.fatalError(err, Context.currentPos());
 						}
 					}
 					if (writer != null) {
@@ -330,14 +330,15 @@ class DataBuilder {
 			e = c.meta.extract(jcustom)[0].params[0];
 			validateCustomWriter(t, e);
 		} catch (ex:Any) {
-			trace(invalidWriterError(t, e));
+			var err = invalidWriterError(t, e, Std.string(ex));
+			Context.fatalError(err, Context.currentPos());
 		}
 		return macro {
 			return ${e}(o);
 		};
 	}
 
-	private static function invalidWriterError(t:Type, e:Expr):String {
+	private static function invalidWriterError(t:Type, e:Expr, m:String):String {
 		var methodName = jcustom;
 		if (e != null) {
 			methodName = e.toString();
@@ -347,7 +348,8 @@ class DataBuilder {
 		var msg = '
 		Failed to create custom writer:  ${e.toString()}
 		@$jcustom arg should point to something like
-		public static function ${methodName}(o:${t.toString()}): String';
+		public static function ${methodName}(o:${t.toString()}): String
+		$m';
 		return msg;
 	}
 
