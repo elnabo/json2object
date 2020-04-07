@@ -34,7 +34,7 @@ class CustomNum {
 	public var value:Int;
 	public var control:Int;
 
-	public static final _prefix = "The Number ";
+	public static var _prefix = "The Number ";
 
 	public static function CustomWrite(o:Int):String {
 		return '"$_prefix$o"';
