@@ -37,7 +37,7 @@ class DataBuilder {
 
 	private static var counter = 0;
 	private static var writers = new Map<String, Type>();
-	private static final jcustom = ":jcustomwrite";
+	private static var jcustom = ":jcustomwrite";
 
 	private static function notNull (type:Type) : Type {
 		return switch (type) {
