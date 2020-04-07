@@ -110,4 +110,12 @@ class CustomTest implements utest.ITest {
 		Assert.equals(42, data.num.value);
 		Assert.same(data, parser.fromJson(writer.write(data)));
 	}
+
+	public function test4() {
+		var parser = new JsonParser<CustomNum>();
+		var data = parser.fromJson('{"value": 1, "control":123}');
+		Assert.equals(1, parser.errors.length);
+		Assert.equals(0, data.value);
+		Assert.equals(123, data.control);
+	}
 }

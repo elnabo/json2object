@@ -108,6 +108,35 @@ If multiple alias metadatas are on the variable only the last one is taken into 
 
 - As of version 3.4.0, private classes can be parsed except on the CS, Java and HL targets.
 
+- As of version 3.7.0, it is possible to add field or class specific parser/writer to object using the `@:jcustomparse` / `@:jcustomwrite` meta. This increase the type coverage of json parsing/writing. Those custom parser/writer can also be applied to the entire class.
+	- The custom writer receive a single parameter, the value to stringify
+	- The custom parser receive two parameters: the corresponding json, encoded in a `hxjsonast.Json` instance, and the name of the field being parsed.
+```haxe
+class Object {	
+	@:jcustomparse(Object.customParse)
+	@:jcustomwrite(Object.customWrite)
+	public var value:Date;
+
+	public function new() {}
+
+	public static function customWrite(v:Date):String {
+		return v.getTime() + '';
+	}
+
+	public static function customParse(val:Json, name:String):Date {
+		return switch (val.value) {
+			case JString(s):
+				Date.fromString(s);
+			case JNumber(s):
+				Date.fromTime(Std.parseFloat(s));
+			default:
+				null;
+
+		}
+	}
+}
+```
+
 ## Example
 
 With an anonymous structure:

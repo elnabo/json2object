@@ -2,7 +2,7 @@ language: haxe
 
 os:
   - linux
-  - osx
+  # - osx
 
 haxe:
   - 3.4.1
