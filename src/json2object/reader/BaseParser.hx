@@ -176,21 +176,23 @@ class BaseParser<T> {
 				throw e;
 			}
 		}
-		#if (cs && haxe4)
+		#if cs
 		// CS sometimes wrap the Haxe errors, unwrap them.
-		// Seems to be https://github.com/HaxeFoundation/haxe/issues/6817
+		// Could be https://github.com/HaxeFoundation/haxe/issues/6817
 		catch (e:cs.system.reflection.TargetInvocationException) {
-			var e = cast(e.InnerException, haxe.ValueException);
-			if (e != null) {
-				if (Std.isOfType(e.value, InternalError)) {
-					var ie = cast(e.value, InternalError);
+			#if (haxe_ver >= 4.1)
+			var e = cast(e.InnerException, haxe.ValueException).value;
+			var es = '$e';
+			#elseif haxe4
+			var e = untyped __cs__("((global::haxe.lang.HaxeException)(e.InnerException)).obj");
+			var es = e.toString();
+			#else
+			var e = untyped __cs__("((global::haxe.lang.HaxeException)(global::haxe.lang.Exceptions.exception.InnerException)).obj");
+			var es = e.toString();
+			#end
 
-					if (ie != ParsingThrow) {
-						throw ie;
-					}
-				} else {
-					errors.push(CustomFunctionException(e.value, pos));
-				}
+			if (es != "ParsingThrow") {
+				errors.push(CustomFunctionException(e, pos));
 			}
 		}
 		#end
