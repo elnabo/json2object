@@ -4,8 +4,8 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Type safe Haxe/JSON (de)serializer",
-	"version": "3.7.0",
-	"releasenote": "Custom parser for objet fields",
+	"version": "3.8.0",
+	"releasenote": "Custom parser exception are available in parser.errors",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
 	"dependencies": {
