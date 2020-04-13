@@ -12,8 +12,6 @@ haxe:
 
 dist: trusty
 
-sudo: false
-
 # thanks to Andy Li! https://github.com/andyli/HaxeCI
 addons:
   # This is the preferred way to install apt packages.

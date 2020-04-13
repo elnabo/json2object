@@ -33,11 +33,11 @@ class CustomNum {
 	@:jcustomparse(tests.CustomTest.CustomNum.CustomParse)
 	public var value:Int;
 
-	@:jcustomwrite(tests.CustomTest.CustomNum.CustomWrite)
-	@:jcustomparse(tests.CustomTest.CustomNum.CustomParse)
+	@:jcustomwrite(tests.CustomTest.CustomNum.CustomWriteNull)
+	@:jcustomparse(tests.CustomTest.CustomNum.CustomParseNull)
 	@:optional
 	@:default(0)
-	public var opt_value:Int;
+	public var opt_value:Null<Int>;
 
 	public var control:Int;
 
@@ -47,7 +47,21 @@ class CustomNum {
 		return '"$_prefix$o"';
 	}
 
+	public static function CustomWriteNull(o:Null<Int>):String {
+		return '"$_prefix$o"';
+	}
+
 	public static function CustomParse(val:hxjsonast.Json, name:String):Int {
+		switch (val.value) {
+			case JString(s):
+				var str = StringTools.replace(s, _prefix, "");
+				return Std.parseInt(str);
+			default:
+				throw 'Unexepected value for $name';
+		}
+	}
+
+	public static function CustomParseNull(val:hxjsonast.Json, name:String):Null<Int> {
 		switch (val.value) {
 			case JString(s):
 				var str = StringTools.replace(s, _prefix, "");
