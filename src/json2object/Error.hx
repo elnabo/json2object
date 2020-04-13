@@ -105,7 +105,7 @@ enum InternalError {
 }
 
 class CustomFunctionError {
-	public final message:String;
+	public #if haxe4 final #else var #end message:String;
 
 	@:allow(json2object.reader.DataBuilder)
 	@:allow(json2object.writer.DataBuilder)
