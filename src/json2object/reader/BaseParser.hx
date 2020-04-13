@@ -176,6 +176,23 @@ class BaseParser<T> {
 				throw e;
 			}
 		}
+		#if cs
+		// CS sometimes wrap the Haxe errors, unwrap them.
+		catch (e:cs.system.reflection.TargetInvocationException) {
+			var e = cast(e.InnerException, haxe.ValueException);
+			if (e != null) {
+				if (Std.isOfType(e.value, InternalError)) {
+					var ie = cast(e.value, InternalError);
+
+					if (ie != ParsingThrow) {
+						throw ie;
+					}
+				} else {
+					errors.push(CustomFunctionException(e.value, pos));
+				}
+			}
+		}
+		#end
 		catch (e:Any) {
 			errors.push(CustomFunctionException(e, pos));
 		}
