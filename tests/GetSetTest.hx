@@ -63,9 +63,7 @@ class GetSetTest implements utest.ITest {
 		return this.o = v * 2;
 	}
 
-	var p (never, default) : Int = 4;
 	var q (null, default) : Int = 5;
-	var r (never, null) : Int = 6;
 	var s (null, null) : Int = 7;
 	var t (get, null) : Int = 8;
 	function get_t () :Int { return 1; }
@@ -85,7 +83,7 @@ class GetSetTest implements utest.ITest {
 		Reflect.setField(gst, "u", 2);
 		gst.v = 9;
 
-		var json = '{"h":1,"j":3.14159265358979,"l":1,"m":2,"n":3,"o":4,"p":4,"q":5,"r":6,"s":7,"t":8,"u":2,"v":9}';
+		var json = '{"h":1,"j":3.14159265358979,"l":1,"m":2,"n":3,"o":4,"q":5,"s":7,"t":8,"u":2,"v":9}';
 
 		var parser = new JsonParser<GetSetTest>();
 		var writer = new JsonWriter<GetSetTest>();
@@ -105,7 +103,7 @@ class GetSetTest implements utest.ITest {
 		Reflect.setField(gst, "u", 23);
 		gst.v = 9;
 
-		var json = '{"j":4.0, "h":1, "k":3, "l":3, "m":4, "n":5, "o":4, "p":4, "q":5, "r":6, "s":7, "t":8, "u":23, "v":9}';
+		var json = '{"j":4.0, "h":1, "k":3, "l":3, "m":4, "n":5, "o":4, "q":5, "s":7, "t":8, "u":23, "v":9}';
 
 		var parser = new JsonParser<GetSetTest>();
 		var writer = new JsonWriter<GetSetTest>();

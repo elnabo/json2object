@@ -338,7 +338,7 @@ class DataBuilder {
 						};
 					} else if (nullCheck) {
 						macro {
-							var v = loadObjectField($reader, field, $v{field.name}, assigned, null, pos);
+							var v = loadObjectField($reader, field, $v{field.name}, assigned, $f_a, pos);
 							if (v != null) {
 								$f_a = cast v;
 							} else {
@@ -351,7 +351,7 @@ class DataBuilder {
 						};
 					} else {
 						macro {
-							var v = loadObjectField($reader, field, $v{field.name}, assigned, null, pos);
+							var v = loadObjectField($reader, field, $v{field.name}, assigned, $f_a, pos);
 							if (v != null) {
 								$f_a = cast v;
 							}

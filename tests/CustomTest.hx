@@ -165,12 +165,7 @@ class CustomTest implements utest.ITest {
 		}
 
 		Assert.equals(62, data.value);
-		#if cpp
-		//TODO cpp doesn't respect the default value
-		Assert.equals(null, data.opt_value);
-		#else
 		Assert.equals("0", data.opt_value);
-		#end
 		Assert.equals(12, data.control);
 	}
 }
