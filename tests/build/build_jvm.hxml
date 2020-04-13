@@ -1,0 +1,4 @@
+tests/build/build_common.hxml
+-java testout/jvm/
+-D jvm
+-cmd java -jar testout/jvm/Main.jar

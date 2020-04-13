@@ -28,8 +28,8 @@ tests/build/build_python.hxml
 tests/build/build_cpp.hxml
 --next
 
-tests/build/build_cppia.hxml
---next
+#tests/build/build_cppia.hxml
+#--next
 
 # needs to be last
 tests/build/build_interp.hxml

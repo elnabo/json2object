@@ -50,20 +50,20 @@ install:
       brew install php@7.2;
     fi
   # Haxe Lua dependencies
-  - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then
-      brew install pcre;
-      export PATH=$PATH:/Users/travis/Library/Python/2.7/bin;
-    fi
-  - pip install --user hererocks
-  - export PATH=$PATH:$HOME/lua_env/bin/
-  - hererocks $HOME/lua_env/ -l5.2 -rlatest -i
-  - lua -v
-  - luarocks
-  - export LUA_SERVER=https://luarocks.org/dev
-  - luarocks install lrexlib-pcre 2.8.0-1 $LUA_SERVER
-  - luarocks install luv 1.22.0-1 $LUA_SERVER
-  - luarocks install luasocket 3.0rc1-2 $LUA_SERVER
-  - luarocks install luautf8 0.1.1-1 $LUA_SERVER
+  #- if [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+  #    brew install pcre;
+  #    export PATH=$PATH:/Users/travis/Library/Python/2.7/bin;
+  #  fi
+  #- pip install --user hererocks
+  #- export PATH=$PATH:$HOME/lua_env/bin/
+  #- hererocks $HOME/lua_env/ -l5.2 -rlatest -i
+  #- lua -v
+  #- luarocks
+  #- export LUA_SERVER=https://luarocks.org/dev
+  #- luarocks install lrexlib-pcre 2.8.0-1 $LUA_SERVER
+  #- luarocks install luv 1.22.0-1 $LUA_SERVER
+  #- luarocks install luasocket 3.0rc1-2 $LUA_SERVER
+  #- luarocks install luautf8 0.1.1-1 $LUA_SERVER
   # HL
   - if [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       brew install ninja;
@@ -105,3 +105,7 @@ install:
 
 script:
   - haxe tests/build/build_all.hxml
+  - if [ "${TRAVIS_HAXE_VERSION}" = "4.0.5" ] || [ "${TRAVIS_HAXE_VERSION}" = "development" ]; then
+      haxe tests/build/build_jvm.hxml;
+      haxe tests/build/build_cppia.hxml;
+    fi
