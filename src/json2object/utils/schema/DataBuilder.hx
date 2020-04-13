@@ -29,12 +29,13 @@ import haxe.macro.Expr;
 import haxe.macro.Context;
 import haxe.macro.Type;
 import haxe.macro.TypeTools;
+import json2object.Error;
 import json2object.utils.schema.JsonType;
-using json2object.utils.schema.ParsingType;
 
 using haxe.macro.ExprTools;
 using haxe.macro.TypeTools;
 using json2object.utils.schema.JsonTypeTools;
+using json2object.utils.schema.ParsingType;
 using StringTools;
 
 typedef Definitions = Map<String, JsonType>;
@@ -85,15 +86,15 @@ class DataBuilder {
 						var ft = ft.followWithAbstracts();
 						jt = anyOf(jt, makeSchema(ft, definitions));
 					}
-					catch (_:Dynamic) {}
+					catch (_:Any) {}
 				}
 				if (jt == null) {
-					throw "Abstract "+name+ " has no json representation "+ Context.currentPos();
+					throw AbstractNoJsonRepresentation(name);
 				}
 				define(name, jt, definitions, doc);
 				return JTRef(name);
 			default:
-				throw "Unexpected type "+name;
+				throw UnsupportedSchemaType(name);
 		}
 	}
 	static function makeAbstractEnumSchema(type:Type, definitions:Definitions):JsonType {
@@ -102,18 +103,19 @@ class DataBuilder {
 		switch (type.followWithAbstracts()) {
 			case TInst(_.get()=>t, _):
 				if (t.module != "String") {
-					throw "json2object: Unsupported abstract enum type:"+ name + " " + Context.currentPos();
+					throw UnsupportedAbstractEnumType(name);
 				}
 			case TAbstract(_.get()=>t, _):
 				if (t.module != "StdTypes" && (t.name != "Int" && t.name != "Bool" && t.name != "Float")) {
-					throw "json2object: Unsupported abstract enum type:"+ name + " " + Context.currentPos();
+					throw UnsupportedAbstractEnumType(name);
 				}
-			default: throw "json2object: Unsupported abstract enum type:"+ name + " " + Context.currentPos();
+			default:
+				throw UnsupportedAbstractEnumType(name);
 		}
-		var values = new Array<Dynamic>();
+		var values = new Array<Any>();
 		var docs = [];
 
-		function handleExpr(expr:TypedExprDef, ?rec:Bool=true) : Dynamic {
+		function handleExpr(expr:TypedExprDef, ?rec:Bool=true) : Any {
 			return switch (expr) {
 				case TConst(TString(s)): JTString(s);
 				case TConst(TNull): JTString(null);
@@ -121,7 +123,7 @@ class DataBuilder {
 				case TConst(TFloat(f)): JTFloat(f);
 				case TConst(TInt(i)): JTInt(i);
 				case TCast(c, _) if (rec): handleExpr(c.expr, false);
-				default: throw false;
+				default: throw HandleExpr;
 			}
 		}
 
@@ -137,13 +139,17 @@ class DataBuilder {
 					try {
 						enumValues.push(describe(handleExpr(field.expr().expr), field.doc));
 					}
-					catch (_:Dynamic) {}
+					catch (e:InternalError) {
+						if (e != HandleExpr) {
+							throw e;
+						}
+					}
 				}
 			default:
 		}
 
 		if (enumValues.length == 0) {
-			throw 'json2object: Abstract enum ${name} has no supported value';
+			throw UnsupportedEnumAbstractValue(name);
 		}
 		define(name, JTEnumValues(enumValues), definitions, doc);
 		return JTRef(name);
@@ -193,17 +199,17 @@ class DataBuilder {
 					false;
 				}
 				else {
-					throw "json2object: Only maps with Int or String keys can be transformed to json, got "+keyType.toString() + " " + Context.currentPos();
+					throw UnsupportedMapKeyType(keyType.toString());
 				}
 			case TAbstract(_.get()=>t, _):
 				if (t.module == "StdTypes" && t.name == "Int") {
 					true;
 				}
 				else {
-					throw "json2object: Only maps with Int or String keys can be transformed to json, got "+keyType.toString() + " " + Context.currentPos();
+					throw UnsupportedMapKeyType(keyType.toString());
 				}
 			default:
-				throw "json2object: Only maps with Int or String keys can be transformed to json, got "+keyType.toString() + " " + Context.currentPos();
+				throw UnsupportedMapKeyType(keyType.toString());
 		}
 		define(name, JTMap(onlyInt, makeSchema(valueType, definitions)), definitions);
 		return JTRef(name);
@@ -238,9 +244,9 @@ class DataBuilder {
 				params = p;
 				doc = t.doc;
 
-			case _: throw "Unexpected type "+name;
+			case _:
+				throw UnsupportedSchemaObjectType(name);
 		}
-
 
 		try {
 			var defaults = new Map<String, Expr>();
@@ -289,7 +295,7 @@ class DataBuilder {
 			define(name, JTObject(properties, required, defaults), definitions, doc);
 			return JTRef(name);
 		}
-		catch (e:Dynamic) {
+		catch (e:Any) {
 			if (definitions.get(name) == null) {
 				definitions.remove(name);
 			}
@@ -329,7 +335,7 @@ class DataBuilder {
 						case "Int": return JTSimple("integer");
 						case "Float", "Single": JTSimple("number");
 						case "Bool": return JTSimple("boolean");
-						default: throw "json2object: Schema of "+t.name+" can not be generated " + Context.currentPos();
+						default: throw CannotGenerateSchema(t.name);
 					}
 				}
 				else if (t.module == #if (haxe_ver >= 4) "haxe.ds.Map" #else "Map" #end) {
@@ -359,7 +365,7 @@ class DataBuilder {
 			case TLazy(f):
 				makeSchema(f(), definitions);
 			default:
-				throw "json2object: Json schema can not make a schema for type " + name + " " + Context.currentPos();
+				throw UnsupportedSchemaType(name);
 		}
 		return schema;
 	}

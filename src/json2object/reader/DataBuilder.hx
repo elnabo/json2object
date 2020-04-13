@@ -29,6 +29,7 @@ import haxe.macro.Expr;
 import haxe.macro.Context;
 import haxe.macro.Type;
 import haxe.macro.TypeTools;
+import json2object.Error;
 
 using StringTools;
 using haxe.macro.ExprTools;
@@ -144,7 +145,13 @@ class DataBuilder {
 				cast [
 					for (j in a)
 						try { parser.loadJson(j, variable); }
-						catch (_:String) { continue; }
+						catch (e:InternalError) {
+							if (e != ParsingThrow) {
+								throw e;
+							}
+
+							continue;
+						}
 				];
 			}
 		} else {
@@ -160,17 +167,15 @@ class DataBuilder {
 		try {
 			cexpr = t.meta.extract(jcustom)[0].params[0];
 			validateCustomParser(type, cexpr);
-		} catch(ex:Any){
-			var err = invalidParserError(type, cexpr, Std.string(ex));
-			Context.fatalError(err, Context.currentPos());
-		}
-		
-		var e = macro {
-			value = ${cexpr}(json, variable);
-			return value;
+		} catch (e:CustomFunctionError) {
+			Context.fatalError(invalidParserErrorMessage(type, cexpr, e.message), Context.currentPos());
 		}
 
-		var args:Array<FunctionArg> =[
+		var e = macro {
+			return value = ${cexpr}(json, variable);
+		}
+
+		var args:Array<FunctionArg> = [
 			{
 				name: "json",
 				type: macro:hxjsonast.Json
@@ -178,56 +183,60 @@ class DataBuilder {
 			{
 				name:"variable",
 				type: macro:String,
-				opt:true,
-				value:  macro ""
+				opt: true,
+				value: macro ""
 			}
 		];
 
 		var loadJ:Field = {
-			doc:null,
-			kind: FFun({args:args, expr:e, params:null, ret:TypeTools.toComplexType(type)}),
+			doc: null,
+			kind: FFun({
+				args: args,
+				expr: e,
+				params: null,
+				ret: TypeTools.toComplexType(type)
+			}),
 			access: [AOverride, APublic],
 			name: "loadJson",
-			pos:Context.currentPos(),
+			pos: Context.currentPos(),
 			meta: null
 		}
 		parser.fields.push(loadJ);
 	}
 
-	private static function invalidParserError(t:Type, e:Expr, m:String):String {
+	private static function invalidParserErrorMessage(t:Type, e:Expr, m:String):String {
 		var methodName = jcustom;
+
 		if (e != null) {
 			methodName = e.toString();
 			var index = methodName.lastIndexOf(".") + 1;
 			methodName = methodName.substr(index);
 		}
-		var msg = '
-		Failed to create custom parser: ${e.toString()}
-		@$jcustom arg should point to something like
-		public static function ${methodName}(o:hxjsonast.Json, name:String): ${t.toString()}
-		$m';
-		return msg;
+
+		return 'Failed to create custom parser using ${e.toString()}, the function prototype should be (hxjsonast.Json, String)->${t.toString()}: $m';
 	}
 
 	private static function validateCustomParser(target:Type, e:Expr) {
 		switch Context.typeof(e) {
 			case TFun(args, ret):
 				if (ret.toString() != target.toString()){
-					throw('invalid method return: ${ret.toString()} should be ${target.toString()}');
+					throw new CustomFunctionError('Return type should be ${target.toString()}');
 				}
+
 				if (args.length != 2) {
-					throw("should have 2 method args");
+					throw new CustomFunctionError("Should have two arguments");
 				}
-				var a = args[0].t.toString();
-				if (a != "hxjsonast.Json") {
-					throw('invalid method args: $a should be hxjsonast.Json');
+
+				if (args[0].t.toString() != "hxjsonast.Json") {
+					throw new CustomFunctionError('First argument type should be hxjsonast.Json');
 				}
-				a = args[1].t.toString();
-				if (a != "String") {
-					throw('invalid method args: $a should be String');
+
+				if (args[1].t.toString() != "String") {
+					throw new CustomFunctionError('Second argument type should be String');
 				}
+
 			default:
-				throw("invalid expression type");
+				throw new CustomFunctionError("Custom parser should point to a static function");
 		}
 	}
 
@@ -318,19 +327,18 @@ class DataBuilder {
 						try {
 							reader = field.meta.extract(jcustom)[0].params[0];
 							validateCustomParser(field.type, reader);
-						} catch(ex : Any){
-							var err = invalidParserError(field.type, reader, Std.string(ex));
-							Context.fatalError(err, Context.currentPos());
+						} catch(e:CustomFunctionError){
+							Context.fatalError(invalidParserErrorMessage(field.type, reader, e.message), Context.currentPos());
 						}
 					}
 
 					var assignation = if (needReflect) {
 						macro {
-							loadObjectFieldReflect($reader, field, $v{field.name}, assigned);
+							loadObjectFieldReflect($reader, field, $v{field.name}, assigned, pos);
 						};
 					} else if (nullCheck) {
 						macro {
-							var v = loadObjectField($reader, field, $v{field.name}, assigned, null);
+							var v = loadObjectField($reader, field, $v{field.name}, assigned, null, pos);
 							if (v != null) {
 								$f_a = cast v;
 							} else {
@@ -339,11 +347,11 @@ class DataBuilder {
 						};
 					} else if (canRead) {
 						macro {
-							$f_a = cast loadObjectField($reader, field, $v{field.name}, assigned, $f_a);
+							$f_a = cast loadObjectField($reader, field, $v{field.name}, assigned, $f_a, pos);
 						};
 					} else {
 						macro {
-							var v = loadObjectField($reader, field, $v{field.name}, assigned, null);
+							var v = loadObjectField($reader, field, $v{field.name}, assigned, null, pos);
 							if (v != null) {
 								$f_a = cast v;
 							}
@@ -453,7 +461,13 @@ class DataBuilder {
 				if (t.module == "String") {
 					macro try {
 						new $k_cls(errors, putils, THROW).loadJson({value:JString(field.name), pos:putils.revert(pos)}, variable);
-					} catch (_:Dynamic) { continue;}
+					} catch (e:json2object.Error.InternalError) {
+						if (e != ParsingThrow) {
+							throw e;
+						}
+
+						continue;
+					}
 				}
 				else {
 					Context.fatalError("json2object: Only maps with Int or String keys are parsable, got "+key.toString(), callPosition);
@@ -462,7 +476,13 @@ class DataBuilder {
 				if (t.module == "StdTypes" && t.name == "Int") {
 					macro try {
 						new $k_cls(errors, putils, THROW).loadJson({value:JNumber(field.name), pos:putils.revert(pos)}, variable);
-					} catch (_:Dynamic) { continue;}
+					} catch (e:json2object.Error.InternalError) {
+						if (e != ParsingThrow) {
+							throw e;
+						}
+
+						continue;
+					}
 				}
 				else {
 					Context.fatalError("json2object: Only maps with Int or String keys are parsable, got "+key.toString(), callPosition);
@@ -475,7 +495,11 @@ class DataBuilder {
 			try {
 				new $v_cls(errors, putils, THROW).loadJson(field.value, field.name);
 			}
-			catch (_:Dynamic) {
+			catch (e:json2object.Error.InternalError) {
+				if (e != ParsingThrow) {
+					throw e;
+				}
+
 				continue;
 			}
 		};

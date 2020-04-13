@@ -76,10 +76,40 @@ enum Error {
 	 * @param pos Position in the JSON file.
 	 */
 	ParserError(message:String, pos:Position);
+
+	/**
+	 * Custom function (@:jcustomparse or @:jcustomwrite) exception.
+	 *
+	 * @param e Exception raised.
+	 * @param pos Position in the JSON file.
+	 **/
+	CustomFunctionException(e:Any, pos:Position);
 }
 
 #if haxe4 enum #else @:enum #end abstract ErrorType(Int) {
 	var NONE = 0;
 	var OBJECTTHROW = 1;
 	var THROW = 2;
+}
+
+enum InternalError {
+	AbstractNoJsonRepresentation(name:String);
+	CannotGenerateSchema(name:String);
+	HandleExpr;
+	ParsingThrow;
+	UnsupportedAbstractEnumType(name:String);
+	UnsupportedEnumAbstractValue(name:String);
+	UnsupportedMapKeyType(name:String);
+	UnsupportedSchemaObjectType(name:String);
+	UnsupportedSchemaType(type:String);
+}
+
+class CustomFunctionError {
+	public final message:String;
+
+	@:allow(json2object.reader.DataBuilder)
+	@:allow(json2object.writer.DataBuilder)
+	function new(message:String) {
+		this.message = message;
+	}
 }

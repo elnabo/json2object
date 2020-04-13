@@ -32,6 +32,13 @@ class CustomNum {
 	@:jcustomwrite(tests.CustomTest.CustomNum.CustomWrite)
 	@:jcustomparse(tests.CustomTest.CustomNum.CustomParse)
 	public var value:Int;
+
+	@:jcustomwrite(tests.CustomTest.CustomNum.CustomWrite)
+	@:jcustomparse(tests.CustomTest.CustomNum.CustomParse)
+	@:optional
+	@:default(0)
+	public var opt_value:Int;
+
 	public var control:Int;
 
 	public static var _prefix = "The Number ";
@@ -46,7 +53,7 @@ class CustomNum {
 				var str = StringTools.replace(s, _prefix, "");
 				return Std.parseInt(str);
 			default:
-				throw("unexepected value for " + name);
+				throw 'Unexepected value for $name';
 		}
 	}
 }
@@ -87,6 +94,7 @@ class CustomTest implements utest.ITest {
 		var data = parser.fromJson('{"value": "The Number 42", "control":123}');
 		Assert.equals(0, parser.errors.length);
 		Assert.equals(42, data.value);
+		Assert.equals(0, data.opt_value);
 		Assert.equals(123, data.control);
 		Assert.same(data, parser.fromJson(writer.write(data)));
 	}
@@ -114,8 +122,37 @@ class CustomTest implements utest.ITest {
 	public function test4() {
 		var parser = new JsonParser<CustomNum>();
 		var data = parser.fromJson('{"value": 1, "control":123}');
-		Assert.equals(1, parser.errors.length);
+		Assert.equals(2, parser.errors.length);
 		Assert.equals(0, data.value);
+		Assert.equals(0, data.opt_value);
 		Assert.equals(123, data.control);
+	}
+
+	public function test5() {
+		var parser = new JsonParser<CustomNum>();
+		var writer = new JsonWriter<CustomNum>();
+		var data = parser.fromJson('{"value": "The Number 62", "opt_value": "The Number 71", "control": 12}');
+		Assert.equals(0, parser.errors.length);
+		Assert.equals(62, data.value);
+		Assert.equals(71, data.opt_value);
+		Assert.equals(12, data.control);
+		Assert.same(data, parser.fromJson(writer.write(data)));
+	}
+
+	public function test6() {
+		var parser = new JsonParser<CustomNum>();
+		var data = parser.fromJson('{"value": "The Number 62", "opt_value": 4564, "control": 12}');
+		Assert.equals(1, parser.errors.length);
+
+		switch (parser.errors[0]) {
+			case CustomFunctionException(e, pos):
+				Assert.equals(e, "Unexepected value for opt_value");
+			default:
+				Assert.isTrue(false);
+		}
+
+		Assert.equals(62, data.value);
+		Assert.equals(0, data.opt_value);
+		Assert.equals(12, data.control);
 	}
 }

@@ -28,7 +28,7 @@ package json2object;
 class ErrorUtils {
 	public static function convertError (e:Error) : String {
 		var pos = switch (e) {
-			case IncorrectType(_, _, pos) | IncorrectEnumValue(_, _, pos) | InvalidEnumConstructor(_, _, pos) | UninitializedVariable(_, pos) | UnknownVariable(_, pos) | ParserError(_, pos): pos;
+			case IncorrectType(_, _, pos) | IncorrectEnumValue(_, _, pos) | InvalidEnumConstructor(_, _, pos) | UninitializedVariable(_, pos) | UnknownVariable(_, pos) | ParserError(_, pos) | CustomFunctionException(_, pos): pos;
 		}
 
 		var header = "";
@@ -45,22 +45,25 @@ class ErrorUtils {
 		return switch (e)
 		{
 			case IncorrectType(variable, expected, _):
-				header + 'Variable \'${variable}\' should be of type \'${expected}\'';
+				header + 'Variable \'$variable\' should be of type \'$expected\'';
 
 			case IncorrectEnumValue(variable, expected, _):
-				header + 'Identifier \'${variable}\' isn\'t part of \'${expected}\'';
+				header + 'Identifier \'$variable\' isn\'t part of \'$expected\'';
 
 			case InvalidEnumConstructor(variable, expected, _):
-				header + 'Enum argument \'${variable}\' should be of type \'${expected}\'';
+				header + 'Enum argument \'$variable\' should be of type \'$expected\'';
 
 			case UnknownVariable(variable, _):
-				header + 'Variable \'${variable}\' isn\'t part of the schema';
+				header + 'Variable \'$variable\' isn\'t part of the schema';
 
 			case UninitializedVariable(variable, _):
-				header + 'Variable \'${variable}\' should be in the json';
+				header + 'Variable \'$variable\' should be in the json';
 
 			case ParserError(message, _):
-				header + 'Parser error: ${message}';
+				header + 'Parser error: $message';
+
+			case CustomFunctionException(e, _):
+				header + 'Custom function exception: $e';
 		}
 	}
 

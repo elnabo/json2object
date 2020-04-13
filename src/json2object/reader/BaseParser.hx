@@ -151,7 +151,11 @@ class BaseParser<T> {
 			{
 				try {
 					loadJsonFn(j, variable);
-				} catch (_:String) {
+				} catch (e:InternalError) {
+					if (e != ParsingThrow) {
+						throw e;
+					}
+
 					continue;
 				}
 			}
@@ -162,21 +166,33 @@ class BaseParser<T> {
 		onIncorrectType(pos, variable);
 	}
 
-	private function loadObjectField(loadJsonFn:Function, field:hxjsonast.Json.JObjectField, name:String, assigned:Map<String, Bool>, defaultValue:Any):Any {
+	private function loadObjectField(loadJsonFn:Function, field:hxjsonast.Json.JObjectField, name:String, assigned:Map<String, Bool>, defaultValue:Any, pos:Position):Any {
 		try {
 			var ret = cast loadJsonFn(field.value, field.name);
 			mapSet(assigned, name, true);
 			return ret;
-		} catch (_:Any) {
+		} catch (e:InternalError) {
+			if (e != ParsingThrow) {
+				throw e;
+			}
+		}
+		catch (e:Any) {
+			errors.push(CustomFunctionException(e, pos));
 		}
 		return defaultValue;
 	}
 
-	private function loadObjectFieldReflect(loadJsonFn:Function, field:hxjsonast.Json.JObjectField, name:String, assigned:Map<String, Bool>) {
+	private function loadObjectFieldReflect(loadJsonFn:Function, field:hxjsonast.Json.JObjectField, name:String, assigned:Map<String, Bool>, pos:Position) {
 		try {
 			Reflect.setField(value, name, cast loadJsonFn(field.value, field.name));
 			mapSet(assigned, name, true);
-		} catch (_:Any) {
+		} catch (e:InternalError) {
+			if (e != ParsingThrow) {
+				throw e;
+			}
+		}
+		catch (e:Any) {
+			errors.push(CustomFunctionException(e, pos));
 		}
 	}
 
@@ -201,14 +217,16 @@ class BaseParser<T> {
 
 	private function parsingThrow() {
 		if (errorType != NONE) {
-			throw "json2object: parsing throw";
+			throw ParsingThrow;
 		}
 	}
 
 	private function objectThrow(pos:Position, variable:String) {
 		if (errorType == THROW) {
-			throw "json2object: parsing throw";
-		} else if (errorType == OBJECTTHROW) {
+			throw ParsingThrow;
+		}
+
+		if (errorType == OBJECTTHROW) {
 			errors.push(UninitializedVariable(variable, pos));
 		}
 	}

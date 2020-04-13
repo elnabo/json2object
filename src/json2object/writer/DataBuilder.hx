@@ -28,6 +28,7 @@ import haxe.macro.Expr;
 import haxe.macro.Context;
 import haxe.macro.Type;
 import haxe.macro.TypeTools;
+import json2object.Error;
 
 using StringTools;
 using haxe.macro.ExprTools;
@@ -195,9 +196,8 @@ class DataBuilder {
 						try {
 							writer = field.meta.extract(jcustom)[0].params[0];
 							validateCustomWriter(field.type, writer);
-						} catch (ex:Any) {
-							var err = invalidWriterError(field.type, writer, Std.string(ex));
-							Context.fatalError(err, Context.currentPos());
+						} catch (e:CustomFunctionError) {
+							Context.fatalError(invalidWriterErrorMessage(field.type, writer, e.message), Context.currentPos());
 						}
 					}
 					if (writer != null) {
@@ -325,48 +325,47 @@ class DataBuilder {
 	}
 
 	private static function makeCustomWriter(t:Type, c:ClassType):Expr {
-		var e:Expr;
+		var cexpr:Expr;
 		try {
-			e = c.meta.extract(jcustom)[0].params[0];
-			validateCustomWriter(t, e);
-		} catch (ex:Any) {
-			var err = invalidWriterError(t, e, Std.string(ex));
-			Context.fatalError(err, Context.currentPos());
+			cexpr = c.meta.extract(jcustom)[0].params[0];
+			validateCustomWriter(t, cexpr);
+		} catch (e:CustomFunctionError) {
+			Context.fatalError(invalidWriterErrorMessage(t, cexpr, e.message), Context.currentPos());
 		}
 		return macro {
-			return ${e}(o);
+			return ${cexpr}(o);
 		};
 	}
 
-	private static function invalidWriterError(t:Type, e:Expr, m:String):String {
+	private static function invalidWriterErrorMessage(t:Type, e:Expr, m:String):String {
 		var methodName = jcustom;
+
 		if (e != null) {
 			methodName = e.toString();
 			var index = methodName.lastIndexOf(".") + 1;
 			methodName = methodName.substr(index);
 		}
-		var msg = '
-		Failed to create custom writer:  ${e.toString()}
-		@$jcustom arg should point to something like
-		public static function ${methodName}(o:${t.toString()}): String
-		$m';
-		return msg;
+
+		return 'Failed to create custom writer using ${e.toString()}, the function prototype should be (${t.toString()})->String: $m';
 	}
 
 	private static function validateCustomWriter(target:Type, e:Expr) {
 		switch Context.typeof(e) {
 			case TFun(args, ret):
 				if (ret.toString() != "String"){
-					throw('invalid method return: ${ret.toString()} should be String');
+					throw new CustomFunctionError('Return type should be String');
 				}
+
 				if (args.length != 1) {
-					throw("should have 1 method arg");
+					throw new CustomFunctionError("Should have one argument");
 				}
+
 				if (args[0].t.toString() != target.toString()) {
-					throw('invalid method args: ${args[0].t.toString()} should be ${target.toString()}');
+					throw new CustomFunctionError('Argument type should be ${target.toString()}');
 				}
+
 			default:
-				throw("invalid expression type");
+				throw new CustomFunctionError("Custom writer should point to a static function");
 		}
 	}
 
