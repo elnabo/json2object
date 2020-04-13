@@ -145,7 +145,7 @@ class DataBuilder {
 				cast [
 					for (j in a)
 						try { parser.loadJson(j, variable); }
-						catch (e:InternalError) {
+						catch (e:json2object.Error.InternalError) {
 							if (e != ParsingThrow) {
 								throw e;
 							}

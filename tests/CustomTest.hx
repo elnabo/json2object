@@ -57,7 +57,7 @@ class CustomNum {
 				var str = StringTools.replace(s, _prefix, "");
 				return Std.parseInt(str);
 			default:
-				throw 'Unexepected value for $name';
+				throw 'Unexpected value for $name';
 		}
 	}
 
@@ -66,7 +66,7 @@ class CustomNum {
 			case JNumber(s):
 				return s;
 			default:
-				throw 'Unexepected value for $name';
+				throw 'Unexpected value for $name';
 		}
 	}
 }
@@ -158,8 +158,8 @@ class CustomTest implements utest.ITest {
 		Assert.equals(1, parser.errors.length);
 
 		switch (parser.errors[0]) {
-			case CustomFunctionException(e, pos):
-				Assert.equals(e, "Unexepected value for opt_value");
+			case CustomFunctionException(e, _):
+				Assert.equals(e, "Unexpected value for opt_value");
 			default:
 				Assert.isTrue(false);
 		}
