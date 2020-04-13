@@ -176,8 +176,9 @@ class BaseParser<T> {
 				throw e;
 			}
 		}
-		#if cs
+		#if (cs && haxe4)
 		// CS sometimes wrap the Haxe errors, unwrap them.
+		// Seems to be https://github.com/HaxeFoundation/haxe/issues/6817
 		catch (e:cs.system.reflection.TargetInvocationException) {
 			var e = cast(e.InnerException, haxe.ValueException);
 			if (e != null) {

@@ -1,9 +1,3 @@
-tests/build/build_cpp.hxml
---next
-
-tests/build/build_cppia.hxml
---next
-
 tests/build/build_cs.hxml
 --next
 
@@ -29,6 +23,12 @@ tests/build/build_php.hxml
 --next
 
 tests/build/build_python.hxml
+--next
+
+tests/build/build_cpp.hxml
+--next
+
+tests/build/build_cppia.hxml
 --next
 
 # needs to be last
