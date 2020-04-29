@@ -111,6 +111,7 @@ If multiple alias metadatas are on the variable only the last one is taken into 
 - As of version 3.7.0, it is possible to add field or class specific parser/writer to object using the `@:jcustomparse` / `@:jcustomwrite` meta. This increase the type coverage of json parsing/writing. Those custom parser/writer can also be applied to the entire class.
 	- The custom writer receive a single parameter, the value to stringify
 	- The custom parser receive two parameters: the corresponding json, encoded in a `hxjsonast.Json` instance, and the name of the field being parsed.
+	- The `@:jcustom*` metadatas require the fully quallified path to the custom function, for instance `pack.TheClass.fn` or `pack.TheModule.TheClass.fn`
 	- As of version 3.8.0 throwing an exception in a custom parser will be available in `parser.errors` in the `CustomFunctionException` member.
 ```haxe
 class Object {
