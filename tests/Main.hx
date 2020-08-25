@@ -46,10 +46,6 @@ class Main
 		r.addCase(new StructureTest());
 		r.addCase(new UIntTest());
 
-		r.onProgress.add(function (result) {
-			allOk = allOk && result.result.allOk();
-		});
-
 		utest.ui.Report.create(r, NeverShowSuccessResults, AlwaysShowHeader);
 		r.run();
 	}

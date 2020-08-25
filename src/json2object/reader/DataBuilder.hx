@@ -323,7 +323,8 @@ class DataBuilder {
 					assignedValues.push(macro $v{field.meta.has(":optional")});
 
 					var reader:Expr = macro new $f_cls(errors, putils, OBJECTTHROW).loadJson;
-					if (field.meta.has(jcustom)){
+					var hasCustomParser = field.meta.has(jcustom);
+					if (hasCustomParser){
 						try {
 							reader = field.meta.extract(jcustom)[0].params[0];
 							validateCustomParser(field.type, reader);
@@ -390,7 +391,12 @@ class DataBuilder {
 						}
 					}
 					else {
-						baseValues.push({field:field.name, expr:macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}}) #if (haxe_ver >= 4) , quotes:Unquoted #end});
+						var e = switch(field.type) {
+							case TAbstract(_.get() => t, _) if (t.name == "Any"): macro null;
+							case TDynamic(_): macro null;
+							default: macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}});
+						}
+						baseValues.push({field:field.name, expr:e #if (haxe_ver >= 4) , quotes:Unquoted #end});
 					}
 
 					if (needReflect) {
@@ -998,6 +1004,9 @@ class DataBuilder {
 			case TAbstract(_.get()=>t, p):
 				if (t.name == "Null") {
 					return makeParser(c, p[0], type);
+				}
+				else if (t.name == "Any") {
+					Context.fatalError("json2object: Parser of "+t.name+" are not generated", callPosition);
 				}
 				else if (t.module == "UInt" && t.name == "UInt") {
 					makeUIntParser(parser, base);
