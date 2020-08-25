@@ -41,7 +41,7 @@ class TypeTools {
 	public static inline function toComplexType(type:Null<Type>):Null<ComplexType> {
 		return {
 			inline function direct()
-				return toComplexType(type);
+				return StdTypeTools.toComplexType(type);
 
 			switch (type) {
 				case null:
