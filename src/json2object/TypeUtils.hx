@@ -86,6 +86,11 @@ class TypeUtils
 			interfaces: t.interfaces,
 			statics: t.statics,
 			isExtern: t.isExtern,
+			#if haxe4 
+			#if (haxe >= version("4.2.0-rc.1")) 
+			isAbstract: t.isAbstract, 
+			#end 
+			#end
 			exclude: t.exclude,
 			isInterface: t.isInterface
 		}
@@ -93,7 +98,7 @@ class TypeUtils
 		if (!exist.exists(t.name))
 		{
 			var td : TypeDefinition = {
-				#if (haxe_ver >= 4)
+				#if haxe4
 				doc: t.doc,
 				#end
 				pack: t.pack,
