@@ -88,6 +88,7 @@ install:
     fi
   # Install haxelibs
   - if [ "${TRAVIS_HAXE_VERSION}" = "development" ]; then
+      haxelib git utest https://github.com/haxe-utest/utest.git;
       git clone https://github.com/HaxeFoundation/hxcpp.git;
       haxelib dev hxcpp hxcpp;
       pushd $(haxelib path hxcpp | head -1);
@@ -95,12 +96,12 @@ install:
         pushd project; neko build.n; haxe compile-cppia.hxml; popd;
       popd;
     else
+      haxelib install utest;
       haxelib install hxcpp;
     fi
   - haxelib install hxjava
   - haxelib install hxcs
   - haxelib install hxjsonast # dep for json2object
-  - haxelib install utest
   - haxelib list
 
 script:
