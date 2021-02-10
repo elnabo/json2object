@@ -4,8 +4,8 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Type safe Haxe/JSON (de)serializer",
-	"version": "3.8.1",
-	"releasenote": "Improve Any related errors",
+	"version": "3.9.0",
+	"releasenote": "Support for Haxe 4.2",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
 	"dependencies": {

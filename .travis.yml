@@ -6,8 +6,8 @@ os:
 
 haxe:
   - 3.4.1
-  - 3.4.7
-  - 4.1.3
+  #- 3.4.7
+  - 4.2.0
   - development
 
 dist: trusty
@@ -106,7 +106,7 @@ install:
 
 script:
   - haxe tests/build/build_all.hxml
-  - if [ "${TRAVIS_HAXE_VERSION}" = "4.1.3" ] || [ "${TRAVIS_HAXE_VERSION}" = "development" ]; then
+  - if [ "${TRAVIS_HAXE_VERSION}" = "4.2.0" ] || [ "${TRAVIS_HAXE_VERSION}" = "development" ]; then
       haxe tests/build/build_jvm.hxml;
       haxe tests/build/build_cppia.hxml;
     fi
