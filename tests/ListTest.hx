@@ -22,62 +22,46 @@ SOFTWARE.
 
 package tests;
 
-class Main
-{
-	public static function main ()
-	{
-		printTarget();
+import haxe.ds.List;
 
-		var r = new utest.Runner();
+import json2object.JsonParser;
+import json2object.JsonWriter;
+import json2object.utils.JsonSchemaWriter;
+import utest.Assert;
 
-		r.addCase(new AbstractTest());
-		r.addCase(new AliasTest());
-		r.addCase(new ArrayTest());
-		r.addCase(new CustomTest());
-		r.addCase(new EnumTest());
-		#if haxe4
-		r.addCase(new FinalTest());
-		#end
-		r.addCase(new GetSetTest());
-		r.addCase(new InheritanceTest());
-		r.addCase(new ListTest());
-		r.addCase(new MapTest());
-		r.addCase(new ObjectTest());
-		r.addCase(new StructureTest());
-		r.addCase(new UIntTest());
+class ListTest implements utest.ITest {
+	public function new () {}
 
-		utest.ui.Report.create(r, NeverShowSuccessResults, AlwaysShowHeader);
-		r.run();
+	public function test1 () {
+		var parser = new JsonParser<List<Int>>();
+		var writer = new JsonWriter<List<Int>>();
+		var data = parser.fromJson('[0,1,4,3]', "");
+		var oracle = [0,1,4,3];
+
+		var i = 0;
+		for (d in data) {
+			Assert.equals(oracle[i], d);
+			i++;
+		}
+		Assert.equals(0, parser.errors.length);
+		Assert.same(data, parser.fromJson(writer.write(data),"test"));
+
+		data = parser.fromJson('[0,1,4.4,3]', "");
+		Assert.equals(1, parser.errors.length);
+		oracle = [0,1,3];
+		i = 0;
+		for (d in data) {
+			Assert.equals(oracle[i], d);
+			i++;
+		}
+		Assert.same(data, parser.fromJson(writer.write(data),"test"));
 	}
 
-	static function printTarget()
-	{
-		#if (cpp && !cppia)
-		trace("cpp");
-		#elseif cppia
-		trace("cppia");
-		#elseif cs
-		trace("cs");
-		#elseif flash
-		trace("flash");
-		#elseif hl
-		trace("hl");
-		#elseif interp
-		trace("interp");
-		#elseif java
-		trace("java");
-		#elseif js
-		trace("js");
-		#elseif lua
-		trace("lua");
-		#elseif neko
-		trace("neko");
-		#elseif php
-		trace("php");
-		#elseif python
-		trace("python");
-		#else
-		trace("unknown");
-		#end
+	#if !lua
+	public function test2 () {
+		var schema = new JsonSchemaWriter<List<Int>>().schema;
+		var oracle = '{"$$schema": "http://json-schema.org/draft-07/schema#","items": {"type": "integer"},"type": "array"}';
+		Assert.isTrue(JsonComparator.areSame(oracle, schema));
 	}
+	#end
 }

@@ -162,6 +162,30 @@ class DataBuilder {
 		changeFunction("loadJsonNull", parser, macro {value = null;});
 	}
 
+	public static function makeListParser(parser:TypeDefinition, subType:Type, baseParser:BaseType) {
+		var cls = { name:baseParser.name, pack:baseParser.pack, params:[TPType(subType.toComplexType())]};
+		var list = {name:"List", pack:[#if (haxe_ver >= 4)"haxe", "ds"#end], params:[TPType(subType.toComplexType())]};
+
+		var e = macro value = {
+			var parser = new $cls(errors, putils, THROW);
+			var res = new $list();
+			for (j in a) {
+				try {
+					res.add(parser.loadJson(j, variable));
+				}
+				catch (e:json2object.Error.InternalError) {
+					if (e != ParsingThrow) {
+						throw e;
+					}
+				}
+			}
+			res;
+		}
+
+		changeFunction("loadJsonArray", parser, e);
+		changeFunction("loadJsonNull", parser, macro {value = null;});
+	}
+
 	public static function makeCustomParser(parser:TypeDefinition, type:Type, t:ClassType){
 		var cexpr:Expr;
 		try {
@@ -986,6 +1010,8 @@ class DataBuilder {
 						makeStringParser(parser);
 					case "Array" if (p.length == 1 && p[0] != null):
 						makeArrayParser(parser, p[0], c);
+					case "haxe.ds.List" if (p.length == 1 && p[0] != null):
+						makeListParser(parser, p[0], c);
 					case _:
 						switch (t.kind) {
 							case KTypeParameter(_):

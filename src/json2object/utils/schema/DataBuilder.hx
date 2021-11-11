@@ -318,7 +318,7 @@ class DataBuilder {
 				switch (t.module) {
 					case "String":
 						return JTSimple("string");
-					case "Array" if (p.length == 1 && p[0] != null):
+					case "Array" | "haxe.ds.List" if (p.length == 1 && p[0] != null):
 						return JTArray(makeSchema(p[0], definitions));
 					default:
 						makeObjectSchema(type, name, definitions);
@@ -354,11 +354,13 @@ class DataBuilder {
 			case TType(_.get()=>t, p):
 				var _tmp = makeSchema(t.type.applyTypeParameters(t.params, p), definitions, name);
 				if (t.name != "Null") {
+					// This is required as List<> can be a typedef but will not generate ref
+					final _tmp_type = definitions.exists(name) ? definitions.get(name) : _tmp;
 					if (t.doc != null) {
-						define(name, describe(definitions.get(name), t.doc), definitions);
+						define(name, describe(_tmp_type, t.doc), definitions);
 					}
 					else {
-						define(name, definitions.get(name), definitions);
+						define(name, _tmp_type, definitions);
 					}
 				}
 				(t.name == "Null" && !optional) ? anyOf(JTNull, _tmp) : _tmp;
