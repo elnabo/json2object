@@ -22,8 +22,6 @@ SOFTWARE.
 
 package tests;
 
-import haxe.ds.List;
-
 import json2object.JsonParser;
 import json2object.JsonWriter;
 import json2object.utils.JsonSchemaWriter;
