@@ -13,8 +13,8 @@ tests/build/build_flash.hxml
 tests/build/build_js.hxml
 --next
 
-tests/build/build_jvm.hxml
---next
+# tests/build/build_jvm.hxml
+# --next
 
 #tests/build/build_lua.hxml
 #--next
