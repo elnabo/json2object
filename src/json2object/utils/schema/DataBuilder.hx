@@ -318,7 +318,7 @@ class DataBuilder {
 				switch (t.module) {
 					case "String":
 						return JTSimple("string");
-					case "Array" | "haxe.ds.List" if (p.length == 1 && p[0] != null):
+					case "Array" | "List" | "haxe.ds.List" if (p.length == 1 && p[0] != null):
 						return JTArray(makeSchema(p[0], definitions));
 					default:
 						makeObjectSchema(type, name, definitions);

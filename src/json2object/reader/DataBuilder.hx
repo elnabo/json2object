@@ -1010,7 +1010,7 @@ class DataBuilder {
 						makeStringParser(parser);
 					case "Array" if (p.length == 1 && p[0] != null):
 						makeArrayParser(parser, p[0], c);
-					case "haxe.ds.List" if (p.length == 1 && p[0] != null):
+					case "List" | "haxe.ds.List" if (p.length == 1 && p[0] != null):
 						makeListParser(parser, p[0], c);
 					case _:
 						switch (t.kind) {

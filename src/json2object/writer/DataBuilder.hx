@@ -409,7 +409,7 @@ class DataBuilder {
 				switch(t.module) {
 					case "String":
 						makeStringWriter();
-					case "Array" | "haxe.ds.List":
+					case "Array" | "List" | "haxe.ds.List":
 						if (p.length == 1 && p[0] != null) {
 							makeArrayWriter(p[0], c);
 						}
