@@ -4,8 +4,8 @@ tests/build/build_cs.hxml
 tests/build/build_flash.hxml
 --next
 
-tests/build/build_hl.hxml
---next
+#tests/build/build_hl.hxml
+#--next
 
 tests/build/build_java.hxml
 --next
@@ -16,8 +16,8 @@ tests/build/build_js.hxml
 #tests/build/build_lua.hxml
 #--next
 
-tests/build/build_neko.hxml
---next
+#tests/build/build_neko.hxml
+#--next
 
 tests/build/build_php.hxml
 --next
@@ -25,8 +25,8 @@ tests/build/build_php.hxml
 tests/build/build_python.hxml
 --next
 
-tests/build/build_cpp.hxml
---next
+#tests/build/build_cpp.hxml
+#--next
 
 #tests/build/build_cppia.hxml
 #--next
