@@ -353,14 +353,12 @@ class DataBuilder {
 				makeEnumSchema(type.applyTypeParameters(t.params, p), definitions);
 			case TType(_.get()=>t, p):
 				var _tmp = makeSchema(t.type.applyTypeParameters(t.params, p), definitions, name);
-				if (t.name != "Null") {
-					// This is required as List<> can be a typedef but will not generate ref
-					var _tmp_type = definitions.exists(name) ? definitions.get(name) : _tmp;
+				if (t.name != "Null" && t.name != "List") {
 					if (t.doc != null) {
-						define(name, describe(_tmp_type, t.doc), definitions);
+						define(name, describe(definitions.get(name), t.doc), definitions);
 					}
 					else {
-						define(name, _tmp_type, definitions);
+						define(name, definitions.get(name), definitions);
 					}
 				}
 				(t.name == "Null" && !optional) ? anyOf(JTNull, _tmp) : _tmp;

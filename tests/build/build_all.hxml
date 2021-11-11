@@ -7,10 +7,13 @@ tests/build/build_flash.hxml
 #tests/build/build_hl.hxml
 #--next
 
-tests/build/build_java.hxml
---next
+# tests/build/build_java.hxml
+# --next
 
 tests/build/build_js.hxml
+--next
+
+tests/build/build_jvm.hxml
 --next
 
 #tests/build/build_lua.hxml
