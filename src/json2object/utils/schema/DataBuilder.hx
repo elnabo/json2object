@@ -355,7 +355,7 @@ class DataBuilder {
 				var _tmp = makeSchema(t.type.applyTypeParameters(t.params, p), definitions, name);
 				if (t.name != "Null") {
 					// This is required as List<> can be a typedef but will not generate ref
-					final _tmp_type = definitions.exists(name) ? definitions.get(name) : _tmp;
+					var _tmp_type = definitions.exists(name) ? definitions.get(name) : _tmp;
 					if (t.doc != null) {
 						define(name, describe(_tmp_type, t.doc), definitions);
 					}
