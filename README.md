@@ -1,6 +1,6 @@
 # json2object - Type safe Haxe/JSON (de)serializer
 
-![CI status](https://github.com/elnabo/json2object/actions/workflows/CI/badge.svg)
+[![CI status](https://github.com/elnabo/json2object/actions/workflows/main.yaml/badge.svg)](https://github.com/elnabo/json2object/actions/workflows/main.yaml)
 
 This library uses macro and a typed position aware JSON parsing (hxjsonast : <https://github.com/nadako/hxjsonast/>) to create json parser and writer from and to every supported type.
 
