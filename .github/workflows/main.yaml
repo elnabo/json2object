@@ -9,7 +9,7 @@ jobs:
         haxe: [4.2.4, 3.4.7]
         exclude:
           - os: windows-latest
-            haxe-version: 3.4.7
+            haxe: 3.4.7
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
