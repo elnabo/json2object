@@ -14,11 +14,6 @@ jobs:
         uses: krdlab/setup-haxe@v1
         with:
           haxe-version: ${{ matrix.haxe }}
-      - name: Setup Java
-        uses: actions/setup-java@v2
-        with:
-          distribution: 'zulu'
-          java-version: '17'
       - name: Setup C#
         uses: actions/setup-dotnet@v1
         with:
