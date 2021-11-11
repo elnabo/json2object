@@ -5,11 +5,8 @@ jobs:
   linux-build:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         haxe: [4.2.4, 3.4.7]
-        exclude:
-          - os: windows-latest
-            haxe: 3.4.7
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
