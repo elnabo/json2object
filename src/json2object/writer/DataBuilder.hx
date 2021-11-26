@@ -456,6 +456,9 @@ class DataBuilder {
 					if (t.meta.has(":enum")) {
 						makeAbstractEnumWriter(type.applyTypeParameters(t.params, p));
 					}
+					else if (t.meta.has(":coreType")) {
+						Context.fatalError("json2object: Parser of coreType ("+t.name+") are not generated", Context.currentPos());
+					}
 					else {
 						var ap = t.type.applyTypeParameters(t.params, p);
 						return makeWriter(c, ap, ap);
