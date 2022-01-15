@@ -40,6 +40,8 @@ class BaseParser<T> {
 	private var errorType:Error.ErrorType;
 
 	private var putils:PositionUtils;
+	
+	public var ignoreMissingFields:Bool = false;
 
 	private function new(errors:Array<Error>, putils:PositionUtils, errorType:ErrorType) {
 		this.errors = errors;

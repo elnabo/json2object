@@ -434,7 +434,7 @@ class DataBuilder {
 			}
 		}
 
-		var default_e = macro errors.push(UnknownVariable(field.name, putils.convertPosition(field.namePos)));
+		var default_e = macro if(!ignoreMissingFields) errors.push(UnknownVariable(field.name, putils.convertPosition(field.namePos)));
 		var loop = { expr: ESwitch(macro field.name, cases, default_e), pos: Context.currentPos() };
 
 		if (isAnon) {
