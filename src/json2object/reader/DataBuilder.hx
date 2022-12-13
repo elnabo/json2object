@@ -395,7 +395,7 @@ class DataBuilder {
 					}
 
 					if (caseValue == null) {
-						caseValue = { expr: EConst(CString(${field.name})), pos: Context.currentPos()};
+						caseValue = { expr: EConst(CString(field.name)), pos: Context.currentPos()};
 					}
 
 					cases.push({ expr: assignation, guard: null, values: [caseValue] });
@@ -611,7 +611,7 @@ class DataBuilder {
 							blockExpr.push(macro value = cast ${subExpr});
 
 							var lil_expr:Expr = {expr: EBlock(blockExpr), pos:Context.currentPos()};
-							internObjectCases.push({ expr: lil_expr, guard: null, values: [{ expr: EConst(CString($v{n})), pos: Context.currentPos()}] });
+							internObjectCases.push({ expr: lil_expr, guard: null, values: [{ expr: EConst(CString(n)), pos: Context.currentPos()}] });
 
 
 						default:
