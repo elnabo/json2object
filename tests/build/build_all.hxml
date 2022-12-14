@@ -22,8 +22,8 @@ tests/build/build_js.hxml
 #tests/build/build_neko.hxml
 #--next
 
-tests/build/build_php.hxml
---next
+#tests/build/build_php.hxml
+#--next
 
 tests/build/build_python.hxml
 --next
