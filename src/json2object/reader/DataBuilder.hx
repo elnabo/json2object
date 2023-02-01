@@ -40,6 +40,7 @@ typedef ParserInfo = {packs:Array<String>, clsName:String}
 
 class DataBuilder {
 
+	@:persistent
 	private static var counter = 0;
 	private static var parsers = new Map<String, Type>();
 	private static var callPosition:Null<haxe.macro.Position> = null;
