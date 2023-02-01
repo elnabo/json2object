@@ -35,7 +35,7 @@ using haxe.macro.ExprTools;
 using json2object.utils.TypeTools;
 
 class DataBuilder {
-
+	@:persistent
 	private static var counter = 0;
 	private static var writers = new Map<String, Type>();
 	private static var jcustom = ":jcustomwrite";
