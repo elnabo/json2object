@@ -4,8 +4,8 @@
 	"license": "MIT",
 	"tags": ["json", "cross", "macro"],
 	"description": "Type safe Haxe/JSON (de)serializer",
-	"version": "3.10.0",
-	"releasenote": "Support for List<> as json array",
+	"version": "3.11.0",
+	"releasenote": "Prevent compilation server cache issues",
 	"contributors": ["elnabo", "_ibilon"],
 	"classPath": "src",
 	"dependencies": {
