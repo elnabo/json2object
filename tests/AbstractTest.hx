@@ -119,6 +119,16 @@ class OnClassData
 	public var x:Int;
 }
 
+// Issue #88
+abstract MyMap<T>(Map<Int, T>)
+{
+}
+
+// Issue #88
+abstract MyArray2D<T>(Array<Array<T>>)
+{
+}
+
 class AbstractTest implements utest.ITest
 {
 	public function new () {}
@@ -308,4 +318,22 @@ class AbstractTest implements utest.ITest
 		Assert.isTrue(JsonComparator.areSame(oracle, schema));
 	}
 	#end
+
+	// Issue #88
+	public function test14 () {
+		var parser = new json2object.JsonParser<MyArray2D<MyArray2D<String>>>();
+		var src = '[[[["test"]]]]';
+		var oracle = [[[["test"]]]];
+		var data = parser.fromJson(src);
+		Assert.same(oracle, data);
+	}
+
+	// Issue #88
+	public function test15 () {
+		var parser = new json2object.JsonParser<MyMap<String>>();
+		var src = '{"1": "test"}';
+		var oracle = [ 1 => "test" ];
+		var data = parser.fromJson(src);
+		Assert.same(oracle, data);
+	}
 }

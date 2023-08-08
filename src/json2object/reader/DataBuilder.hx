@@ -751,16 +751,16 @@ class DataBuilder {
 
 		switch (type) {
 			case TAbstract(_.get()=>t, p):
-
 				var from = (t.from.length == 0) ? [{t:t.type, field:null}] : t.from;
 				var i = 0;
 				for(fromType in from) {
-					switch (fromType.t.followWithAbstracts()) {
+					var fromTypeT = fromType.t.applyTypeParameters(t.params, p);
+					switch (fromTypeT.followWithAbstracts()) {
 						case TInst(_.get()=>st, sp):
 							if (st.module == "String") {
 								if (i == 0) { makeStringParser(parser); }
 								else {
-									var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(fromType.t.toComplexType())]};
+									var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(fromTypeT.toComplexType())]};
 									changeFunction("loadJsonString",
 										parser,
 										macro {
@@ -786,7 +786,7 @@ class DataBuilder {
 									makeArrayParser(parser,subType.followWithAbstracts(), baseParser);
 								}
 								else if (isBaseType(subType.followWithAbstracts())) {
-									var aParams = switch (fromType.t.followWithAbstracts()) {
+									var aParams = switch (fromTypeT.followWithAbstracts()) {
 										case TInst(r,_): [TPType(TInst(r,[subType]).toComplexType())];
 										default:[];
 									}
@@ -806,7 +806,7 @@ class DataBuilder {
 							}
 							else {
 								if (i == 0) {
-									var t = fromType.t;
+									var t = fromTypeT;
 									if (st.isPrivate) {
 										var privateType = TypeUtils.copyType(st);
 										t = Context.getType(privateType.name);
@@ -844,12 +844,12 @@ class DataBuilder {
 							}
 						case TAbstract(_.get()=>st, sp):
 							if (st.module == "StdTypes") {
-								var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(fromType.t.toComplexType())]};
+								var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(fromTypeT.toComplexType())]};
 								switch (st.name) {
 									case "Int":
 										if (!hasFromFloat) {
 											if (i == 0) {
-												makeIntParser(parser, fromType.t);
+												makeIntParser(parser, fromTypeT);
 											}
 											else {
 												changeFunction("loadJsonNumber",
@@ -864,7 +864,7 @@ class DataBuilder {
 										}
 									case "Float":
 										if (i == 0) {
-												makeFloatParser(parser, fromType.t);
+												makeFloatParser(parser, fromTypeT);
 										}
 										else {
 											changeFunction("loadJsonNumber",
@@ -879,7 +879,7 @@ class DataBuilder {
 										hasOneFrom = true;
 									case "Bool":
 										if (i == 0) {
-											makeBoolParser(parser, fromType.t);
+											makeBoolParser(parser, fromTypeT);
 										}
 										else {
 											changeFunction("loadJsonBool",
@@ -909,7 +909,7 @@ class DataBuilder {
 							}
 						case TAnonymous(_.get()=>st):
 							if (i == 0) {
-								var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(fromType.t.toComplexType())]};
+								var cls = {name:baseParser.name, pack:baseParser.pack, params:[TPType(fromTypeT.toComplexType())]};
 									changeFunction("loadJsonObject", parser, macro {
 										value = cast new $cls(errors, putils, NONE).loadJson(
 											{value:JObject(o), pos:putils.revert(pos)},
