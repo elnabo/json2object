@@ -418,7 +418,7 @@ class DataBuilder {
 					else {
 						var e = switch(field.type) {
 							case TAbstract(_.get() => t, _) if (t.name == "Any"): macro null;
-							case TDynamic(_): macro null;
+							case TLazy(_) | TDynamic(_): macro null;
 							default: macro new $f_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}});
 						}
 						baseValues.push({field:field.name, expr:e #if (haxe_ver >= 4) , quotes:Unquoted #end});
@@ -934,7 +934,6 @@ class DataBuilder {
 	}
 
 	public static function makeParser(c:BaseType, type:Type, ?base:Type=null) {
-
 		if (base == null) { base = type; }
 
 		var parserMapName = base.toString();
