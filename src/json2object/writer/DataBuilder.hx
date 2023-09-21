@@ -210,11 +210,22 @@ class DataBuilder {
 					}
 					assignations.push(assignation);
 
-					skips.push(
-						field.meta.has(':optional')
-							? macro $f_a == null
-							: macro false
-					);
+					if (field.meta.has(':optional')) {
+						switch (field.type) {
+							case TAbstract(t, params):
+								if (t.toString() == "Null") {
+									// Null<Bool>
+									skips.push(macro $f_a == null);
+								} else {
+									// Bool
+									skips.push(macro false);
+								}
+							default:
+								skips.push(macro $f_a == null);
+						}
+					} else {
+						skips.push(macro false);
+					}
 
 				default:
 			}
