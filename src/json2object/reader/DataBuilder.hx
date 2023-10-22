@@ -43,7 +43,7 @@ class DataBuilder {
 	@:persistent
 	private static var counter = 0;
 	private static var parsers = new Map<String, Type>();
-	private static var callPosition:Null<haxe.macro.Position> = null;
+	private static var callPosition:Null<Position> = null;
 	private static var jcustom = ":jcustomparse";
 
 	private static function notNull(type:Type):Type {
