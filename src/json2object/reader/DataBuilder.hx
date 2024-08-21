@@ -39,10 +39,8 @@ typedef JsonType = {jtype:String, name:String, params:Array<Type>}
 typedef ParserInfo = {packs:Array<String>, clsName:String}
 
 class DataBuilder {
-
 	@:persistent
-	private static var counter = 0;
-	private static var parsers = new Map<String, Type>();
+	private static var parsers = new Map<String, Bool>();
 	private static var callPosition:Null<Position> = null;
 	private static var jcustom = ":jcustomparse";
 
@@ -936,9 +934,14 @@ class DataBuilder {
 	public static function makeParser(c:BaseType, type:Type, ?base:Type=null) {
 		if (base == null) { base = type; }
 
-		var parserMapName = base.toString();
-		if (parsers.exists(parserMapName)) {
-			return parsers.get(parserMapName);
+		var parserName = c.name + "_" + haxe.crypto.Md5.encode(base.toString());
+		var parser_cls = { name: parserName, pack: [], params: null, sub: null };
+
+		if (parsers.exists(parserName)) {
+			var resolved = TypeUtils.isAlive(TPath(parser_cls), Context.currentPos());
+			if (resolved != null) {
+				return resolved;
+			}
 		}
 
 		var defaultValueExpr:Expr = switch (type) {
@@ -955,7 +958,6 @@ class DataBuilder {
 			default: macro {};
 		}
 
-		var parserName = c.name + "_" + (counter++);
 		var parent = {name:"BaseParser", pack:["json2object", "reader"], params:[TPType(base.toComplexType())]};
 		var parser = macro class $parserName extends $parent {
 			public function new(?errors:Array<json2object.Error>=null, ?putils:json2object.PositionUtils=null, ?errorType:json2object.Error.ErrorType=json2object.Error.ErrorType.NONE) {
@@ -991,7 +993,6 @@ class DataBuilder {
 			});
 		}
 
-		var parser_cls = { name: parserName, pack: [], params: null, sub: null };
 		var getAutoExpr = macro return new $parser_cls([], putils, NONE).loadJson({value:JNull, pos:{file:"",min:0, max:1}});
 		var getAuto:Field = {
 			doc: null,
@@ -1080,9 +1081,9 @@ class DataBuilder {
 
 		haxe.macro.Context.defineType(parser);
 
-		var constructedType = haxe.macro.Context.getType(parserName);
-		parsers.set(parserMapName, constructedType);
-		return constructedType;
+		parsers.set(parserName, true);
+
+		return haxe.macro.Context.resolveType(TPath(parser_cls), Context.currentPos());
 
 	}
 

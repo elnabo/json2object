@@ -118,5 +118,9 @@ class TypeUtils
 
 		return t;
 	}
+
+	public static function isAlive(ct:ComplexType, pos:Position):Type {
+		return try Context.resolveType(ct, pos) catch(e) null;
+	}
 }
 #end

@@ -36,8 +36,7 @@ using json2object.utils.TypeTools;
 
 class DataBuilder {
 	@:persistent
-	private static var counter = 0;
-	private static var writers = new Map<String, Type>();
+	private static var writers = new Map<String, Bool>();
 	private static var jcustom = ":jcustomwrite";
 
 	private static function notNull (type:Type) : Type {
@@ -383,12 +382,16 @@ class DataBuilder {
 	public static function makeWriter (c:BaseType, type:Type, base:Type) {
         if (base == null) { base = type; }
 
-		var writerMapName = base.toString();
-		if (writers.exists(writerMapName)) {
-			return writers.get(writerMapName);
-		}
+		var writerName = c.name + "_" + haxe.crypto.Md5.encode(base.toString());
+		var writer_cls = { name: writerName, pack: [], params: null, sub: null };
 
-		var writerName = c.name + "_" + (counter++);
+		if (writers.exists(writerName)) {
+			var resolved = TypeUtils.isAlive(TPath(writer_cls), Context.currentPos());
+			if (resolved != null) {
+				return resolved;
+			}
+		}
+		
 		var writerClass = macro class $writerName {
 			public var ignoreNullOptionals : Bool;
 			private var shouldQuote : Bool = true;
@@ -514,10 +517,9 @@ class DataBuilder {
 
 		haxe.macro.Context.defineType(writerClass);
 
-		var constructedType = haxe.macro.Context.getType(writerName);
-		writers.set(writerMapName, constructedType);
-		return constructedType;
+		writers.set(writerName, true);
 
+		return Context.resolveType(TPath(writer_cls), Context.currentPos());
 	}
 
 	public static function build() {

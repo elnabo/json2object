@@ -42,12 +42,43 @@ typedef Definitions = Map<String, JsonType>;
 
 class DataBuilder {
 
-	static var BOOL = Context.getType("Bool");
-	static var FLOAT = Context.getType("Float");
-	static var STRING = Context.getType("String");
+	static var cachedBool:Type = null;
+	static var cachedFloat:Type = null;
+	static var cachedString:Type = null;
 
-	static var counter:Int = 0;
-	private static var writers = new Map<String, Type>();
+	static var BOOL(get, never):Type;
+	static var FLOAT(get, never):Type;
+	static var STRING(get, never):Type;
+
+	static function get_BOOL() {
+		return switch cachedBool {
+			case null:
+				cachedBool = Context.getType("Bool");
+			case cached:
+				cached;
+		}
+	}
+
+	static function get_FLOAT() {
+		return switch cachedFloat {
+			case null:
+				cachedFloat = Context.getType("Float");
+			case cached:
+				cached;
+		}
+	}
+
+	static function get_STRING() {
+		return switch cachedString {
+			case null:
+				cachedString = Context.getType("String");
+			case cached:
+				cached;
+		}
+	}
+
+	@:persistent
+	private static var writers = new Map<String, Bool>();
 
 	private inline static function describe (type:JsonType, descr:Null<String>) {
 		return (descr == null) ? type : JTWithDescr(type, descr);
@@ -413,7 +444,15 @@ class DataBuilder {
 	}
 
 	static function makeSchemaWriter(c:BaseType, type:Type, parsingType:ParsingType) {
-		var swriterName = c.name + "_" + (counter++);
+		var swriterName = c.name + "_" + haxe.crypto.Md5.encode(type.toString() + Std.string(parsingType));
+		var swriter_cls = { name: swriterName, pack: [], params: null, sub: null };
+
+		if (writers.exists(swriterName)) {
+			var resolved = TypeUtils.isAlive(TPath(swriter_cls), Context.currentPos());
+			if (resolved != null) {
+				return resolved;
+			}
+		}
 
 		var definitions = new Definitions();
 		var obj = format(makeSchema(type, definitions), definitions, parsingType);
@@ -436,8 +475,9 @@ class DataBuilder {
 		}
 		haxe.macro.Context.defineType(schemaWriter);
 
-		var constructedType = haxe.macro.Context.getType(swriterName);
-		return haxe.macro.Context.getType(swriterName);
+		writers.set(swriterName, true);
+
+		return Context.resolveType(TPath(swriter_cls), Context.currentPos());
 	}
 
 	public static function build() {
