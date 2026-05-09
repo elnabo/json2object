@@ -55,13 +55,18 @@ class BaseParser<T> {
 			loadJson(json);
 		}
 		catch (e:hxjsonast.Error) {
-			errors.push(ParserError(e.message, putils.convertPosition(e.pos)));
+			var convertedPos = null;
+			if (putils != null)
+				convertedPos = putils.convertPosition(e.pos);
+			errors.push(ParserError(e.message, convertedPos));
 		}
 		return value;
 	}
 
 	public function loadJson(json:hxjsonast.Json, variable:String="") : T {
-		var pos = putils.convertPosition(json.pos);
+		var pos = null;
+		if (putils != null)
+			pos = putils.convertPosition(json.pos);
 		switch (json.value) {
 			case JNull : loadJsonNull(pos, variable);
 			case JString(s) : loadJsonString(s, pos, variable);
@@ -223,7 +228,9 @@ class BaseParser<T> {
 	}
 
 	private function objectErrors(assigned:Map<String, Bool>, pos:Position) {
-		var lastPos:Null<json2object.Position> = putils.convertPosition({file:pos.file, min:pos.max-1, max:pos.max-1});
+		var lastPos:Null<json2object.Position> = null;
+		if (putils != null)
+			lastPos = putils.convertPosition({file:pos.file, min:pos.max-1, max:pos.max-1});
 		for (s in assigned.keys()) {
 			if (!assigned[s]) {
 				errors.push(UninitializedVariable(s, lastPos));
